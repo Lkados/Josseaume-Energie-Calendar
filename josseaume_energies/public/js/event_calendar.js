@@ -12,41 +12,31 @@ frappe.views.calendar["Event"] = {
 	order_by: "starts_on",
 	get_events_method: "frappe.desk.doctype.event.event.get_events",
 
-	// Configuration des options FullCalendar
+	// Configuration de base
 	options: {
 		initialView: "timeGridDay",
 		slotMinTime: "00:00:00",
 		slotMaxTime: "24:00:00",
-		// Diviser la journée en 3 grandes sections
 		slotDuration: "08:00:00",
-		// Personnalisation de l'affichage
-		allDayText: "Toute la journée",
-		// Permettre de cliquer pour créer des événements
 		selectable: true,
 		select: function (info) {
 			let title, startHour, endHour;
-
-			// Déterminer la plage horaire en fonction de l'heure du clic
 			const hour = info.start.getHours();
 
 			if (hour < 8) {
-				// Toute la journée
-				title = "Événement journée complète";
+				title = "Journée complète";
 				startHour = 8;
 				endHour = 20;
-			} else if (hour >= 8 && hour < 13) {
-				// Matin
+			} else if (hour >= 8 && hour < 16) {
 				title = "Rendez-vous Matin";
 				startHour = 8;
 				endHour = 13;
 			} else {
-				// Après-midi
 				title = "Rendez-vous Après-midi";
 				startHour = 14;
 				endHour = 20;
 			}
 
-			// Créer l'événement avec les heures ajustées
 			frappe.new_doc("Event", {
 				subject: title,
 				starts_on: frappe.datetime.get_datetime_as_string(
@@ -60,52 +50,29 @@ frappe.views.calendar["Event"] = {
 	},
 };
 
-// Attendre que la page soit chargée pour remplacer les étiquettes des créneaux
-$(document).ready(function () {
-	// S'exécuter après un délai pour s'assurer que le calendrier est bien chargé
-	setTimeout(function () {
-		// Remplacer les textes des étiquettes
-		$('.fc-timegrid-slot-label[data-time="00:00:00"] .fc-timegrid-slot-label-cushion').html(
-			"<strong>Toute la journée</strong>"
-		);
-		$('.fc-timegrid-slot-label[data-time="08:00:00"] .fc-timegrid-slot-label-cushion').html(
-			"<strong>Matin</strong>"
-		);
-		$('.fc-timegrid-slot-label[data-time="16:00:00"] .fc-timegrid-slot-label-cushion').html(
-			"<strong>Après-midi</strong>"
-		);
-	}, 500);
-});
-
 // Fonction pour remplacer les étiquettes
-function replaceLabels() {
-	// Nettoyer toutes les étiquettes horaires sauf celles que nous voulons
-	$(
-		'.fc-timegrid-slot-label:not([data-time="00:00:00"]):not([data-time="08:00:00"]):not([data-time="16:00:00"])'
-	).css("visibility", "hidden");
-
-	// Remplacer les textes des étiquettes que nous voulons garder
-	$('.fc-timegrid-slot-label[data-time="00:00:00"] .fc-timegrid-slot-label-cushion').html(
+function updateLabels() {
+	// Remplacer directement le contenu HTML des étiquettes
+	$('[data-time="00:00:00"] .fc-timegrid-slot-label-cushion').html(
 		"<strong>Toute la journée</strong>"
 	);
-	$('.fc-timegrid-slot-label[data-time="08:00:00"] .fc-timegrid-slot-label-cushion').html(
-		"<strong>Matin</strong>"
-	);
-	$('.fc-timegrid-slot-label[data-time="16:00:00"] .fc-timegrid-slot-label-cushion').html(
+	$('[data-time="08:00:00"] .fc-timegrid-slot-label-cushion').html("<strong>Matin</strong>");
+	$('[data-time="16:00:00"] .fc-timegrid-slot-label-cushion').html(
 		"<strong>Après-midi</strong>"
 	);
 }
 
-// Exécuter à chaque changement de vue ou navigation dans le calendrier
-$(document).on(
-	"click",
-	".fc-next-button, .fc-prev-button, .fc-today-button, .fc-timeGridDay-button, .fc-timeGridWeek-button, .fc-dayGridMonth-button",
-	function () {
-		setTimeout(replaceLabels, 200);
-	}
-);
+// Exécuter la fonction après le chargement initial du calendrier
+$(document).on("app_ready", function () {
+	setTimeout(updateLabels, 1000);
+});
 
-// Exécuter initialement après chargement complet
-$(document).ready(function () {
-	setTimeout(replaceLabels, 500);
+// Exécuter la fonction après chaque changement de vue
+$(document).on("click", ".fc-button", function () {
+	setTimeout(updateLabels, 300);
+});
+
+// S'assurer que les étiquettes sont remplacées même après rafraîchissement AJAX
+$(document).ajaxComplete(function () {
+	setTimeout(updateLabels, 300);
 });
