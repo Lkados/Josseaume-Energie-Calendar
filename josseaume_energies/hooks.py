@@ -242,3 +242,17 @@ app_license = "mit"
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
 
+# Charger le script JS pour le Doctype Event
+doctype_js = {
+    "Event": "public/js/event_calendar.js"
+}
+
+# Pour s'assurer que le script est chargé dans la vue liste également
+doctype_list_js = {
+    "Event": "public/js/event_calendar.js"
+}
+
+# Pour garantir que le script soit toujours chargé, vous pouvez aussi l'inclure globalement
+app_include_js = [
+    "public/js/event_calendar.js"
+]
