@@ -10,41 +10,36 @@ frappe.views.calendar["Event"] = {
 	},
 	options: {
 		initialView: "timeGridDay",
-		slotMinTime: "06:00:00",
-		slotMaxTime: "20:00:00",
-		// Diviser la journée en deux parties seulement (matin et après-midi)
-		slotDuration: "07:00:00",
-		headerToolbar: {
-			left: "prev,next today",
-			center: "title",
-			right: "dayGridMonth,timeGridWeek,timeGridDay,listWeek",
+		slotMinTime: "00:00:00",
+		slotMaxTime: "24:00:00",
+		// Utiliser seulement deux créneaux horaires pour la journée
+		slotDuration: "12:00:00",
+		// Remplacer le contenu des étiquettes de créneaux
+		slotLabelContent: function (arg) {
+			// Simplifier au maximum pour éviter les erreurs
+			if (arg.date.getHours() < 12) {
+				return { html: "<strong>Matin</strong>" };
+			} else {
+				return { html: "<strong>Après-midi</strong>" };
+			}
 		},
-		allDaySlot: true,
-		views: {
-			timeGridDay: {
-				// Configurer la vue jour avec seulement deux créneaux
-				slotLabelFormat: function (info) {
-					// Ne pas utiliser slotLabelContent car il peut causer des problèmes avec l'UI
-					const hour = info.date.getHours();
-					if (hour >= 6 && hour < 13) {
-						return "Matin";
-					} else if (hour >= 13 && hour < 20) {
-						return "Après-midi";
-					}
-					return "";
-				},
-			},
+		// Permettre de cliquer sur les créneaux pour créer des événements
+		selectable: true,
+		select: function (info) {
+			frappe.new_doc("Event", {
+				starts_on: frappe.datetime.get_datetime_as_string(info.start),
+				ends_on: frappe.datetime.get_datetime_as_string(info.end),
+			});
 		},
 	},
 	get_events_method: "frappe.desk.doctype.event.event.get_events",
 };
 
-// Assurez-vous que la vue Calendrier est définie par défaut
+// Définir la vue Calendrier comme vue par défaut
 frappe.listview_settings["Event"] = frappe.listview_settings["Event"] || {};
 frappe.listview_settings["Event"].onload = function (listview) {
 	if (!frappe.route_options || !frappe.route_options.view) {
-		frappe.route_options = frappe.route_options || {};
-		frappe.route_options.view = "Calendar";
+		frappe.set_route("List", "Event", "Calendar");
 	}
 };
 
