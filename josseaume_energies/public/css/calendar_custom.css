@@ -1,24 +1,26 @@
-/* Styles pour améliorer l'apparence */
-.fc-timegrid-slot-label-cushion {
-	font-weight: bold !important;
-	font-size: 14px !important;
-	color: #4a6ddc !important;
-}
+/* josseaume_energie_calendar/public/css/event_calendar.css */
 
-/* Couleurs différentes pour chaque section */
-[data-time="00:00:00"] .fc-timegrid-slot-label-cushion {
-	color: #606060 !important;
+.two-col-container {
+	display: flex;
+	justify-content: space-between;
+	margin: 1rem 0;
 }
-
-[data-time="08:00:00"] .fc-timegrid-slot-label-cushion {
-	color: #2c7be5 !important;
+.two-col-container .column {
+	flex: 1;
+	margin: 0 10px;
+	border: 1px solid #ddd;
+	padding: 10px;
+	background: #fafafa;
 }
-
-[data-time="16:00:00"] .fc-timegrid-slot-label-cushion {
-	color: #e67e22 !important;
+.two-col-container .column h3 {
+	text-align: center;
+	margin-top: 0;
+	color: #333;
 }
-
-/* Élargir la colonne des étiquettes */
-.fc .fc-timegrid-axis-cushion {
-	min-width: 100px !important;
+.two-col-container .column ul {
+	list-style-type: none;
+	padding-left: 0;
+}
+.two-col-container .column li {
+	margin-bottom: 5px;
 }

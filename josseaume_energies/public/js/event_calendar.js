@@ -1,78 +1,95 @@
-frappe.views.calendar["Event"] = {
-	field_map: {
-		start: "starts_on",
-		end: "ends_on",
-		id: "name",
-		title: "subject",
-		allDay: "all_day",
-		status: "event_type",
-		color: "color",
-	},
-	gantt: false,
-	order_by: "starts_on",
-	get_events_method: "frappe.desk.doctype.event.event.get_events",
+// josseaume_energie_calendar/public/js/event_calendar.js
 
-	// Configuration de base
-	options: {
-		initialView: "timeGridDay",
-		slotMinTime: "00:00:00",
-		slotMaxTime: "24:00:00",
-		slotDuration: "08:00:00",
-		selectable: true,
-		select: function (info) {
-			let title, startHour, endHour;
-			const hour = info.start.getHours();
-
-			if (hour < 8) {
-				title = "Journée complète";
-				startHour = 8;
-				endHour = 20;
-			} else if (hour >= 8 && hour < 16) {
-				title = "Rendez-vous Matin";
-				startHour = 8;
-				endHour = 13;
+frappe.ready(function () {
+	// Dès que le Desk est prêt, essayer d'attacher notre logique au calendrier d'Event
+	function attachDayViewHandler() {
+		// Vérifier qu'on est sur List / Event / Calendar
+		var route = frappe.get_route();
+		if (!(route[0] === "List" && route[1] === "Event" && route[2] === "Calendar")) {
+			return;
+		}
+		// Attendre que le calendrier FullCalendar soit initialisé dans le DOM
+		var calendarDiv = $("#calendar");
+		if (!calendarDiv.length || !calendarDiv.fullCalendar) {
+			setTimeout(attachDayViewHandler, 500);
+			return;
+		}
+		// Définir le callback viewRender pour intercepter l'affichage
+		calendarDiv.fullCalendar("option", "viewRender", function (view) {
+			// Si on est en vue journalière (agendaDay), appliquer la customisation
+			if (view.name === "agendaDay") {
+				applyTwoColumns();
 			} else {
-				title = "Rendez-vous Après-midi";
-				startHour = 14;
-				endHour = 20;
+				// Sinon, restaurer l'affichage standard si nécessaire
+				calendarDiv.find(".fc-agendaDay-view").show();
+				calendarDiv.find(".two-col-container").remove();
 			}
+		});
+		// Si la vue actuelle au chargement est déjà jour, appliquer tout de suite
+		var currentView = calendarDiv.fullCalendar("getView");
+		if (currentView && currentView.name === "agendaDay") {
+			applyTwoColumns();
+		}
+	}
 
-			frappe.new_doc("Event", {
-				subject: title,
-				starts_on: frappe.datetime.get_datetime_as_string(
-					moment(info.start).hour(startHour).minute(0).second(0).toDate()
-				),
-				ends_on: frappe.datetime.get_datetime_as_string(
-					moment(info.start).hour(endHour).minute(0).second(0).toDate()
-				),
-			});
-		},
-	},
-};
+	function applyTwoColumns() {
+		var calendarDiv = $("#calendar");
+		if (!calendarDiv.length) return;
 
-// Fonction pour remplacer les étiquettes
-function updateLabels() {
-	// Remplacer directement le contenu HTML des étiquettes
-	$('[data-time="00:00:00"] .fc-timegrid-slot-label-cushion').html(
-		"<strong>Toute la journée</strong>"
-	);
-	$('[data-time="08:00:00"] .fc-timegrid-slot-label-cushion').html("<strong>Matin</strong>");
-	$('[data-time="16:00:00"] .fc-timegrid-slot-label-cushion').html(
-		"<strong>Après-midi</strong>"
-	);
-}
+		// Cacher la vue par défaut de FullCalendar (agendaDay)
+		calendarDiv.find(".fc-agendaDay-view").hide();
+		// Récupérer tous les événements chargés par FullCalendar
+		var events = calendarDiv.fullCalendar("clientEvents");
+		// Séparer matin (< 13h) et après-midi (>= 13h)
+		var morningEvents = events.filter(function (e) {
+			return e.start.format("H") < 13;
+		});
+		var afternoonEvents = events.filter(function (e) {
+			return e.start.format("H") >= 13;
+		});
+		// Trier par heure de début croissante
+		morningEvents.sort(function (a, b) {
+			return a.start - b.start;
+		});
+		afternoonEvents.sort(function (a, b) {
+			return a.start - b.start;
+		});
 
-// Exécuter la fonction après le chargement initial du calendrier
-$(document).on("app_ready", function () {
-	setTimeout(updateLabels, 1000);
-});
+		// Générer le HTML des deux colonnes
+		var html = "<div class='two-col-container'>";
+		// Colonne Matin
+		html += "<div class='column matin'><h3>Matin</h3><ul>";
+		morningEvents.forEach(function (e) {
+			var start = e.start.format("HH:mm");
+			var end = e.end ? e.end.format("HH:mm") : "";
+			html += "<li>";
+			html += "<strong>" + start;
+			if (end) html += " - " + end;
+			html += "</strong>: ";
+			// Lien vers l'événement (form Event)
+			html += "<a href='#Form/Event/" + e.id + "'>" + e.title + "</a>";
+			html += "</li>";
+		});
+		html += "</ul></div>";
+		// Colonne Après-midi
+		html += "<div class='column apres-midi'><h3>Après-midi</h3><ul>";
+		afternoonEvents.forEach(function (e) {
+			var start = e.start.format("HH:mm");
+			var end = e.end ? e.end.format("HH:mm") : "";
+			html += "<li>";
+			html += "<strong>" + start;
+			if (end) html += " - " + end;
+			html += "</strong>: ";
+			html += "<a href='#Form/Event/" + e.id + "'>" + e.title + "</a>";
+			html += "</li>";
+		});
+		html += "</ul></div>";
+		html += "</div>";
 
-// Exécuter la fonction après chaque changement de vue
-$(document).on("click", ".fc-button", function () {
-	setTimeout(updateLabels, 300);
-});
+		// Ajouter le HTML sous le calendrier (ou à la place)
+		calendarDiv.find(".fc-view-container").append(html);
+	}
 
-// S'assurer que les étiquettes sont remplacées même après rafraîchissement AJAX
-$(document).ajaxComplete(function () {
-	setTimeout(updateLabels, 300);
+	// Lancer l'attachement après un léger délai (pour être sûr que frappe.ready a configuré le route)
+	setTimeout(attachDayViewHandler, 1000);
 });
