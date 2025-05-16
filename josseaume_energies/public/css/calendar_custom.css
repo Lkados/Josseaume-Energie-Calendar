@@ -1,77 +1,14 @@
-/* MASQUER COMPLÈTEMENT TOUTES LES ÉTIQUETTES HORAIRES EXISTANTES */
-.fc-timegrid-slot-label {
-	display: none !important;
-}
-
-/* AJOUTER NOS PROPRES ÉTIQUETTES MATIN ET APRÈS-MIDI */
-.fc-timegrid-axis:before,
-.fc-timegrid-axis:after {
-	position: absolute;
-	left: 0;
-	width: 100%;
-	padding: 5px;
-	font-weight: bold;
-	text-align: center;
-	box-sizing: border-box;
-	z-index: 5;
-}
-
-/* SECTION MATIN */
-.fc-timegrid-axis:before {
-	content: "MATIN";
-	top: 60px;
-	height: 300px;
-	background-color: rgba(200, 230, 255, 0.2);
-	color: #4a6ddc;
-	font-size: 16px;
-	border-bottom: 1px solid #ddd;
-}
-
-/* SECTION APRÈS-MIDI */
-.fc-timegrid-axis:after {
-	content: "APRÈS-MIDI";
-	top: 360px;
-	height: 300px;
-	background-color: rgba(255, 230, 200, 0.2);
-	color: #d67e46;
-	font-size: 16px;
-}
-
-/* ÉTENDRE LA COULEUR SUR TOUTE LA LIGNE */
-.fc-timegrid-axis.fc-scrollgrid-shrink {
-	position: relative;
-}
-
-/* SECTIONS COLORÉES SUR TOUTE LA LARGEUR */
-.fc-timegrid-cols td:before,
-.fc-timegrid-cols td:after {
-	content: "";
-	position: absolute;
-	left: 0;
-	width: 100%;
-	z-index: 1;
-	pointer-events: none;
-}
-
-.fc-timegrid-cols td:before {
-	top: 0;
-	height: 300px;
-	background-color: rgba(200, 230, 255, 0.1);
-}
-
-.fc-timegrid-cols td:after {
-	top: 300px;
-	height: 300px;
-	background-color: rgba(255, 230, 200, 0.1);
-}
-
-/* AJUSTER LES DIMENSIONS DE LA COLONNE DES HEURES */
+/* Élargir la colonne des étiquettes */
 .fc .fc-timegrid-axis-cushion {
-	min-width: 100px !important;
-	max-width: 100px !important;
+	min-width: 80px !important;
+	font-weight: bold;
 }
 
-/* MASQUER LA DEMIE-HEURE ET ALIGNER LES HEURES */
-.fc-timegrid-slot.fc-timegrid-slot-minor {
-	border-top: none !important;
+/* Couleurs pour les sections Matin/Après-midi */
+.fc-timegrid-slot[data-time="06:00:00"] {
+	background-color: rgba(200, 230, 255, 0.2);
+}
+
+.fc-timegrid-slot[data-time="12:00:00"] {
+	background-color: rgba(255, 230, 200, 0.2);
 }

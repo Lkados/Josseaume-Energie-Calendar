@@ -8,9 +8,17 @@ app_license = "MIT"
 # Includes in <head>
 # ------------------
 
-# include js, css files in header of desk.html
+# Retirer ou commenter les lignes existantes
+# doctype_js = {"Event": "public/js/event_calendar.js"}
+# doctype_list_js = {"Event": "public/js/event_calendar.js"}
+
+# Utiliser le hook spécifique pour la vue Calendrier
+doctype_calendar_js = {
+    "Event": "public/js/event_calendar.js"
+}
+
+# Garder cette ligne pour inclure le CSS
 app_include_css = ["/assets/josseaume_energies/css/calendar_custom.css"]
-app_include_js = ["/assets/josseaume_energies/js/event_calendar.js"]
 
 # include js, css files in header of web template
 # web_include_css = "/assets/josseaume_energies/css/josseaume_energies.css"
@@ -26,9 +34,7 @@ app_include_js = ["/assets/josseaume_energies/js/event_calendar.js"]
 # include js in page
 # page_js = {"page" : "public/js/file.js"}
 
-# include js in doctype views
-doctype_js = {"Event": "public/js/event_calendar.js"}
-doctype_list_js = {"Event": "public/js/event_calendar.js"}
+
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 
