@@ -1,32 +1,16 @@
 app_name = "josseaume_energies"
 app_title = "Josseaume Energies"
-app_publisher = "Mohamed Kachtit"
+app_publisher = "Josseaume Energies"
 app_description = "Application pour Josseaume Energies ERP"
-app_email = "mokachtit@gmail.com"
-app_license = "mit"
-
-# Apps
-# ------------------
-
-# required_apps = []
-
-# Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "josseaume_energies",
-# 		"logo": "/assets/josseaume_energies/logo.png",
-# 		"title": "Josseaume Energies",
-# 		"route": "/josseaume_energies",
-# 		"has_permission": "josseaume_energies.api.permission.has_app_permission"
-# 	}
-# ]
+app_email = "info@josseaume-energies.com"
+app_license = "MIT"
 
 # Includes in <head>
 # ------------------
 
 # include js, css files in header of desk.html
-# app_include_css = "/assets/josseaume_energies/css/josseaume_energies.css"
-# app_include_js = "/assets/josseaume_energies/js/josseaume_energies.js"
+app_include_css = ["/assets/josseaume_energies/css/calendar_custom.css"]
+app_include_js = ["/assets/josseaume_energies/js/event_calendar.js"]
 
 # include js, css files in header of web template
 # web_include_css = "/assets/josseaume_energies/css/josseaume_energies.css"
@@ -43,15 +27,10 @@ app_license = "mit"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
-# doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
+doctype_js = {"Event": "public/js/event_calendar.js"}
+doctype_list_js = {"Event": "public/js/event_calendar.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
-
-# Svg Icons
-# ------------------
-# include app icons in desk
-# app_include_icons = "josseaume_energies/public/icons.svg"
 
 # Home Pages
 # ----------
@@ -61,7 +40,7 @@ app_license = "mit"
 
 # website user home page (by Role)
 # role_home_page = {
-# 	"Role": "home_page"
+#	"Role": "home_page"
 # }
 
 # Generators
@@ -75,8 +54,8 @@ app_license = "mit"
 
 # add methods and filters to jinja environment
 # jinja = {
-# 	"methods": "josseaume_energies.utils.jinja_methods",
-# 	"filters": "josseaume_energies.utils.jinja_filters"
+#	"methods": "josseaume_energies.utils.jinja_methods",
+#	"filters": "josseaume_energies.utils.jinja_filters"
 # }
 
 # Installation
@@ -91,22 +70,6 @@ app_license = "mit"
 # before_uninstall = "josseaume_energies.uninstall.before_uninstall"
 # after_uninstall = "josseaume_energies.uninstall.after_uninstall"
 
-# Integration Setup
-# ------------------
-# To set up dependencies/integrations with other apps
-# Name of the app being installed is passed as an argument
-
-# before_app_install = "josseaume_energies.utils.before_app_install"
-# after_app_install = "josseaume_energies.utils.after_app_install"
-
-# Integration Cleanup
-# -------------------
-# To clean up dependencies/integrations with other apps
-# Name of the app being uninstalled is passed as an argument
-
-# before_app_uninstall = "josseaume_energies.utils.before_app_uninstall"
-# after_app_uninstall = "josseaume_energies.utils.after_app_uninstall"
-
 # Desk Notifications
 # ------------------
 # See frappe.core.notifications.get_notification_config
@@ -118,11 +81,11 @@ app_license = "mit"
 # Permissions evaluated in scripted ways
 
 # permission_query_conditions = {
-# 	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
+#	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
 # }
 #
 # has_permission = {
-# 	"Event": "frappe.desk.doctype.event.event.has_permission",
+#	"Event": "frappe.desk.doctype.event.event.has_permission",
 # }
 
 # DocType Class
@@ -130,7 +93,7 @@ app_license = "mit"
 # Override standard doctype classes
 
 # override_doctype_class = {
-# 	"ToDo": "custom_app.overrides.CustomToDo"
+#	"ToDo": "custom_app.overrides.CustomToDo"
 # }
 
 # Document Events
@@ -138,32 +101,32 @@ app_license = "mit"
 # Hook on document methods and events
 
 # doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
+#	"*": {
+#		"on_update": "method",
+#		"on_cancel": "method",
+#		"on_trash": "method"
+#	}
 # }
 
 # Scheduled Tasks
 # ---------------
 
 # scheduler_events = {
-# 	"all": [
-# 		"josseaume_energies.tasks.all"
-# 	],
-# 	"daily": [
-# 		"josseaume_energies.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"josseaume_energies.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"josseaume_energies.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"josseaume_energies.tasks.monthly"
-# 	],
+#	"all": [
+#		"josseaume_energies.tasks.all"
+#	],
+#	"daily": [
+#		"josseaume_energies.tasks.daily"
+#	],
+#	"hourly": [
+#		"josseaume_energies.tasks.hourly"
+#	],
+#	"weekly": [
+#		"josseaume_energies.tasks.weekly"
+#	],
+#	"monthly": [
+#		"josseaume_energies.tasks.monthly"
+#	],
 # }
 
 # Testing
@@ -175,14 +138,14 @@ app_license = "mit"
 # ------------------------------
 #
 # override_whitelisted_methods = {
-# 	"frappe.desk.doctype.event.event.get_events": "josseaume_energies.event.get_events"
+#	"frappe.desk.doctype.event.event.get_events": "josseaume_energies.event.get_events"
 # }
 #
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
 # along with any modifications made in other Frappe apps
 # override_doctype_dashboards = {
-# 	"Task": "josseaume_energies.task.get_dashboard_data"
+#	"Task": "josseaume_energies.task.get_dashboard_data"
 # }
 
 # exempt linked doctypes from being automatically cancelled
@@ -208,51 +171,29 @@ app_license = "mit"
 # --------------------
 
 # user_data_fields = [
-# 	{
-# 		"doctype": "{doctype_1}",
-# 		"filter_by": "{filter_by}",
-# 		"redact_fields": ["{field_1}", "{field_2}"],
-# 		"partial": 1,
-# 	},
-# 	{
-# 		"doctype": "{doctype_2}",
-# 		"filter_by": "{filter_by}",
-# 		"partial": 1,
-# 	},
-# 	{
-# 		"doctype": "{doctype_3}",
-# 		"strict": False,
-# 	},
-# 	{
-# 		"doctype": "{doctype_4}"
-# 	}
+#	{
+#		"doctype": "{doctype_1}",
+#		"filter_by": "{filter_by}",
+#		"redact_fields": ["{field_1}", "{field_2}"],
+#		"partial": 1,
+#	},
+#	{
+#		"doctype": "{doctype_2}",
+#		"filter_by": "{filter_by}",
+#		"partial": 1,
+#	},
+#	{
+#		"doctype": "{doctype_3}",
+#		"strict": False,
+#	},
+#	{
+#		"doctype": "{doctype_4}"
+#	}
 # ]
 
 # Authentication and authorization
 # --------------------------------
 
 # auth_hooks = [
-# 	"josseaume_energies.auth.validate"
+#	"josseaume_energies.auth.validate"
 # ]
-
-# Automatically update python controller files with type annotations for this app.
-# export_python_type_annotations = True
-
-# default_log_clearing_doctypes = {
-# 	"Logging DocType Name": 30  # days to retain logs
-# }
-
-# Charger le script JS pour le Doctype Event
-doctype_js = {
-    "Event": "public/js/event_calendar.js"
-}
-
-# Pour s'assurer que le script est chargé dans la vue liste également
-doctype_list_js = {
-    "Event": "public/js/event_calendar.js"
-}
-
-# Pour garantir que le script soit toujours chargé, vous pouvez aussi l'inclure globalement
-app_include_js = [
-    "public/js/event_calendar.js"
-]

@@ -12,27 +12,71 @@ frappe.views.calendar["Event"] = {
 		initialView: "timeGridDay",
 		slotMinTime: "00:00:00",
 		slotMaxTime: "24:00:00",
-		// Utiliser seulement deux créneaux horaires pour la journée
-		slotDuration: "12:00:00",
-		// Remplacer le contenu des étiquettes de créneaux
-		slotLabelContent: function (arg) {
-			// Simplifier au maximum pour éviter les erreurs
-			if (arg.date.getHours() < 12) {
-				return { html: "<strong>Matin</strong>" };
-			} else {
-				return { html: "<strong>Après-midi</strong>" };
-			}
+		slotDuration: "12:00:00", // Deux créneaux de 12h chacun
+		allDaySlot: true,
+		dayHeaders: true,
+		// Configuration spécifique pour la vue jour
+		views: {
+			timeGridDay: {
+				// Utiliser un format personnalisé pour les étiquettes d'heures
+				slotLabelFormat: function (date) {
+					return ""; // Retourner une chaîne vide pour cacher les labels d'origine
+				},
+				// Personnaliser complètement le contenu des étiquettes
+				slotLabelContent: function (arg) {
+					// Simplifier pour éviter les erreurs
+					if (arg.date.getHours() === 0) {
+						return {
+							html: "<strong style='color:#4a6ddc;font-size:14px;'>Matin</strong>",
+						};
+					} else if (arg.date.getHours() === 12) {
+						return {
+							html: "<strong style='color:#4a6ddc;font-size:14px;'>Après-midi</strong>",
+						};
+					}
+					return { html: "" };
+				},
+			},
 		},
 		// Permettre de cliquer sur les créneaux pour créer des événements
 		selectable: true,
 		select: function (info) {
+			// Déterminer si c'est matin ou après-midi
+			let period = "Matin";
+			let startHour = 8;
+			let endHour = 12;
+
+			if (info.start.getHours() >= 12) {
+				period = "Après-midi";
+				startHour = 14;
+				endHour = 18;
+			}
+
+			// Créer l'événement avec des heures raisonnables selon la période
 			frappe.new_doc("Event", {
-				starts_on: frappe.datetime.get_datetime_as_string(info.start),
-				ends_on: frappe.datetime.get_datetime_as_string(info.end),
+				subject: "Nouvel événement - " + period,
+				starts_on: frappe.datetime.get_datetime_as_string(
+					moment(info.start).hour(startHour).minute(0).second(0).toDate()
+				),
+				ends_on: frappe.datetime.get_datetime_as_string(
+					moment(info.start).hour(endHour).minute(0).second(0).toDate()
+				),
 			});
+		},
+		// Ajout d'une classe CSS personnalisée aux créneaux
+		slotClassNames: function (arg) {
+			if (arg.date.getHours() < 12) {
+				return ["morning-slot"];
+			} else {
+				return ["afternoon-slot"];
+			}
 		},
 	},
 	get_events_method: "frappe.desk.doctype.event.event.get_events",
+	// Stocker une référence au calendrier après son initialisation
+	onload: function (cal) {
+		frappe.views.calendar["Event"].calendar = cal;
+	},
 };
 
 // Définir la vue Calendrier comme vue par défaut
@@ -43,29 +87,42 @@ frappe.listview_settings["Event"].onload = function (listview) {
 	}
 };
 
-// Préserver la fonctionnalité d'ajout d'événement
-$(document).on("click", ".fc-timeGridDay-view .fc-timegrid-slot", function (e) {
-	if (!frappe.views.calendar["Event"].calendar) return;
+// Ajouter du CSS personnalisé directement dans le JavaScript
+$(document).ready(function () {
+	// Injecter le CSS pour les créneaux horaires
+	$("<style>")
+		.prop("type", "text/css")
+		.html(
+			`
+            /* Styles pour les créneaux Matin/Après-midi */
+            .fc-timegrid-slot.morning-slot {
+                background-color: rgba(243, 249, 255, 0.2);
+            }
+            .fc-timegrid-slot.afternoon-slot {
+                background-color: rgba(255, 248, 243, 0.2);
+            }
+            /* Élargir la colonne des heures */
+            .fc .fc-timegrid-axis-cushion {
+                min-width: 80px !important;
+                font-weight: bold;
+            }
+            /* Cacher les heures inutiles */
+            .fc-timegrid-slot-label[data-time]:not([data-time="00:00:00"]):not([data-time="12:00:00"]) .fc-timegrid-slot-label-frame {
+                visibility: hidden;
+            }
+        `
+		)
+		.appendTo("head");
+});
 
-	const calendar = frappe.views.calendar["Event"].calendar;
-	const event = calendar.getEvents();
-	const date = calendar.getDate();
-
-	// Obtenir le moment du clic
-	const slot = $(e.target).closest(".fc-timegrid-slot");
-	const hour = parseInt(slot.attr("data-time").split(":")[0]) || 8;
-
-	// Créer un nouvel événement
-	frappe.new_doc("Event", {
-		starts_on:
-			frappe.datetime.add_days(frappe.datetime.nowdate(), date.getDay() - moment().day()) +
-			" " +
-			hour +
-			":00:00",
-		ends_on:
-			frappe.datetime.add_days(frappe.datetime.nowdate(), date.getDay() - moment().day()) +
-			" " +
-			(hour + 1) +
-			":00:00",
-	});
+// Assurer la compatibilité avec différentes versions de FullCalendar
+$(document).on("app_ready", function () {
+	// Vérifier si on est sur la page des événements et forcer la vue calendrier
+	if (
+		frappe.get_route()[0] === "List" &&
+		frappe.get_route()[1] === "Event" &&
+		!frappe.get_route()[2]
+	) {
+		frappe.set_route("List", "Event", "Calendar");
+	}
 });
