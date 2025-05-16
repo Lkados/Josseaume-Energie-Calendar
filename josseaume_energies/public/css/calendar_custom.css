@@ -1,61 +1,77 @@
-/* Masquer toutes les étiquettes horaires par défaut */
-.fc-timegrid-slot-label-cushion {
+/* MASQUER COMPLÈTEMENT TOUTES LES ÉTIQUETTES HORAIRES EXISTANTES */
+.fc-timegrid-slot-label {
 	display: none !important;
 }
 
-/* Ajouter nos propres étiquettes "Matin" et "Après-midi" */
-.fc-timegrid-slot-label[data-time="00:00:00"] .fc-timegrid-slot-label-frame:after,
-.fc-timegrid-slot-label[data-time="01:00:00"] .fc-timegrid-slot-label-frame:after,
-.fc-timegrid-slot-label[data-time="02:00:00"] .fc-timegrid-slot-label-frame:after,
-.fc-timegrid-slot-label[data-time="03:00:00"] .fc-timegrid-slot-label-frame:after,
-.fc-timegrid-slot-label[data-time="04:00:00"] .fc-timegrid-slot-label-frame:after,
-.fc-timegrid-slot-label[data-time="05:00:00"] .fc-timegrid-slot-label-frame:after,
-.fc-timegrid-slot-label[data-time="06:00:00"] .fc-timegrid-slot-label-frame:after,
-.fc-timegrid-slot-label[data-time="07:00:00"] .fc-timegrid-slot-label-frame:after,
-.fc-timegrid-slot-label[data-time="08:00:00"] .fc-timegrid-slot-label-frame:after,
-.fc-timegrid-slot-label[data-time="09:00:00"] .fc-timegrid-slot-label-frame:after,
-.fc-timegrid-slot-label[data-time="10:00:00"] .fc-timegrid-slot-label-frame:after,
-.fc-timegrid-slot-label[data-time="11:00:00"] .fc-timegrid-slot-label-frame:after {
-	content: "Matin";
-	font-weight: bold;
-	display: block;
+/* AJOUTER NOS PROPRES ÉTIQUETTES MATIN ET APRÈS-MIDI */
+.fc-timegrid-axis:before,
+.fc-timegrid-axis:after {
 	position: absolute;
-	left: 8px;
-	top: 5px;
+	left: 0;
+	width: 100%;
+	padding: 5px;
+	font-weight: bold;
+	text-align: center;
+	box-sizing: border-box;
+	z-index: 5;
 }
 
-.fc-timegrid-slot-label[data-time="12:00:00"] .fc-timegrid-slot-label-frame:after,
-.fc-timegrid-slot-label[data-time="13:00:00"] .fc-timegrid-slot-label-frame:after,
-.fc-timegrid-slot-label[data-time="14:00:00"] .fc-timegrid-slot-label-frame:after,
-.fc-timegrid-slot-label[data-time="15:00:00"] .fc-timegrid-slot-label-frame:after,
-.fc-timegrid-slot-label[data-time="16:00:00"] .fc-timegrid-slot-label-frame:after,
-.fc-timegrid-slot-label[data-time="17:00:00"] .fc-timegrid-slot-label-frame:after,
-.fc-timegrid-slot-label[data-time="18:00:00"] .fc-timegrid-slot-label-frame:after,
-.fc-timegrid-slot-label[data-time="19:00:00"] .fc-timegrid-slot-label-frame:after,
-.fc-timegrid-slot-label[data-time="20:00:00"] .fc-timegrid-slot-label-frame:after,
-.fc-timegrid-slot-label[data-time="21:00:00"] .fc-timegrid-slot-label-frame:after,
-.fc-timegrid-slot-label[data-time="22:00:00"] .fc-timegrid-slot-label-frame:after,
-.fc-timegrid-slot-label[data-time="23:00:00"] .fc-timegrid-slot-label-frame:after {
-	content: "Après-midi";
-	font-weight: bold;
-	display: block;
-	position: absolute;
-	left: 8px;
-	top: 5px;
+/* SECTION MATIN */
+.fc-timegrid-axis:before {
+	content: "MATIN";
+	top: 60px;
+	height: 300px;
+	background-color: rgba(200, 230, 255, 0.2);
+	color: #4a6ddc;
+	font-size: 16px;
+	border-bottom: 1px solid #ddd;
 }
 
-/* Agrandi la colonne des horaires pour que le texte tienne */
+/* SECTION APRÈS-MIDI */
+.fc-timegrid-axis:after {
+	content: "APRÈS-MIDI";
+	top: 360px;
+	height: 300px;
+	background-color: rgba(255, 230, 200, 0.2);
+	color: #d67e46;
+	font-size: 16px;
+}
+
+/* ÉTENDRE LA COULEUR SUR TOUTE LA LIGNE */
+.fc-timegrid-axis.fc-scrollgrid-shrink {
+	position: relative;
+}
+
+/* SECTIONS COLORÉES SUR TOUTE LA LARGEUR */
+.fc-timegrid-cols td:before,
+.fc-timegrid-cols td:after {
+	content: "";
+	position: absolute;
+	left: 0;
+	width: 100%;
+	z-index: 1;
+	pointer-events: none;
+}
+
+.fc-timegrid-cols td:before {
+	top: 0;
+	height: 300px;
+	background-color: rgba(200, 230, 255, 0.1);
+}
+
+.fc-timegrid-cols td:after {
+	top: 300px;
+	height: 300px;
+	background-color: rgba(255, 230, 200, 0.1);
+}
+
+/* AJUSTER LES DIMENSIONS DE LA COLONNE DES HEURES */
 .fc .fc-timegrid-axis-cushion {
-	min-width: 80px !important;
+	min-width: 100px !important;
+	max-width: 100px !important;
 }
 
-/* Style spécifique pour 06:00 (matin) et 12:00 (après-midi) pour les rendre plus visibles */
-.fc-timegrid-slot-label[data-time="06:00:00"] .fc-timegrid-slot-label-frame:after {
-	font-size: 14px;
-	color: #4a6ddc;
-}
-
-.fc-timegrid-slot-label[data-time="12:00:00"] .fc-timegrid-slot-label-frame:after {
-	font-size: 14px;
-	color: #4a6ddc;
+/* MASQUER LA DEMIE-HEURE ET ALIGNER LES HEURES */
+.fc-timegrid-slot.fc-timegrid-slot-minor {
+	border-top: none !important;
 }
