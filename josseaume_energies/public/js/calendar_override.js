@@ -1,86 +1,85 @@
-frappe.views.calendar["Event"] = {
-	field_map: {
-		start: "starts_on",
-		end: "ends_on",
-		id: "name",
-		title: "subject",
-		allDay: "all_day",
-	},
-	options: {
-		defaultView: "agendaDay",
-		onload: function () {
-			console.log("✅ Josseaume Calendrier personnalisé actif");
+/* josseaume_energies/public/css/calendar_custom.css */
 
-			// Attente active du DOM de fullcalendar
-			const interval = setInterval(() => {
-				const calendarDom = document.querySelector(".calendar");
-				const contentDom = document.querySelector(".layout-main-section");
+/* Styles pour les sections personnalisées */
+.custom-calendar-sections {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
 
-				if (calendarDom && contentDom) {
-					clearInterval(interval); // stop check
+.matin-section, .apres-midi-section {
+    position: absolute;
+    left: 0;
+    width: 90px;
+    text-align: center;
+    padding: 5px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 4px;
+}
 
-					// Charger les événements du jour
-					const today = frappe.datetime.get_today();
+.matin-section {
+    top: 110px;
+    background-color: rgba(200, 230, 255, 0.2);
+    border: 1px solid #b0d0f0;
+}
 
-					frappe.call({
-						method: "frappe.desk.calendar.get_events",
-						args: {
-							start: today,
-							end: today,
-							doctype: "Event",
-						},
-						callback: function (r) {
-							const events = r.message || [];
-							const morning = events.filter(
-								(e) => new Date(e.start).getHours() < 13
-							);
-							const afternoon = events.filter(
-								(e) => new Date(e.start).getHours() >= 13
-							);
+.apres-midi-section {
+    top: 330px;
+    background-color: rgba(255, 230, 200, 0.2);
+    border: 1px solid #f0d0b0;
+}
 
-							// Cacher le calendrier natif
-							$(".calendar").hide();
-							$(".custom-morning-afternoon-view").remove();
+.matin-section h3, .apres-midi-section h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: bold;
+}
 
-							const html = `
-                                <div class="custom-morning-afternoon-view row" style="padding: 20px;">
-                                    <div class="col-md-6">
-                                        <h4>🕗 Matin</h4>
-                                        ${morning
-											.map(
-												(e) => `
-                                            <div style="margin-bottom:10px;padding:10px;border:1px solid #ccc;border-radius:5px;">
-                                                <strong>${e.title}</strong><br>
-                                                <small>${frappe.datetime.str_to_user(
-													e.start
-												)}</small>
-                                            </div>
-                                        `
-											)
-											.join("")}
-                                    </div>
-                                    <div class="col-md-6">
-                                        <h4>🕑 Après-midi</h4>
-                                        ${afternoon
-											.map(
-												(e) => `
-                                            <div style="margin-bottom:10px;padding:10px;border:1px solid #ccc;border-radius:5px;">
-                                                <strong>${e.title}</strong><br>
-                                                <small>${frappe.datetime.str_to_user(
-													e.start
-												)}</small>
-                                            </div>
-                                        `
-											)
-											.join("")}
-                                    </div>
-                                </div>
-                            `;
-							$(contentDom).append(html);
-						},
-					});
-				}
-			}, 300); // check toutes les 300ms
-		},
-	},
-};
+.matin-section h3 {
+    color: #4a6ddc;
+}
+
+.apres-midi-section h3 {
+    color: #d67e46;
+}
+
+.time-range {
+    font-size: 12px;
+    color: #777;
+}
+
+/* Coloration des événements selon leur section */
+.morning-event {
+    border-left: 4px solid #4a6ddc !important;
+}
+
+.afternoon-event {
+    border-left: 4px solid #d67e46 !important;
+}
+
+/* Amélioration des événements */
+.fc-timegrid-event {
+    border-radius: 4px !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+    padding: 2px 6px !important;
+}
+
+/* Masquer les étiquettes horaires existantes */
+.fc-timegrid-slot-label-cushion {
+    visibility: hidden;
+}
+
+/* Élargir la colonne des étiquettes */
+.fc .fc-timegrid-axis-cushion {
+    min-width: 90px !important;
+}
+
+/* Style au survol des plages horaires */
+.fc-timegrid-slot:hover {
+    background-color: rgba(180, 180, 180, 0.1) !important;
+    cursor: pointer;
+}
