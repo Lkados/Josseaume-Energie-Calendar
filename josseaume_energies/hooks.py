@@ -11,7 +11,7 @@ app_version = "0.1.0"
 # Inclure notre JS/CSS personnalisé dans le Desk
 app_include_js = ["/assets/josseaume_energies/js/event_calendar.js"]
 app_include_css = ["/assets/josseaume_energies/css/calendar_custom.css"]
-app_include_js = ["/assets/josseaume_energie/js/calendar_override.js"]
+app_include_js = ["/assets/josseaume_energies/js/calendar_override.js"]
 
 
 # Optionnel : utiliser le hook doctype_calendar_js pour cibler spécifiquement Event
