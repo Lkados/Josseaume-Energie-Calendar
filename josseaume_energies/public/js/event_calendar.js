@@ -9,9 +9,8 @@ frappe.views.calendar["Event"] = {
 	options: {
 		defaultView: "agendaDay",
 		onload: function (calendar) {
-			console.log("Calendrier personnalisé chargé");
+			console.log("Calendrier personnalisé Josseaume Énergies chargé");
 
-			// Injecter ici ta logique "Matin" / "Après-midi"
 			setTimeout(() => {
 				const today = frappe.datetime.get_today();
 				frappe.call({
@@ -30,28 +29,48 @@ frappe.views.calendar["Event"] = {
 							(evt) => new Date(evt.start).getHours() >= 13
 						);
 
-						$(".calendar-view").hide(); // Cache le fullcalendar
+						// Cache le calendrier FullCalendar
+						$(".calendar").hide();
 
+						// Supprime le contenu si déjà injecté
+						$(".custom-morning-afternoon-view").remove();
+
+						// Injecte le nouveau HTML
 						const html = `
-                            <div class="row" style="padding: 20px;">
+                            <div class="custom-morning-afternoon-view row" style="margin: 20px;">
                                 <div class="col-md-6">
-                                    <h4>Matin</h4>
+                                    <h4 style="margin-bottom:10px;">Matin</h4>
                                     ${morning
-										.map((e) => `<p>${e.title} - ${e.start}</p>`)
+										.map(
+											(e) =>
+												`<div style="margin-bottom:5px;"><strong>${
+													e.title
+												}</strong><br>${frappe.datetime.str_to_user(
+													e.start
+												)}</div>`
+										)
 										.join("")}
                                 </div>
                                 <div class="col-md-6">
-                                    <h4>Après-midi</h4>
+                                    <h4 style="margin-bottom:10px;">Après-midi</h4>
                                     ${afternoon
-										.map((e) => `<p>${e.title} - ${e.start}</p>`)
+										.map(
+											(e) =>
+												`<div style="margin-bottom:5px;"><strong>${
+													e.title
+												}</strong><br>${frappe.datetime.str_to_user(
+													e.start
+												)}</div>`
+										)
 										.join("")}
                                 </div>
                             </div>
                         `;
+
 						$(".layout-main-section").append(html);
 					},
 				});
-			}, 1000);
+			}, 500); // attendre le rendu du calendrier initial
 		},
 	},
 };
