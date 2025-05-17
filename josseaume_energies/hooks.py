@@ -12,5 +12,6 @@ app_version = "0.1.0"
 app_include_css = ["/assets/josseaume_energies/css/calendar_custom.css"]
 app_include_js = [
     "/assets/josseaume_energies/js/event_calendar.js",
+    "/assets/josseaume_energies/js/vue_matin_apresmidi.js"
 ]
 
