@@ -194,8 +194,8 @@ def create_event_from_sales_order(docname):
         if doc.customer and customer_name:
             event.append("event_participants", {
                 "reference_doctype": "Customer",
-                "reference_name": doc.customer,
                 "reference_docname": doc.customer
+                # Champ reference_name supprimé car il n'existe pas
             })
             participants_added += 1
             
@@ -203,8 +203,8 @@ def create_event_from_sales_order(docname):
         if doc.custom_intervenant and tech_name:
             event.append("event_participants", {
                 "reference_doctype": "Employee",
-                "reference_name": doc.custom_intervenant,
                 "reference_docname": doc.custom_intervenant
+                # Champ reference_name supprimé car il n'existe pas
             })
             participants_added += 1
             
@@ -258,7 +258,7 @@ def get_day_events(date, territory=None, employee=None):
         # Pour l'employé, on cherche dans les participants
         participant_filters.append({
             "reference_doctype": "Employee",
-            "reference_name": employee
+            "reference_docname": employee  # Changé de reference_name à reference_docname
         })
     
     # Récupérer les événements
@@ -299,7 +299,7 @@ def get_day_events(date, territory=None, employee=None):
         event_participants = frappe.get_all(
             "Event Participants",
             filters={"parent": event.name},
-            fields=["reference_doctype", "reference_name", "reference_docname"]
+            fields=["reference_doctype", "reference_docname"]  # Champ reference_name supprimé
         )
         
         event["event_participants"] = event_participants
