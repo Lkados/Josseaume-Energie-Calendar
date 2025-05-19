@@ -284,6 +284,20 @@ def get_day_events(date, territory=None, employee=None):
             fields=["reference_doctype", "reference_docname"]
         )
         
+        # Ajouter les noms complets des participants
+        for participant in event_participants:
+            if participant["reference_doctype"] == "Customer":
+                # Récupérer le nom du client
+                customer_name = frappe.db.get_value("Customer", 
+                    participant["reference_docname"], "customer_name")
+                participant["full_name"] = customer_name or participant["reference_docname"]
+            
+            elif participant["reference_doctype"] == "Employee":
+                # Récupérer le nom de l'employé
+                employee_name = frappe.db.get_value("Employee", 
+                    participant["reference_docname"], "employee_name")
+                participant["full_name"] = employee_name or participant["reference_docname"]
+        
         event["event_participants"] = event_participants
     
     return events
@@ -344,6 +358,21 @@ def get_calendar_events(year, month, territory=None, employee=None):
             filters={"parent": event.name},
             fields=["reference_doctype", "reference_docname"]
         )
+
+        # Ajouter les noms complets des participants
+        for participant in event_participants:
+            if participant["reference_doctype"] == "Customer":
+                # Récupérer le nom du client
+                customer_name = frappe.db.get_value("Customer", 
+                    participant["reference_docname"], "customer_name")
+                participant["full_name"] = customer_name or participant["reference_docname"]
+            
+            elif participant["reference_doctype"] == "Employee":
+                # Récupérer le nom de l'employé
+                employee_name = frappe.db.get_value("Employee", 
+                    participant["reference_docname"], "employee_name")
+                participant["full_name"] = employee_name or participant["reference_docname"]
+        
         event["event_participants"] = event_participants
     
     return events
@@ -393,6 +422,21 @@ def get_week_events(start_date, end_date, territory=None, employee=None):
             filters={"parent": event.name},
             fields=["reference_doctype", "reference_docname"]
         )
+        
+        # Ajouter les noms complets des participants
+        for participant in event_participants:
+            if participant["reference_doctype"] == "Customer":
+                # Récupérer le nom du client
+                customer_name = frappe.db.get_value("Customer", 
+                    participant["reference_docname"], "customer_name")
+                participant["full_name"] = customer_name or participant["reference_docname"]
+            
+            elif participant["reference_doctype"] == "Employee":
+                # Récupérer le nom de l'employé
+                employee_name = frappe.db.get_value("Employee", 
+                    participant["reference_docname"], "employee_name")
+                participant["full_name"] = employee_name or participant["reference_docname"]
+        
         event["event_participants"] = event_participants
     
     return events
