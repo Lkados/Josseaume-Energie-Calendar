@@ -13,7 +13,7 @@ page_js = {
     "two_column_calendar": "page/two_column_calendar/two_column_calendar.js"
 }
 app_include_css = [
-    "josseaume_energies/public/css/two_column_calendar.css"
+    "/assets/josseaume_energies/css/two_column_calendar.css"
 ]
 
 # Configuration des routes du site web
