@@ -163,10 +163,10 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		let technicianName = "";
 
 		for (const participant of participants) {
-			if (participant.reference_doctype === "Customer" && participant.full_name) {
-				clientName = participant.full_name;
-			} else if (participant.reference_doctype === "Employee" && participant.full_name) {
-				technicianName = participant.full_name;
+			if (participant.reference_doctype === "Customer") {
+				clientName = participant.full_name || participant.reference_docname;
+			} else if (participant.reference_doctype === "Employee") {
+				technicianName = participant.full_name || participant.reference_docname;
 			}
 		}
 
