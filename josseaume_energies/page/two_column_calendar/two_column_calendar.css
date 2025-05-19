@@ -1,73 +1,151 @@
-/* Style pour le conteneur FullCalendar */
-#fullcalendar-container {
+/* Conteneur général */
+.calendar-container {
 	background-color: #fff;
 	border-radius: 8px;
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-	padding: 10px;
+	padding: 15px;
 	margin-top: 15px;
 }
 
-/* Style pour les en-têtes de jours */
-.fc-day-header {
-	background-color: #f8f9fa;
+/* En-tête du mois */
+.month-header {
+	text-align: center;
+	margin-bottom: 15px;
+}
+
+.month-header h3 {
+	font-size: 20px;
+	color: #333;
+	margin: 0;
+}
+
+/* En-tête des jours de la semaine */
+.days-header {
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+	gap: 5px;
+	margin-bottom: 10px;
 	font-weight: 600;
-	padding: 10px 0 !important;
-	text-transform: uppercase;
+	text-align: center;
+	background-color: #f8f9fa;
+	border-radius: 4px;
+	padding: 10px 0;
+}
+
+.day-name {
 	font-size: 13px;
+	color: #555;
+	text-transform: uppercase;
+}
+
+/* Grille du calendrier */
+.calendar-grid {
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+	gap: 5px;
+}
+
+/* Cellule de jour */
+.day-cell {
+	min-height: 100px;
+	background-color: #f9f9f9;
+	border-radius: 4px;
+	padding: 5px;
+	position: relative;
+	border: 1px solid #eee;
+}
+
+.day-cell.empty {
+	background-color: #f0f0f0;
+}
+
+.day-cell.today {
+	background-color: rgba(2, 119, 189, 0.05);
+	border: 1px solid #0277bd;
+}
+
+.day-number {
+	font-size: 14px;
+	font-weight: 600;
+	margin-bottom: 5px;
+	text-align: right;
+}
+
+.today .day-number {
+	background-color: #0277bd;
+	color: white;
+	border-radius: 50%;
+	width: 24px;
+	height: 24px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-left: auto;
 }
 
 /* Style pour les événements */
-.fc-event {
-	border-radius: 4px;
-	border: none !important;
-	padding: 4px 6px !important;
-	font-size: 12px !important;
-	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-	transition: transform 0.2s, box-shadow 0.2s;
+.day-events {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
 }
 
-.fc-event:hover {
+.calendar-event {
+	font-size: 11px;
+	padding: 3px 5px;
+	border-radius: 3px;
+	cursor: pointer;
+	background-color: #fff;
+	border-left: 3px solid #ccc;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.calendar-event:hover {
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 	transform: translateY(-1px);
-	box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
 }
 
-/* Style pour aujourd'hui */
-.fc-today {
-	background-color: rgba(2, 119, 189, 0.05) !important;
+.event-time {
+	font-weight: 600;
+	margin-right: 5px;
+	font-size: 10px;
+	background-color: rgba(0, 0, 0, 0.05);
+	padding: 1px 3px;
+	border-radius: 3px;
 }
 
-/* Style pour les colonnes de temps */
-.fc-time-grid .fc-slats td {
-	height: 3em;
-	border-color: #eee;
+/* Types d'événements */
+.event-type-epgz {
+	border-left-color: #ffa000;
 }
 
-/* Style pour la grille */
-.fc-time-grid-container {
-	border-left: 1px solid #eee;
-	border-right: 1px solid #eee;
+.event-type-maintenance {
+	border-left-color: #43a047;
 }
 
-/* Style pour les boutons de navigation */
-.page-head .standard-actions .btn {
-	margin-left: 5px;
-	border-radius: 4px;
+.event-type-service {
+	border-left-color: #1e88e5;
 }
 
-/* Style pour les filtres */
-.page-form {
-	padding: 10px;
-	background-color: #f9f9fa;
-	border-radius: 8px;
-	margin-bottom: 10px;
+/* Message quand il n'y a pas d'événements */
+.no-events {
+	text-align: center;
+	padding: 20px;
+	color: #888;
+	font-style: italic;
 }
 
-/* Style pour les tooltips */
-.tooltip-inner {
-	max-width: 300px;
-	padding: 8px 12px;
-	color: #fff;
-	text-align: left;
-	background-color: #333;
-	border-radius: 4px;
+/* Responsive */
+@media (max-width: 768px) {
+	.day-cell {
+		min-height: 80px;
+	}
+
+	.calendar-event {
+		font-size: 10px;
+		padding: 2px 4px;
+	}
 }

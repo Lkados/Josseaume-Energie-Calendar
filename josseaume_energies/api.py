@@ -375,3 +375,68 @@ def get_events_for_calendar(start, end, territory=None, employee=None):
         event["event_participants"] = event_participants
     
     return events
+
+@frappe.whitelist()
+def get_month_events(month, year, territory=None, employee=None):
+    """Récupère tous les événements pour un mois donné"""
+    
+    # Convertir en dates de début et fin du mois
+    import datetime
+    import calendar
+    
+    year = int(year)
+    month = int(month)
+    
+    # Obtenir le premier et dernier jour du mois
+    last_day = calendar.monthrange(year, month)[1]
+    start_date = datetime.date(year, month, 1)
+    end_date = datetime.date(year, month, last_day)
+    
+    # Convertir en format frappe
+    start_str = frappe.utils.getdate(start_date).strftime('%Y-%m-%d')
+    end_str = frappe.utils.getdate(end_date).strftime('%Y-%m-%d')
+    
+    # Construire les filtres
+    filters = [
+        ["starts_on", ">=", start_str],
+        ["starts_on", "<=", end_str]
+    ]
+    
+    # Ajouter des filtres optionnels
+    if territory:
+        filters.append(["subject", "like", f"%{territory}%"])
+    
+    # Récupérer tous les événements correspondant aux filtres
+    events = frappe.get_all(
+        "Event",
+        filters=filters,
+        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day"]
+    )
+    
+    # Si un employé est spécifié, filtrer par employé participant
+    if employee:
+        filtered_events = []
+        for event in events:
+            participants = frappe.get_all(
+                "Event Participants",
+                filters={
+                    "parent": event.name,
+                    "reference_doctype": "Employee",
+                    "reference_docname": employee
+                },
+                fields=["parent"]
+            )
+            if participants:
+                filtered_events.append(event)
+        events = filtered_events
+    
+    # Récupérer les participants pour chaque événement
+    for event in events:
+        event_participants = frappe.get_all(
+            "Event Participants",
+            filters={"parent": event.name},
+            fields=["reference_doctype", "reference_docname"]
+        )
+        event["participants"] = event_participants
+    
+    return events
