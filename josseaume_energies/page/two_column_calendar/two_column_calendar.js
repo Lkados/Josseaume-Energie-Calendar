@@ -1,9 +1,12 @@
-frappe.pages["two-column-calendar"].on_page_load = function (wrapper) {
+frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
+	console.log("Chargement de la page two_column_calendar");
 	var page = frappe.ui.make_app_page({
 		parent: wrapper,
 		title: "Calendrier des Interventions",
 		single_column: true,
 	});
+
+	console.log("Page créée");
 
 	// Ajouter les boutons de contrôle
 	page.add_field({
@@ -70,6 +73,7 @@ frappe.pages["two-column-calendar"].on_page_load = function (wrapper) {
 
 	// Attacher l'instance du calendrier à la page
 	page.calendar = calendar;
+	console.log("Page complètement chargée");
 };
 
 class TwoColumnCalendar {
