@@ -16,7 +16,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		},
 	});
 
-	// Ajouter des filtres supplémentaires si nécessaire
 	page.add_field({
 		fieldtype: "Link",
 		label: "Zone",
@@ -49,40 +48,24 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	});
 
 	// Ajouter des boutons de navigation
-	page.add_inner_button(
-		__("Aujourd'hui"),
-		() => {
-			page.fields_dict.selected_date.set_value(frappe.datetime.get_today());
-			calendar.refresh();
-		},
-		"fa fa-calendar-check-o"
-	);
+	page.add_inner_button(__("Aujourd'hui"), () => {
+		page.fields_dict.selected_date.set_value(frappe.datetime.get_today());
+		calendar.refresh();
+	});
 
-	page.add_inner_button(
-		__("Précédent"),
-		() => {
-			let current_date = frappe.datetime.str_to_obj(
-				page.fields_dict.selected_date.get_value()
-			);
-			let previous_date = frappe.datetime.add_days(current_date, -1);
-			page.fields_dict.selected_date.set_value(frappe.datetime.obj_to_str(previous_date));
-			calendar.refresh();
-		},
-		"fa fa-chevron-left"
-	);
+	page.add_inner_button(__("Précédent"), () => {
+		let current_date = frappe.datetime.str_to_obj(page.fields_dict.selected_date.get_value());
+		let previous_date = frappe.datetime.add_days(current_date, -1);
+		page.fields_dict.selected_date.set_value(frappe.datetime.obj_to_str(previous_date));
+		calendar.refresh();
+	});
 
-	page.add_inner_button(
-		__("Suivant"),
-		() => {
-			let current_date = frappe.datetime.str_to_obj(
-				page.fields_dict.selected_date.get_value()
-			);
-			let next_date = frappe.datetime.add_days(current_date, 1);
-			page.fields_dict.selected_date.set_value(frappe.datetime.obj_to_str(next_date));
-			calendar.refresh();
-		},
-		"fa fa-chevron-right"
-	);
+	page.add_inner_button(__("Suivant"), () => {
+		let current_date = frappe.datetime.str_to_obj(page.fields_dict.selected_date.get_value());
+		let next_date = frappe.datetime.add_days(current_date, 1);
+		page.fields_dict.selected_date.set_value(frappe.datetime.obj_to_str(next_date));
+		calendar.refresh();
+	});
 
 	// Attacher l'instance du calendrier à la page
 	page.calendar = calendar;
@@ -95,8 +78,6 @@ class TwoColumnCalendar {
 	}
 
 	make() {
-		const me = this;
-
 		// Créer la structure du calendrier
 		this.wrapper.html(`
             <div class="calendar-header">
@@ -125,16 +106,6 @@ class TwoColumnCalendar {
 		this.$morning_events = this.wrapper.find(".morning .column-events");
 		this.$afternoon_events = this.wrapper.find(".afternoon .column-events");
 
-		// Adapter la hauteur en fonction de la taille de l'écran
-		$(window)
-			.on("resize", () => {
-				const windowHeight = $(window).height();
-				const headerHeight =
-					$(".page-head").height() + $(".calendar-header").height() + 40;
-				$(".calendar-body").css("height", windowHeight - headerHeight + "px");
-			})
-			.trigger("resize");
-
 		// Charger les événements initiaux
 		this.refresh();
 	}
@@ -149,8 +120,7 @@ class TwoColumnCalendar {
 		const formatted_date = frappe.datetime.str_to_user(date);
 		this.$date_display.text(formatted_date);
 
-		// Ajouter un indicateur si c'est aujourd'hui
-		this.$date_display.find(".current-day-indicator").remove();
+		// Ajouter indicateur si c'est aujourd'hui
 		if (frappe.datetime.get_today() === date) {
 			this.$date_display.append(' <span class="current-day-indicator">Aujourd\'hui</span>');
 		}
@@ -161,10 +131,10 @@ class TwoColumnCalendar {
 
 		// Afficher un indicateur de chargement
 		let morning_loading = $(
-			'<div class="text-muted loading-indicator"><i class="fa fa-circle-o-notch fa-spin"></i> Chargement...</div>'
+			'<div class="loading-indicator"><i class="fa fa-spinner fa-spin"></i> Chargement...</div>'
 		).appendTo(this.$morning_events);
 		let afternoon_loading = $(
-			'<div class="text-muted loading-indicator"><i class="fa fa-circle-o-notch fa-spin"></i> Chargement...</div>'
+			'<div class="loading-indicator"><i class="fa fa-spinner fa-spin"></i> Chargement...</div>'
 		).appendTo(this.$afternoon_events);
 
 		// Charger les événements depuis le serveur
@@ -193,10 +163,10 @@ class TwoColumnCalendar {
 
 		if (!events.length) {
 			this.$morning_events.html(
-				'<div class="text-muted empty-state"><i class="fa fa-calendar-o"></i><br>Aucun événement</div>'
+				'<div class="empty-state"><i class="fa fa-calendar-o"></i><br>Aucun événement</div>'
 			);
 			this.$afternoon_events.html(
-				'<div class="text-muted empty-state"><i class="fa fa-calendar-o"></i><br>Aucun événement</div>'
+				'<div class="empty-state"><i class="fa fa-calendar-o"></i><br>Aucun événement</div>'
 			);
 			return;
 		}
@@ -227,7 +197,7 @@ class TwoColumnCalendar {
 			});
 		} else {
 			this.$morning_events.html(
-				'<div class="text-muted empty-state"><i class="fa fa-calendar-o"></i><br>Aucun événement</div>'
+				'<div class="empty-state"><i class="fa fa-calendar-o"></i><br>Aucun événement</div>'
 			);
 		}
 
@@ -238,7 +208,7 @@ class TwoColumnCalendar {
 			});
 		} else {
 			this.$afternoon_events.html(
-				'<div class="text-muted empty-state"><i class="fa fa-calendar-o"></i><br>Aucun événement</div>'
+				'<div class="empty-state"><i class="fa fa-calendar-o"></i><br>Aucun événement</div>'
 			);
 		}
 	}
@@ -251,50 +221,33 @@ class TwoColumnCalendar {
 		const formatted_start = frappe.datetime.get_time(start_time);
 		const formatted_end = frappe.datetime.get_time(end_time);
 
-		// Extraire le code de l'événement s'il existe
-		let event_code = "";
-		let event_title = event.subject;
+		// Extraire le code et la zone
+		let title_parts = event.subject.split(" - ");
+		let event_code = title_parts[0] || "";
+		let event_zone = title_parts.length > 1 ? title_parts[1] : "";
 
-		if (event.subject.includes("-")) {
-			const parts = event.subject.split("-");
-			event_code = parts[0].trim();
-			event_title = parts.slice(1).join("-").trim();
-		}
+		// Déterminer le type d'événement
+		let event_type = event_code.includes("EPGZ")
+			? "EPGZ"
+			: event_code.includes("Entretien")
+			? "Entretien"
+			: "Service";
 
-		// Déterminer l'icône et la classe en fonction du contenu du sujet
-		let event_icon = "fa-calendar-check-o";
-		let event_type_class = "";
-
-		if (event.subject.toLowerCase().includes("entretien")) {
-			event_icon = "fa-wrench";
-			event_type_class = "event-type-maintenance";
-		} else if (event.subject.toLowerCase().includes("install")) {
-			event_icon = "fa-cogs";
-			event_type_class = "event-type-installation";
-		} else if (event.subject.toLowerCase().includes("livraison")) {
-			event_icon = "fa-truck";
-			event_type_class = "event-type-delivery";
-		}
-
-		// Créer la carte d'événement avec un style amélioré et animation
+		// Créer la carte d'événement
 		const $card = $(`
-			<div class="event-card ${event_type_class}" data-event="${event.name}" style="border-left-color: ${
-			event.color || "#1976D2"
-		}; animation-delay: ${index * 0.05}s">
-				<div class="event-header">
-					<div class="event-time-container">
-						<span class="event-time"><i class="fa fa-clock-o"></i> ${formatted_start} - ${formatted_end}</span>
-					</div>
-					<div class="event-title-container">
-						<span class="event-subject"><i class="fa ${event_icon}"></i> ${event_title}</span>
-						${event_code ? `<span class="event-code">${event_code}</span>` : ""}
-					</div>
-				</div>
-				<div class="event-details">
-					${this.get_participants_html(event)}
-				</div>
-			</div>
-		`);
+            <div class="event-card event-type-${event_type.toLowerCase()}" 
+                 data-event="${event.name}" 
+                 style="animation-delay: ${index * 0.05}s">
+                <div class="event-header">
+                    <div class="event-time">${formatted_start} - ${formatted_end}</div>
+                    <div class="event-title">${event_code}</div>
+                    ${event_zone ? `<div class="event-zone">${event_zone}</div>` : ""}
+                </div>
+                <div class="event-details">
+                    ${this.get_participants_html(event)}
+                </div>
+            </div>
+        `);
 
 		// Ajouter une interaction au clic
 		$card.on("click", function () {
@@ -310,7 +263,7 @@ class TwoColumnCalendar {
 		if (event.event_participants && event.event_participants.length) {
 			html += '<div class="participants">';
 
-			// Grouper les participants par type
+			// Groupe par type de participant
 			let customers = [];
 			let employees = [];
 
@@ -322,26 +275,20 @@ class TwoColumnCalendar {
 				}
 			});
 
-			// Afficher les clients d'abord
+			// Afficher les clients
 			if (customers.length) {
-				html += '<div class="participant-group customer-group">';
-				customers.forEach(function (customer) {
-					html += `<div class="participant customer">
-						<i class="fa fa-user-circle"></i> ${customer.reference_docname}
-					</div>`;
-				});
-				html += "</div>";
+				html += `<div class="participant customer">
+                    <i class="fa fa-user"></i> 
+                    ${customers.map((c) => c.reference_docname).join(", ")}
+                </div>`;
 			}
 
-			// Puis afficher les employés
+			// Afficher les employés
 			if (employees.length) {
-				html += '<div class="participant-group employee-group">';
-				employees.forEach(function (employee) {
-					html += `<div class="participant employee">
-						<i class="fa fa-id-badge"></i> ${employee.reference_docname}
-					</div>`;
-				});
-				html += "</div>";
+				html += `<div class="participant employee">
+                    <i class="fa fa-user-tie"></i> 
+                    ${employees.map((e) => e.reference_docname).join(", ")}
+                </div>`;
 			}
 
 			html += "</div>";

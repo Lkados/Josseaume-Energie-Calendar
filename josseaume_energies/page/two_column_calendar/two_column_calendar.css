@@ -71,13 +71,6 @@
 	font-weight: 600;
 	text-align: center;
 	border-bottom: 2px solid;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
-
-.column-header i {
-	margin-right: 6px;
 }
 
 .morning .column-header {
@@ -108,8 +101,7 @@
 	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 	transition: all 0.2s ease;
 	position: relative;
-	border-left-width: 5px;
-	border-left-style: solid;
+	border-left: 5px solid #ccc;
 	animation: slideIn 0.3s ease forwards;
 }
 
@@ -118,14 +110,23 @@
 	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
+/* Types d'événements */
+.event-type-entretien {
+	border-left-color: #43a047;
+}
+
+.event-type-epgz {
+	border-left-color: #ffa000;
+}
+
+.event-type-service {
+	border-left-color: #1e88e5;
+}
+
 .event-header {
 	padding: 12px 15px;
 	background-color: #fafafa;
 	border-bottom: 1px solid #f0f0f0;
-}
-
-.event-time-container {
-	margin-bottom: 5px;
 }
 
 .event-time {
@@ -139,21 +140,15 @@
 	border-radius: 4px;
 }
 
-.event-title-container {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-}
-
-.event-subject {
+.event-title {
 	font-weight: 700;
 	font-size: 14px;
 	color: #333;
+	margin-top: 4px;
 	display: block;
-	flex: 1;
 }
 
-.event-code {
+.event-zone {
 	display: inline-block;
 	font-size: 12px;
 	font-weight: 500;
@@ -161,6 +156,7 @@
 	padding: 2px 6px;
 	border-radius: 4px;
 	background-color: #f0f0f0;
+	margin-top: 4px;
 }
 
 .event-details {
@@ -168,26 +164,9 @@
 	font-size: 13px;
 }
 
-/* Styles spécifiques aux types d'événements */
-.event-type-maintenance {
-	border-left-color: #43a047 !important;
-}
-
-.event-type-installation {
-	border-left-color: #1e88e5 !important;
-}
-
-.event-type-delivery {
-	border-left-color: #ffa000 !important;
-}
-
 /* Style des participants */
 .participants {
 	margin-top: 8px;
-}
-
-.participant-group {
-	margin-bottom: 6px;
 }
 
 .participant {
@@ -210,42 +189,24 @@
 	color: #4caf50;
 }
 
-/* Styles pour les boutons de navigation */
-.page-head .standard-actions .btn {
-	border-radius: 4px;
-	font-weight: 500;
-	padding: 6px 12px;
-	transition: all 0.2s;
-	margin-left: 4px;
-}
-
-/* État vide */
-.text-muted {
-	color: #888;
-}
-
-.empty-state {
-	padding: 30px 20px;
+/* État vide et chargement */
+.empty-state,
+.loading-indicator {
+	padding: 20px;
 	text-align: center;
 	background-color: #f9f9f9;
 	border-radius: 6px;
 	margin: 10px 0;
 	font-style: italic;
+	color: #888;
 }
 
-.empty-state i {
-	font-size: 24px;
-	margin-bottom: 10px;
-	opacity: 0.5;
-}
-
-.loading-indicator {
-	padding: 20px;
-	text-align: center;
-}
-
+.empty-state i,
 .loading-indicator i {
-	margin-right: 8px;
+	font-size: 18px;
+	margin-bottom: 8px;
+	display: block;
+	opacity: 0.6;
 }
 
 /* Animations */
@@ -265,41 +226,4 @@
 	.calendar-columns {
 		flex-direction: column;
 	}
-
-	.calendar-column {
-		margin-bottom: 16px;
-	}
-
-	.two_column_calendar-container {
-		height: auto;
-	}
-
-	.calendar-body {
-		height: auto !important;
-	}
-}
-
-/* Filtres améliorés */
-.page-form {
-	background-color: #fff;
-	padding: 10px;
-	border-radius: 6px;
-	margin-bottom: 15px;
-	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.form-group {
-	margin-bottom: 10px;
-}
-
-.control-label {
-	font-weight: 500;
-}
-
-.btn-default {
-	background-color: #f8f8f8;
-}
-
-.btn-default:hover {
-	background-color: #f1f1f1;
 }
