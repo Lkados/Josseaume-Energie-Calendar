@@ -53,31 +53,62 @@ def create_event_from_sales_order(docname):
 
         # Vérifier les articles en fonction du type de commande
         if doc.items:
-            if type_commande == "Installation":
+            if type_commande == "Entretien":
+                # Pour les entretiens, chercher les codes spécifiques
+                entretien_codes = ["EPG", "ECG", "ECFBT", "ECFC", "ECGAZBT", "ECGAZC", "RAMO"]
+                
                 for item in doc.items:
-                    desc = (item.description or "").lower()
-                    if "poêle" in desc or "chaudière" in desc or "poele" in desc or "chaudiere" in desc:
-                        main_item = item.item_name
+                    item_code = item.item_code or ""
+                    # Vérifier si le code d'article commence par l'un des codes d'entretien
+                    for code in entretien_codes:
+                        if item_code.startswith(code):
+                            main_item = item.item_code
+                            break
+                    if main_item != "Service":
                         break
-            elif type_commande == "Entretien":
+            
+            elif type_commande == "Installation":
+                # Pour les installations, chercher des articles contenant POELE ou CHAUDIERE
                 for item in doc.items:
-                    if item.item_code in ["EPG", "ECG", "ECFBT", "ECFC", "ECGAZBT", "ECGAZC", "RAMO"]:
-                        main_item = item.item_name
+                    item_name_upper = (item.item_name or "").upper()
+                    desc_upper = (item.description or "").upper()
+                    
+                    if "POELE" in item_name_upper or "POELE" in desc_upper:
+                        main_item = item.item_code or item.item_name
                         break
+                    elif "CHAUDIERE" in item_name_upper or "CHAUDIERE" in desc_upper:
+                        main_item = item.item_code or item.item_name
+                        break
+            
             elif type_commande == "Livraison Granule":
+                # Pour les livraisons de granulés
+                granule_codes = ["EO2", "BIOSYL", "PELLET", "GRANULE"]
                 for item in doc.items:
-                    if item.item_code in ["EO2", "BIOSYL"]:
-                        main_item = item.item_name
+                    item_code_upper = (item.item_code or "").upper()
+                    item_name_upper = (item.item_name or "").upper()
+                    
+                    if any(code in item_code_upper or code in item_name_upper for code in granule_codes):
+                        main_item = item.item_code or item.item_name
                         break
+            
             else:
+                # Pour les autres types (comme Livraison Fuel)
+                fuel_keywords = ["FUEL", "FIOUL", "GASOIL"]
                 for item in doc.items:
-                    if item.item_code == "Fuel" or item.item_name == "Fuel":
-                        main_item = item.item_name
+                    item_name_upper = (item.item_name or "").upper()
+                    item_code_upper = (item.item_code or "").upper()
+                    
+                    if any(keyword in item_name_upper or keyword in item_code_upper for keyword in fuel_keywords):
+                        main_item = item.item_code or item.item_name
                         break
 
+        # Si aucun article principal n'a été trouvé, utiliser le premier article de la commande
+        if main_item == "Service" and doc.items:
+            main_item = doc.items[0].item_code or doc.items[0].item_name
+
         # Créer le sujet de l'événement
-        order_type = type_commande or "Livraison"
-        subject = order_type + ": " + main_item
+        # Format simplifié comme demandé: "EPG - ZONE 103"
+        subject = main_item
         if territory:
             subject = subject + " - " + territory
 
@@ -88,7 +119,7 @@ def create_event_from_sales_order(docname):
         # Créer une description détaillée
         description = "<p><strong>Client:</strong> " + (customer_name or doc.customer or "") + "</p>"
         description = description + "<p><strong>Référence:</strong> " + doc.name + "</p>"
-        description = description + "<p><strong>Type:</strong> " + order_type + "</p>"
+        description = description + "<p><strong>Type:</strong> " + type_commande + "</p>"
         description = description + "<p><strong>Article:</strong> " + main_item + "</p>"
 
         if tech_name:
@@ -106,9 +137,17 @@ def create_event_from_sales_order(docname):
             
             # Ajouter l'adresse si elle existe
             if doc.customer_address:
-                customer_address = frappe.db.get_value("Address", doc.customer_address, "address_line1") or ""
-                if customer_address:
-                    description = description + "<p><strong>Adresse:</strong> " + customer_address + "</p>"
+                address = frappe.get_doc("Address", doc.customer_address)
+                if address:
+                    formatted_address = address.address_line1
+                    if address.address_line2:
+                        formatted_address += ", " + address.address_line2
+                    if address.city:
+                        formatted_address += ", " + address.city
+                    if address.pincode:
+                        formatted_address += " " + address.pincode
+                    
+                    description = description + "<p><strong>Adresse:</strong> " + formatted_address + "</p>"
 
         if doc.custom_intervenant:
             tech_email = frappe.db.get_value("Employee", doc.custom_intervenant, "personal_email") or ""
@@ -174,16 +213,12 @@ def create_event_from_sales_order(docname):
             event.save(ignore_permissions=True)
             
         # Vérifier si un champ personnalisé existe pour stocker la référence
-        # Si non, vous pourriez créer ce champ personnalisé plus tard
-        has_calendar_field = False
-        try:
-            # Vérifier si le champ exist en l'utilisant
-            doc.get("custom_calendar_event")
-            has_calendar_field = True
-        except:
-            pass
+        custom_field_exists = frappe.db.exists("Custom Field", {
+            "dt": doc.doctype,
+            "fieldname": "custom_calendar_event"
+        })
         
-        if has_calendar_field:
+        if custom_field_exists:
             doc.db_set("custom_calendar_event", event.name)
         
         # Retourner le succès et l'ID de l'événement
