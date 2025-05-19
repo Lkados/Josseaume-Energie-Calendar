@@ -1,33 +1,28 @@
-### Josseaume Energies
+# Module Calendrier pour Josseaume Energie
 
-Application pour Josseaume Energies ERP
+Ce module permet de créer automatiquement des événements dans le calendrier à partir des commandes clients.
 
-### Installation
+## Fonctionnalités
 
-You can install this app using the [bench](https://github.com/frappe/bench) CLI:
+- Création d'événements depuis les commandes clients
+- Ajout automatique des participants (client et intervenant)
+- Formatage de l'événement selon le type de commande (couleurs différentes)
+- Horaires adaptés à la préférence (matin/après-midi)
 
-```bash
-cd $PATH_TO_YOUR_BENCH
-bench get-app $URL_OF_THIS_REPO --branch develop
-bench install-app josseaume_energies
-```
+## Comment utiliser
 
-### Contributing
+1. Ouvrez une commande client validée
+2. Cliquez sur le bouton "Actions" puis "Créer Événement Calendrier"
+3. L'événement sera créé automatiquement avec les informations de la commande
+4. Un message apparaîtra avec un lien vers l'événement créé
 
-This app uses `pre-commit` for code formatting and linting. Please [install pre-commit](https://pre-commit.com/#installation) and enable it for this repository:
+## Notes techniques
 
-```bash
-cd apps/josseaume_energies
-pre-commit install
-```
-
-Pre-commit is configured to use the following tools for checking and formatting your code:
-
-- ruff
-- eslint
-- prettier
-- pyupgrade
-
-### License
-
-mit
+- Les événements sont créés avec le type d'événement "Privé"
+- Les participants (client et intervenant) sont ajoutés automatiquement
+- La couleur de l'événement change selon le type de commande:
+  - Installation: Bleu
+  - Entretien: Vert
+  - Livraison Granule: Ambre
+  - Livraison Fuel: Rouge
+  - Autres: Violet

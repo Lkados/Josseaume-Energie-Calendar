@@ -9,9 +9,17 @@ app_color = "grey"
 app_version = "0.1.0"
 
 # Inclure notre JS/CSS personnalisé dans le Desk
-app_include_css = ["/assets/josseaume_energies/css/calendar_custom.css"]
-app_include_js = [
-    "/assets/josseaume_energies/js/event_calendar.js",
-    "/assets/josseaume_energies/js/vue_matin_apresmidi.js"
-]
+#app_include_css = ["/assets/josseaume_energies/css/calendar_custom.css"]
+#app_include_js = [
+#    "/assets/josseaume_energies/js/vue_matin_apresmidi.js"
+#]
 
+# Client scripts
+doctype_js = {
+    "Sales Order": "public/js/sales_order.js"
+}
+
+# Whitelist pour l'API
+has_permission = {
+    "create_event_from_sales_order": "all"
+}
