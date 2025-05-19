@@ -1,4 +1,4 @@
-frappe.pages["two-column-calendar"].on_page_load = function (wrapper) {
+frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	var page = frappe.ui.make_app_page({
 		parent: wrapper,
 		title: "Calendrier des Interventions",
@@ -38,7 +38,7 @@ frappe.pages["two-column-calendar"].on_page_load = function (wrapper) {
 	});
 
 	// Créer le conteneur du calendrier
-	let calendar_container = $('<div class="two-column-calendar-container"></div>').appendTo(
+	let calendar_container = $('<div class="two_column_calendar-container"></div>').appendTo(
 		page.body
 	);
 

@@ -1,4 +1,4 @@
-.two-column-calendar-container {
+.two_column_calendar-container {
 	display: flex;
 	flex-direction: column;
 	height: calc(100vh - 200px);
