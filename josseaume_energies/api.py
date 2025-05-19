@@ -234,7 +234,77 @@ def create_event_from_sales_order(docname):
         return {"status": "error", "message": str(e)}
 
 @frappe.whitelist()
-def get_day_events(date, territory=None, employee=None):
+def get_events_for_calendar(start, end, territory=None, employee=None):
+    """Récupère les événements pour une plage de dates donnée, filtrés par territoire et/ou employé"""
+    
+    # Convertir les dates en datetime
+    start_date = frappe.utils.get_datetime(start)
+    end_date = frappe.utils.get_datetime(end)
+    
+    # Construire les filtres
+    filters = [
+        ["starts_on", ">=", start_date],
+        ["ends_on", "<=", end_date]
+    ]
+    
+    # Ajouter des filtres optionnels
+    participant_filters = []
+    
+    if territory:
+        # Pour le territoire, on cherche dans le sujet de l'événement
+        filters.append(["subject", "like", f"%{territory}%"])
+    
+    if employee:
+        # Pour l'employé, on cherche dans les participants
+        participant_filters.append({
+            "reference_doctype": "Employee",
+            "reference_docname": employee
+        })
+    
+    # Récupérer les événements
+    events = []
+    
+    # Si on a des filtres de participants, on cherche d'abord tous les événements correspondants
+    if participant_filters:
+        for participant_filter in participant_filters:
+            event_participants = frappe.get_all(
+                "Event Participants",
+                filters=participant_filter,
+                fields=["parent"]
+            )
+            
+            event_names = [p.parent for p in event_participants]
+            
+            if event_names:
+                # Ajouter le filtre de nom d'événement
+                event_filters = filters.copy()
+                event_filters.append(["name", "in", event_names])
+                
+                # Récupérer les événements correspondants
+                events.extend(frappe.get_all(
+                    "Event",
+                    filters=event_filters,
+                    fields=["name", "subject", "starts_on", "ends_on", "color", "all_day", "description"]
+                ))
+    else:
+        # Récupérer tous les événements correspondant aux filtres
+        events = frappe.get_all(
+            "Event",
+            filters=filters,
+            fields=["name", "subject", "starts_on", "ends_on", "color", "all_day", "description"]
+        )
+    
+    # Récupérer les participants pour chaque événement
+    for event in events:
+        event_participants = frappe.get_all(
+            "Event Participants",
+            filters={"parent": event.name},
+            fields=["reference_doctype", "reference_docname"]
+        )
+        
+        event["event_participants"] = event_participants
+    
+    return events
     """Récupère les événements pour une journée donnée, filtrés par territoire et/ou employé"""
     
     # Convertir la date en datetime

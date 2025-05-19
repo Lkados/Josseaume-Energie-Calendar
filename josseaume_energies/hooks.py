@@ -12,9 +12,12 @@ app_version = "0.1.0"
 page_js = {
     "two_column_calendar": "page/two_column_calendar/two_column_calendar.js"
 }
-
+app_include_js = [
+    "assets/frappe/node_modules/fullcalendar/dist/fullcalendar.min.js"
+]
 # Ajouter le fichier CSS
 app_include_css = [
+    "assets/frappe/node_modules/fullcalendar/dist/fullcalendar.min.css",
     "page/two_column_calendar/two_column_calendar.css"
 ]
 
