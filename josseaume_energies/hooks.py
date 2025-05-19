@@ -1,4 +1,4 @@
-# josseaume_energie_calendar/hooks.py
+# josseaume_energies/hooks.py
 
 app_name = "josseaume_energies"
 app_title = "Josseaume Energies"
@@ -8,20 +8,19 @@ app_icon = "octicon octicon-calendar"
 app_color = "grey"
 app_version = "0.1.0"
 
-# Inclure notre JS/CSS personnalisé dans le Desk
-#app_include_css = ["/assets/josseaume_energies/css/calendar_custom.css"]
-#app_include_js = [
-#    "/assets/josseaume_energies/js/vue_matin_apresmidi.js"
-#]
-
 # Définir la page
 page_js = {
-    "two_column_calendar": "josseaume_energies/page/two_column_calendar/two_column_calendar.js"
+    "two-column-calendar": "josseaume_energies/page/two_column_calendar/two_column_calendar.js"
 }
 
 # Ajouter le fichier CSS
 app_include_css = [
     "josseaume_energies/page/two_column_calendar/two_column_calendar.css"
+]
+
+# Configuration des routes du site web
+website_route_rules = [
+    {"from_route": "/two-column-calendar", "to_route": "page/two_column_calendar"},
 ]
 
 # Whitelist pour l'API
@@ -39,4 +38,3 @@ doctype_js = {
 has_permission = {
     "create_event_from_sales_order": "all"
 }
-
