@@ -1,12 +1,12 @@
 def get_data():
     return [
+        # ... autres éléments de menu existants
         {
             "module_name": "Josseaume Energies",
-            "category": "Modules",
-            "label": _("Josseaume Energies"),
-            "color": "#589494",
-            "icon": "octicon octicon-flame",
-            "type": "module",
-            "description": "Gestion des clients et contrats d'énergie"
+            "color": "#1976D2",
+            "icon": "calendar",
+            "type": "page",
+            "link": "two-column-calendar",
+            "label": __("Calendrier Interventions")
         }
     ]

@@ -14,6 +14,22 @@ app_version = "0.1.0"
 #    "/assets/josseaume_energies/js/vue_matin_apresmidi.js"
 #]
 
+# Définir la page
+page_js = {
+    "two-column-calendar": "josseaume_energies/page/two_column_calendar/two_column_calendar.js"
+}
+
+# Ajouter le fichier CSS
+app_include_css = [
+    "josseaume_energies/page/two_column_calendar/two_column_calendar.css"
+]
+
+# Whitelist pour l'API
+whitelist_methods = {
+    "josseaume_energies.api.create_event_from_sales_order": True,
+    "josseaume_energies.api.get_day_events": True
+}
+
 # Client scripts
 doctype_js = {
     "Sales Order": "public/js/sales_order.js"
@@ -23,3 +39,4 @@ doctype_js = {
 has_permission = {
     "create_event_from_sales_order": "all"
 }
+
