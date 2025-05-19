@@ -10,6 +10,12 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	let currentYear = currentDate.getFullYear();
 	let currentMonth = currentDate.getMonth(); // 0-11
 
+	// Cache pour stocker les noms des participants
+	const participantNamesCache = {
+		customers: {}, // { "CUSTOMER001": "Nom Client", ... }
+		employees: {}, // { "EMP001": "Nom Employé", ... }
+	};
+
 	// Détection et gestion du thème pour ERPNext v15
 	function applyTheme() {
 		// Méthodes de détection pour ERPNext v15
@@ -153,8 +159,78 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		}
 	}
 
-	// Fonction auxiliaire pour obtenir les noms des participants
-	function getParticipantNames(participants) {
+	// Fonction pour récupérer les noms complets des participants
+	async function fetchParticipantNames(participants) {
+		if (!participants || !Array.isArray(participants)) {
+			return { clientName: "", technicianName: "" };
+		}
+
+		let clientName = "";
+		let technicianName = "";
+
+		// Tableau pour stocker les promesses
+		const fetchPromises = [];
+
+		for (const participant of participants) {
+			if (participant.reference_doctype === "Customer") {
+				const customerId = participant.reference_docname;
+
+				// Vérifier si le nom est déjà dans le cache
+				if (participantNamesCache.customers[customerId]) {
+					clientName = participantNamesCache.customers[customerId];
+				} else {
+					// Ajouter la promesse pour récupérer le nom du client
+					const fetchCustomerPromise = new Promise((resolve) => {
+						frappe.db.get_value("Customer", customerId, "customer_name", (r) => {
+							if (r && r.message && r.message.customer_name) {
+								participantNamesCache.customers[customerId] =
+									r.message.customer_name;
+								clientName = r.message.customer_name;
+							} else {
+								participantNamesCache.customers[customerId] = customerId; // Fallback au code
+								clientName = customerId;
+							}
+							resolve();
+						});
+					});
+					fetchPromises.push(fetchCustomerPromise);
+				}
+			} else if (participant.reference_doctype === "Employee") {
+				const employeeId = participant.reference_docname;
+
+				// Vérifier si le nom est déjà dans le cache
+				if (participantNamesCache.employees[employeeId]) {
+					technicianName = participantNamesCache.employees[employeeId];
+				} else {
+					// Ajouter la promesse pour récupérer le nom de l'employé
+					const fetchEmployeePromise = new Promise((resolve) => {
+						frappe.db.get_value("Employee", employeeId, "employee_name", (r) => {
+							if (r && r.message && r.message.employee_name) {
+								participantNamesCache.employees[employeeId] =
+									r.message.employee_name;
+								technicianName = r.message.employee_name;
+							} else {
+								participantNamesCache.employees[employeeId] = employeeId; // Fallback au code
+								technicianName = employeeId;
+							}
+							resolve();
+						});
+					});
+					fetchPromises.push(fetchEmployeePromise);
+				}
+			}
+		}
+
+		// Attendre que toutes les récupérations soient terminées
+		if (fetchPromises.length > 0) {
+			await Promise.all(fetchPromises);
+		}
+
+		return { clientName, technicianName };
+	}
+
+	// Fonction synchrone qui renvoie immédiatement les noms du cache ou les IDs si non trouvés
+	function getParticipantNamesSync(participants) {
 		if (!participants || !Array.isArray(participants)) {
 			return { clientName: "", technicianName: "" };
 		}
@@ -163,10 +239,12 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		let technicianName = "";
 
 		for (const participant of participants) {
-			if (participant.reference_doctype === "Customer" && participant.full_name) {
-				clientName = participant.full_name;
-			} else if (participant.reference_doctype === "Employee" && participant.full_name) {
-				technicianName = participant.full_name;
+			if (participant.reference_doctype === "Customer") {
+				const customerId = participant.reference_docname;
+				clientName = participantNamesCache.customers[customerId] || customerId;
+			} else if (participant.reference_doctype === "Employee") {
+				const employeeId = participant.reference_docname;
+				technicianName = participantNamesCache.employees[employeeId] || employeeId;
 			}
 		}
 
@@ -232,33 +310,41 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					morningEvents.sort((a, b) => new Date(a.starts_on) - new Date(b.starts_on));
 					afternoonEvents.sort((a, b) => new Date(a.starts_on) - new Date(b.starts_on));
 
-					// Ajouter les titres de section
-					$('<div data-name="Matin">Matin</div>').appendTo(twoColumnContainer);
+					// Charger tous les noms des participants en une seule fois
+					const allParticipants = events.flatMap(
+						(event) => event.event_participants || []
+					);
+					fetchParticipantNames(allParticipants).then(() => {
+						// Ajouter les titres de section
+						$('<div data-name="Matin">Matin</div>').appendTo(twoColumnContainer);
 
-					// Ajouter les événements du matin
-					if (morningEvents.length > 0) {
-						morningEvents.forEach((event) =>
-							renderTwoColumnEventCard(event, twoColumnContainer)
-						);
-					} else {
-						$('<div class="no-events">Aucun événement le matin</div>').appendTo(
+						// Ajouter les événements du matin
+						if (morningEvents.length > 0) {
+							morningEvents.forEach((event) =>
+								renderTwoColumnEventCard(event, twoColumnContainer)
+							);
+						} else {
+							$('<div class="no-events">Aucun événement le matin</div>').appendTo(
+								twoColumnContainer
+							);
+						}
+
+						// Ajouter la section après-midi
+						$('<div data-name="Après-midi">Après-midi</div>').appendTo(
 							twoColumnContainer
 						);
-					}
 
-					// Ajouter la section après-midi
-					$('<div data-name="Après-midi">Après-midi</div>').appendTo(twoColumnContainer);
-
-					// Ajouter les événements de l'après-midi
-					if (afternoonEvents.length > 0) {
-						afternoonEvents.forEach((event) =>
-							renderTwoColumnEventCard(event, twoColumnContainer)
-						);
-					} else {
-						$('<div class="no-events">Aucun événement l\'après-midi</div>').appendTo(
-							twoColumnContainer
-						);
-					}
+						// Ajouter les événements de l'après-midi
+						if (afternoonEvents.length > 0) {
+							afternoonEvents.forEach((event) =>
+								renderTwoColumnEventCard(event, twoColumnContainer)
+							);
+						} else {
+							$(
+								'<div class="no-events">Aucun événement l\'après-midi</div>'
+							).appendTo(twoColumnContainer);
+						}
+					});
 
 					// Si aucun événement n'est trouvé pour la journée
 					if (events.length === 0) {
@@ -287,8 +373,8 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			eventClass = "event-default";
 		}
 
-		// Récupérer les noms des participants
-		const { clientName, technicianName } = getParticipantNames(event.event_participants);
+		// Récupérer les noms des participants depuis le cache
+		const { clientName, technicianName } = getParticipantNamesSync(event.event_participants);
 
 		// Créer la carte d'événement
 		const eventCard = $(`
@@ -364,7 +450,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		}
 
 		// Créer les cellules pour chaque jour du mois
-		const dayCells = {};
+		const dayCells = [];
 		for (let day = 1; day <= daysInMonth; day++) {
 			const isToday =
 				new Date().getDate() === day &&
@@ -380,7 +466,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				</div>
 			`).appendTo(calendarGrid);
 
-			dayCells[day] = dayCell.find(".day-events");
+			dayCells[day] = dayCell;
 		}
 
 		// Afficher le message de chargement
@@ -407,72 +493,92 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					// Organiser les événements par jour
 					const eventsByDay = {};
 
-					events.forEach((event) => {
-						try {
-							const eventDate = new Date(event.starts_on);
-							console.log("Date brute:", event.starts_on);
-							console.log("Date parsée:", eventDate);
+					// Charger tous les noms des participants en une seule fois
+					const allParticipants = events.flatMap(
+						(event) => event.event_participants || []
+					);
+					fetchParticipantNames(allParticipants).then(() => {
+						events.forEach((event) => {
+							try {
+								const eventDate = new Date(event.starts_on);
+								console.log("Date brute:", event.starts_on);
+								console.log("Date parsée:", eventDate);
 
-							// Obtenir le jour du mois (1-31)
-							const day = eventDate.getDate();
-							console.log("Jour extrait:", day);
+								// Obtenir le jour du mois (1-31)
+								const day = eventDate.getDate();
+								console.log("Jour extrait:", day);
 
-							if (!eventsByDay[day]) {
-								eventsByDay[day] = [];
-							}
-							eventsByDay[day].push(event);
-						} catch (error) {
-							console.error(
-								"Erreur lors du traitement de l'événement:",
-								error,
-								event
-							);
-						}
-					});
-
-					// Parcourir chaque jour et ajouter les événements
-					for (let day = 1; day <= daysInMonth; day++) {
-						const dayEvents = eventsByDay[day] || [];
-						console.log(`Jour ${day}:`, dayEvents);
-
-						if (dayEvents.length > 0 && dayCells[day]) {
-							const eventsContainer = dayCells[day];
-
-							// Trier les événements par heure
-							dayEvents.sort(
-								(a, b) => new Date(a.starts_on) - new Date(b.starts_on)
-							);
-
-							// Ajouter chaque événement à la cellule du jour
-							dayEvents.forEach((event) => {
-								// Récupérer les noms des participants
-								const { clientName, technicianName } = getParticipantNames(
-									event.event_participants
+								if (!eventsByDay[day]) {
+									eventsByDay[day] = [];
+								}
+								eventsByDay[day].push(event);
+							} catch (error) {
+								console.error(
+									"Erreur lors du traitement de l'événement:",
+									error,
+									event
 								);
+							}
+						});
 
-								// Déterminer la classe de couleur
-								let eventClass = "event-default";
-								if (event.subject.includes("Entretien")) {
-									eventClass = "event-entretien";
-								} else if (event.subject.includes("EPGZ")) {
-									eventClass = "event-epgz";
+						// Parcourir chaque jour et ajouter les événements
+						for (let day = 1; day <= daysInMonth; day++) {
+							const dayEvents = eventsByDay[day] || [];
+							console.log(`Jour ${day}:`, dayEvents);
+
+							if (dayEvents.length > 0) {
+								const dayCell = dayCells[day];
+								if (!dayCell) {
+									console.error(`Cellule pour le jour ${day} non trouvée`);
+									continue;
 								}
 
-								// Créer l'élément d'événement
-								const eventElement = $(`
-									<div class="event ${eventClass}" data-event-id="${event.name}">
-										<div class="event-title">${event.subject}</div>
-										${clientName ? `<div class="client-info"><i class="fa fa-user"></i> ${clientName}</div>` : ""}
-									</div>
-								`).appendTo(eventsContainer);
+								const eventsContainer = dayCell.find(".day-events");
 
-								// Ajouter l'interaction au clic
-								eventElement.on("click", function () {
-									frappe.set_route("Form", "Event", event.name);
+								// Trier les événements par heure
+								dayEvents.sort(
+									(a, b) => new Date(a.starts_on) - new Date(b.starts_on)
+								);
+
+								// Ajouter chaque événement à la cellule du jour
+								dayEvents.forEach((event) => {
+									// Récupérer les noms des participants
+									const { clientName, technicianName } = getParticipantNamesSync(
+										event.event_participants
+									);
+
+									// Formater l'heure
+									const eventTime = new Date(event.starts_on);
+									const hours = eventTime.getHours().toString().padStart(2, "0");
+									const minutes = eventTime
+										.getMinutes()
+										.toString()
+										.padStart(2, "0");
+
+									// Déterminer la classe de couleur
+									let eventClass = "event-default";
+									if (event.subject.includes("Entretien")) {
+										eventClass = "event-entretien";
+									} else if (event.subject.includes("EPGZ")) {
+										eventClass = "event-epgz";
+									}
+
+									// Créer l'élément d'événement
+									const eventElement = $(`
+										<div class="event ${eventClass}" data-event-id="${event.name}">
+											<div class="event-title">${event.subject}</div>
+											${clientName ? `<div class="client-info"><i class="fa fa-user"></i> ${clientName}</div>` : ""}
+										</div>
+									`).appendTo(eventsContainer);
+
+									// Ajouter l'interaction au clic
+									eventElement.on("click", function () {
+										frappe.set_route("Form", "Event", event.name);
+									});
 								});
-							});
+							}
 						}
-					}
+					});
 				} else {
 					$(
 						'<div class="no-events-message">Aucun événement pour ce mois</div>'
@@ -582,66 +688,72 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					const events = r.message;
 					console.log("Événements de la semaine reçus:", events);
 
-					// Organiser les événements par jour de la semaine
-					const eventsByDay = Array(7)
-						.fill()
-						.map(() => []);
+					// Charger tous les noms des participants en une seule fois
+					const allParticipants = events.flatMap(
+						(event) => event.event_participants || []
+					);
+					fetchParticipantNames(allParticipants).then(() => {
+						// Organiser les événements par jour de la semaine
+						const eventsByDay = Array(7)
+							.fill()
+							.map(() => []);
 
-					events.forEach((event) => {
-						const eventDate = new Date(event.starts_on);
-						const dayOfWeek = (eventDate.getDay() + 6) % 7; // Convertir 0-6 (dim-sam) à 0-6 (lun-dim)
-						eventsByDay[dayOfWeek].push(event);
-					});
+						events.forEach((event) => {
+							const eventDate = new Date(event.starts_on);
+							const dayOfWeek = (eventDate.getDay() + 6) % 7; // Convertir 0-6 (dim-sam) à 0-6 (lun-dim)
+							eventsByDay[dayOfWeek].push(event);
+						});
 
-					// Ajouter les événements à chaque colonne
-					for (let i = 0; i < 7; i++) {
-						const dayEvents = eventsByDay[i];
-						const dayContainer = $(`#day-${i}`);
+						// Ajouter les événements à chaque colonne
+						for (let i = 0; i < 7; i++) {
+							const dayEvents = eventsByDay[i];
+							const dayContainer = $(`#day-${i}`);
 
-						if (dayEvents.length > 0) {
-							// Trier par heure
-							dayEvents.sort(
-								(a, b) => new Date(a.starts_on) - new Date(b.starts_on)
-							);
-
-							dayEvents.forEach((event) => {
-								// Récupérer les noms des participants
-								const { clientName, technicianName } = getParticipantNames(
-									event.event_participants
+							if (dayEvents.length > 0) {
+								// Trier par heure
+								dayEvents.sort(
+									(a, b) => new Date(a.starts_on) - new Date(b.starts_on)
 								);
 
-								// Déterminer la classe de couleur
-								let eventClass = "event-default";
-								if (event.subject.includes("Entretien")) {
-									eventClass = "event-entretien";
-								} else if (event.subject.includes("EPGZ")) {
-									eventClass = "event-epgz";
-								}
+								dayEvents.forEach((event) => {
+									// Récupérer les noms des participants du cache
+									const { clientName, technicianName } = getParticipantNamesSync(
+										event.event_participants
+									);
 
-								// Créer l'élément d'événement
-								const eventElement = $(`
-									<div class="week-event ${eventClass}" data-event-id="${event.name}">
-										<div class="event-title">${event.subject}</div>
-										${clientName ? `<div class="client-info"><i class="fa fa-user"></i> ${clientName}</div>` : ""}
-										${
-											technicianName
-												? `<div class="technician-info"><i class="fa fa-user-tie"></i> ${technicianName}</div>`
-												: ""
-										}
-									</div>
-								`).appendTo(dayContainer);
+									// Déterminer la classe de couleur
+									let eventClass = "event-default";
+									if (event.subject.includes("Entretien")) {
+										eventClass = "event-entretien";
+									} else if (event.subject.includes("EPGZ")) {
+										eventClass = "event-epgz";
+									}
 
-								// Ajouter l'interaction au clic
-								eventElement.on("click", function () {
-									frappe.set_route("Form", "Event", event.name);
+									// Créer l'élément d'événement
+									const eventElement = $(`
+										<div class="week-event ${eventClass}" data-event-id="${event.name}">
+											<div class="event-title">${event.subject}</div>
+											${clientName ? `<div class="client-info"><i class="fa fa-user"></i> ${clientName}</div>` : ""}
+											${
+												technicianName
+													? `<div class="technician-info"><i class="fa fa-user-tie"></i> ${technicianName}</div>`
+													: ""
+											}
+										</div>
+									`).appendTo(dayContainer);
+
+									// Ajouter l'interaction au clic
+									eventElement.on("click", function () {
+										frappe.set_route("Form", "Event", event.name);
+									});
 								});
-							});
-						} else {
-							$('<div class="no-events">Aucun événement</div>').appendTo(
-								dayContainer
-							);
+							} else {
+								$('<div class="no-events">Aucun événement</div>').appendTo(
+									dayContainer
+								);
+							}
 						}
-					}
+					});
 
 					// Si aucun événement n'est trouvé pour la semaine
 					if (events.length === 0) {
