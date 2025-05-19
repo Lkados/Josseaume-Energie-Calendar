@@ -38,3 +38,12 @@ doctype_js = {
 has_permission = {
     "create_event_from_sales_order": "all"
 }
+# Fixtures - permet de sauvegarder l'état des documents de la base de données
+fixtures = [
+    {
+        "doctype": "Page",
+        "filters": [
+            ["name", "=", "two_column_calendar"]
+        ]
+    }
+]
