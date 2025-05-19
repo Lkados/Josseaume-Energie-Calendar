@@ -6,7 +6,7 @@ def get_data():
             "color": "#1976D2",
             "icon": "calendar",
             "type": "page",
-            "link": "two-column-calendar",
+            "link": "two_column_calendar",
             "label": __("Calendrier Interventions")
         }
     ]
