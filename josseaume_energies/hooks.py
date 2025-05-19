@@ -16,7 +16,7 @@ app_version = "0.1.0"
 
 # Définir la page
 page_js = {
-    "two-column-calendar": "josseaume_energies/page/two_column_calendar/two_column_calendar.js"
+    "two_column_calendar": "josseaume_energies/page/two_column_calendar/two_column_calendar.js"
 }
 
 # Ajouter le fichier CSS
