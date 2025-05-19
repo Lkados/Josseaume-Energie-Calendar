@@ -153,7 +153,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		}
 	}
 
-	// Récupérer le nom complet pour un participant
+	// Fonction auxiliaire pour obtenir les noms des participants
 	function getParticipantNames(participants) {
 		if (!participants || !Array.isArray(participants)) {
 			return { clientName: "", technicianName: "" };
@@ -162,15 +162,13 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		let clientName = "";
 		let technicianName = "";
 
-		participants.forEach((participant) => {
-			if (participant.reference_doctype === "Customer") {
-				// Récupérer le nom complet du client
-				clientName = participant.reference_docname;
-			} else if (participant.reference_doctype === "Employee") {
-				// Récupérer le nom complet de l'intervenant
-				technicianName = participant.reference_docname;
+		for (const participant of participants) {
+			if (participant.reference_doctype === "Customer" && participant.full_name) {
+				clientName = participant.full_name;
+			} else if (participant.reference_doctype === "Employee" && participant.full_name) {
+				technicianName = participant.full_name;
 			}
-		});
+		}
 
 		return { clientName, technicianName };
 	}
@@ -365,7 +363,8 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			$('<div class="calendar-day empty"></div>').appendTo(calendarGrid);
 		}
 
-		// Créer les jours du mois (sans événements pour l'instant)
+		// Créer les cellules pour chaque jour du mois
+		const dayCells = {};
 		for (let day = 1; day <= daysInMonth; day++) {
 			const isToday =
 				new Date().getDate() === day &&
@@ -377,9 +376,11 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					<div class="day-header">
 						<span class="day-number">${day}</span>
 					</div>
-					<div class="day-events"></div>
+					<div class="day-events" data-day="${day}"></div>
 				</div>
 			`).appendTo(calendarGrid);
+
+			dayCells[day] = dayCell.find(".day-events");
 		}
 
 		// Afficher le message de chargement
@@ -399,7 +400,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			callback: function (r) {
 				loadingMessage.remove();
 
-				if (r.message) {
+				if (r.message && r.message.length > 0) {
 					const events = r.message;
 					console.log("Événements du mois reçus:", events);
 
@@ -409,15 +410,17 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					events.forEach((event) => {
 						try {
 							const eventDate = new Date(event.starts_on);
-							console.log("Date de l'événement:", eventDate);
-							const eventDay = eventDate.getDate();
-							console.log("Jour de l'événement:", eventDay);
+							console.log("Date brute:", event.starts_on);
+							console.log("Date parsée:", eventDate);
 
-							if (!eventsByDay[eventDay]) {
-								eventsByDay[eventDay] = [];
+							// Obtenir le jour du mois (1-31)
+							const day = eventDate.getDate();
+							console.log("Jour extrait:", day);
+
+							if (!eventsByDay[day]) {
+								eventsByDay[day] = [];
 							}
-
-							eventsByDay[eventDay].push(event);
+							eventsByDay[day].push(event);
 						} catch (error) {
 							console.error(
 								"Erreur lors du traitement de l'événement:",
@@ -427,30 +430,25 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 						}
 					});
 
-					// Ajouter les événements dans les cellules du jour correspondantes
-					$(".calendar-day").each(function (index) {
-						const day = index + 1;
+					// Parcourir chaque jour et ajouter les événements
+					for (let day = 1; day <= daysInMonth; day++) {
 						const dayEvents = eventsByDay[day] || [];
 						console.log(`Jour ${day}:`, dayEvents);
 
-						if (dayEvents.length > 0) {
-							const eventsContainer = $(this).find(".day-events");
+						if (dayEvents.length > 0 && dayCells[day]) {
+							const eventsContainer = dayCells[day];
 
 							// Trier les événements par heure
 							dayEvents.sort(
 								(a, b) => new Date(a.starts_on) - new Date(b.starts_on)
 							);
 
+							// Ajouter chaque événement à la cellule du jour
 							dayEvents.forEach((event) => {
-								// Extraire les noms des participants
+								// Récupérer les noms des participants
 								const { clientName, technicianName } = getParticipantNames(
 									event.event_participants
 								);
-
-								// Formater l'heure
-								const eventTime = new Date(event.starts_on);
-								const hours = eventTime.getHours().toString().padStart(2, "0");
-								const minutes = eventTime.getMinutes().toString().padStart(2, "0");
 
 								// Déterminer la classe de couleur
 								let eventClass = "event-default";
@@ -463,7 +461,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 								// Créer l'élément d'événement
 								const eventElement = $(`
 									<div class="event ${eventClass}" data-event-id="${event.name}">
-										<div class="event-time">${hours}:${minutes}</div>
 										<div class="event-title">${event.subject}</div>
 										${clientName ? `<div class="client-info"><i class="fa fa-user"></i> ${clientName}</div>` : ""}
 									</div>
@@ -475,17 +472,10 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 								});
 							});
 						}
-					});
-
-					// Si aucun événement n'est trouvé pour le mois
-					if (events.length === 0) {
-						$(
-							'<div class="no-events-message">Aucun événement pour ce mois</div>'
-						).appendTo(calendarContainer);
 					}
 				} else {
 					$(
-						'<div class="error-message">Erreur lors du chargement des événements</div>'
+						'<div class="no-events-message">Aucun événement pour ce mois</div>'
 					).appendTo(calendarContainer);
 				}
 			},
