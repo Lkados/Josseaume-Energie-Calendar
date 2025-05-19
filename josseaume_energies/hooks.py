@@ -10,12 +10,10 @@ app_version = "0.1.0"
 
 # Définir la page
 page_js = {
-    "two_column_calendar": "josseaume_energies/page/two_column_calendar/two_column_calendar.js"
+    "two_column_calendar": "page/two_column_calendar/two_column_calendar.js"
 }
-
-# Ajouter le fichier CSS
 app_include_css = [
-    "josseaume_energies/page/two_column_calendar/two_column_calendar.css"
+    "josseaume_energies/public/css/two_column_calendar.css"
 ]
 
 # Configuration des routes du site web
