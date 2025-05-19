@@ -1,3 +1,26 @@
+/* Styles généraux */
+:root {
+	--color-morning: #0277bd;
+	--color-afternoon: #e65100;
+	--color-entretien: #43a047;
+	--color-epgz: #ffa000;
+	--color-default: #1e88e5;
+	--shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+	--shadow-md: 0 2px 4px rgba(0, 0, 0, 0.1);
+	--shadow-lg: 0 3px 6px rgba(0, 0, 0, 0.12);
+}
+
+body.dark {
+	--color-morning: #64b5f6;
+	--color-afternoon: #ffb74d;
+	--color-entretien: #66bb6a;
+	--color-epgz: #ffb74d;
+	--color-default: #42a5f5;
+	--shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
+	--shadow-md: 0 2px 4px rgba(0, 0, 0, 0.25);
+	--shadow-lg: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
 /* Conteneur principal */
 .custom-calendar-container {
 	background-color: white;
@@ -5,6 +28,12 @@
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 	margin-top: 15px;
 	overflow: hidden;
+	transition: background-color 0.3s, color 0.3s;
+}
+
+body.dark .custom-calendar-container {
+	background-color: #2d2d2d;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* En-tête du calendrier */
@@ -13,6 +42,7 @@
 	background-color: #f8f9fa;
 	border-bottom: 1px solid #e9ecef;
 	text-align: center;
+	transition: background-color 0.3s, border-color 0.3s, color 0.3s;
 }
 
 .calendar-header h2 {
@@ -20,6 +50,16 @@
 	color: #343a40;
 	font-size: 18px;
 	font-weight: 600;
+	transition: color 0.3s;
+}
+
+body.dark .calendar-header {
+	background-color: #2d2d2d;
+	border-bottom: 1px solid #444;
+}
+
+body.dark .calendar-header h2 {
+	color: #f0f0f0;
 }
 
 /* En-tête des jours de la semaine */
@@ -28,6 +68,12 @@
 	grid-template-columns: repeat(7, 1fr);
 	background-color: #e9ecef;
 	border-bottom: 1px solid #dee2e6;
+	transition: background-color 0.3s, border-color 0.3s;
+}
+
+body.dark .weekdays-header {
+	background-color: #383838;
+	border-bottom: 1px solid #555;
 }
 
 .weekday {
@@ -36,6 +82,11 @@
 	font-weight: 600;
 	font-size: 14px;
 	color: #495057;
+	transition: color 0.3s;
+}
+
+body.dark .weekday {
+	color: #bbb;
 }
 
 /* Grille du calendrier */
@@ -43,6 +94,11 @@
 	display: grid;
 	grid-template-columns: repeat(7, 1fr);
 	background-color: white;
+	transition: background-color 0.3s;
+}
+
+body.dark .calendar-grid {
+	background-color: #2d2d2d;
 }
 
 /* Cellule de jour */
@@ -52,15 +108,30 @@
 	padding: 5px;
 	background-color: white;
 	position: relative;
+	transition: background-color 0.3s, border-color 0.3s;
+}
+
+body.dark .calendar-day {
+	background-color: #2d2d2d;
+	border: 1px solid #444;
 }
 
 .calendar-day.empty {
 	background-color: #f8f9fa;
 }
 
+body.dark .calendar-day.empty {
+	background-color: #333;
+}
+
 .calendar-day.today {
 	background-color: #f0f8ff;
 	border: 1px solid #90caf9;
+}
+
+body.dark .calendar-day.today {
+	background-color: #2c3b4d;
+	border: 1px solid #4a88c7;
 }
 
 /* En-tête du jour */
@@ -69,6 +140,11 @@
 	justify-content: flex-end;
 	padding-bottom: 4px;
 	border-bottom: 1px solid #f0f0f0;
+	transition: border-color 0.3s;
+}
+
+body.dark .day-header {
+	border-bottom: 1px solid #444;
 }
 
 .day-number {
@@ -80,11 +156,20 @@
 	font-weight: 600;
 	color: #495057;
 	border-radius: 50%;
+	transition: background-color 0.3s, color 0.3s;
+}
+
+body.dark .day-number {
+	color: #ddd;
 }
 
 .today .day-number {
 	background-color: #007bff;
 	color: white;
+}
+
+body.dark .today .day-number {
+	background-color: #1976d2;
 }
 
 /* Conteneur des événements du jour */
@@ -102,24 +187,32 @@
 	background-color: white;
 	font-size: 12px;
 	cursor: pointer;
-	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+	box-shadow: var(--shadow-sm);
 	transition: all 0.2s;
 	overflow: hidden;
 	white-space: nowrap;
 	text-overflow: ellipsis;
 }
 
+body.dark .event {
+	background-color: #383838;
+}
+
 .event:hover {
 	transform: translateY(-1px);
-	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	box-shadow: var(--shadow-md);
 }
 
 .event-time {
 	font-weight: 600;
 	font-size: 11px;
 	color: #6c757d;
-	display: inline-block;
+	display: none; /* Masqué comme demandé */
 	margin-right: 5px;
+}
+
+body.dark .event-time {
+	color: #aaa;
 }
 
 .event-title {
@@ -128,20 +221,36 @@
 	display: inline-block;
 }
 
+body.dark .event-title {
+	color: #e0e0e0;
+}
+
 /* Couleurs des événements */
 .event-entretien {
-	border-left-color: #43a047;
+	border-left-color: var(--color-entretien);
 	background-color: rgba(67, 160, 71, 0.05);
 }
 
+body.dark .event-entretien {
+	background-color: rgba(67, 160, 71, 0.1);
+}
+
 .event-epgz {
-	border-left-color: #ffa000;
+	border-left-color: var(--color-epgz);
 	background-color: rgba(255, 160, 0, 0.05);
 }
 
+body.dark .event-epgz {
+	background-color: rgba(255, 160, 0, 0.1);
+}
+
 .event-default {
-	border-left-color: #1e88e5;
+	border-left-color: var(--color-default);
 	background-color: rgba(30, 136, 229, 0.05);
+}
+
+body.dark .event-default {
+	background-color: rgba(30, 136, 229, 0.1);
 }
 
 /* Vue hebdomadaire */
@@ -150,12 +259,22 @@
 	flex-direction: column;
 	border: 1px solid #dee2e6;
 	border-radius: 0 0 8px 8px;
+	transition: border-color 0.3s;
+}
+
+body.dark .week-container {
+	border: 1px solid #444;
 }
 
 .week-days-header {
 	display: grid;
 	grid-template-columns: repeat(7, 1fr);
 	background-color: #f8f9fa;
+	transition: background-color 0.3s;
+}
+
+body.dark .week-days-header {
+	background-color: #383838;
 }
 
 .week-day-header {
@@ -163,6 +282,12 @@
 	text-align: center;
 	border-bottom: 1px solid #dee2e6;
 	border-right: 1px solid #dee2e6;
+	transition: background-color 0.3s, border-color 0.3s;
+}
+
+body.dark .week-day-header {
+	border-bottom: 1px solid #444;
+	border-right: 1px solid #444;
 }
 
 .week-day-header:last-child {
@@ -173,16 +298,30 @@
 	background-color: #e3f2fd;
 }
 
+body.dark .week-day-header.today {
+	background-color: #2c3b4d;
+}
+
 .day-name {
 	font-weight: 600;
 	font-size: 14px;
 	color: #495057;
+	transition: color 0.3s;
+}
+
+body.dark .day-name {
+	color: #ddd;
 }
 
 .day-date {
 	font-size: 12px;
 	color: #6c757d;
 	margin-top: 2px;
+	transition: color 0.3s;
+}
+
+body.dark .day-date {
+	color: #bbb;
 }
 
 .week-grid {
@@ -195,6 +334,11 @@
 	border-right: 1px solid #dee2e6;
 	padding: 10px;
 	overflow-y: auto;
+	transition: background-color 0.3s, border-color 0.3s;
+}
+
+body.dark .week-day-column {
+	border-right: 1px solid #444;
 }
 
 .week-day-column:last-child {
@@ -205,20 +349,28 @@
 	background-color: #f8f8ff;
 }
 
+body.dark .week-day-column.today {
+	background-color: #2c3b4d;
+}
+
 .week-event {
 	margin-bottom: 8px;
 	padding: 8px 10px;
 	border-radius: 4px;
 	border-left: 4px solid;
 	background-color: white;
-	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+	box-shadow: var(--shadow-sm);
 	cursor: pointer;
 	transition: all 0.2s;
 }
 
+body.dark .week-event {
+	background-color: #383838;
+}
+
 .week-event:hover {
 	transform: translateY(-2px);
-	box-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
+	box-shadow: var(--shadow-lg);
 }
 
 /* Vue journalière */
@@ -232,9 +384,14 @@
 .day-section {
 	background-color: white;
 	border-radius: 8px;
-	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+	box-shadow: var(--shadow-sm);
 	padding: 0;
 	overflow: hidden;
+	transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+body.dark .day-section {
+	background-color: #2d2d2d;
 }
 
 .section-header {
@@ -246,13 +403,13 @@
 }
 
 .morning .section-header {
-	background-color: #0277bd;
-	border-color: #0277bd;
+	background-color: var(--color-morning);
+	border-color: var(--color-morning);
 }
 
 .afternoon .section-header {
-	background-color: #e65100;
-	border-color: #e65100;
+	background-color: var(--color-afternoon);
+	border-color: var(--color-afternoon);
 }
 
 .section-events {
@@ -266,14 +423,18 @@
 	border-radius: 6px;
 	overflow: hidden;
 	border: 1px solid #eee;
-	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+	box-shadow: var(--shadow-sm);
 	transition: all 0.2s;
 	cursor: pointer;
 }
 
+body.dark .event-card {
+	border: 1px solid #444;
+}
+
 .event-card:hover {
 	transform: translateY(-2px);
-	box-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
+	box-shadow: var(--shadow-lg);
 }
 
 .card-header {
@@ -281,18 +442,24 @@
 	background-color: #f8f9fa;
 	border-bottom: 1px solid #eee;
 	border-left: 5px solid;
+	transition: background-color 0.3s, border-color 0.3s;
+}
+
+body.dark .card-header {
+	background-color: #383838;
+	border-bottom: 1px solid #444;
 }
 
 .event-entretien .card-header {
-	border-left-color: #43a047;
+	border-left-color: var(--color-entretien);
 }
 
 .event-epgz .card-header {
-	border-left-color: #ffa000;
+	border-left-color: var(--color-epgz);
 }
 
 .event-default .card-header {
-	border-left-color: #1e88e5;
+	border-left-color: var(--color-default);
 }
 
 .card-details {
@@ -310,16 +477,48 @@
 	color: #6c757d;
 }
 
+body.dark .participant {
+	color: #bbb;
+}
+
 .participant i {
 	margin-right: 5px;
 }
 
+/* Style des informations client et intervenant */
+.client-info,
+.technician-info {
+	display: flex;
+	align-items: center;
+	margin-top: 5px;
+	font-size: 12px;
+}
+
+.client-info i,
+.technician-info i {
+	margin-right: 5px;
+}
+
+/* Thème clair */
+.client-info,
 .customer {
 	color: #2196f3;
 }
 
+.technician-info,
 .employee {
 	color: #4caf50;
+}
+
+/* Thème sombre */
+body.dark .client-info,
+body.dark .customer {
+	color: #64b5f6;
+}
+
+body.dark .technician-info,
+body.dark .employee {
+	color: #81c784;
 }
 
 /* Messages d'état */
@@ -331,10 +530,20 @@
 	color: #6c757d;
 	font-style: italic;
 	margin: 20px 0;
+	transition: color 0.3s;
+}
+
+body.dark .loading-message,
+body.dark .no-events-message {
+	color: #aaa;
 }
 
 .error-message {
 	color: #dc3545;
+}
+
+body.dark .error-message {
+	color: #f77;
 }
 
 .no-events {
@@ -342,6 +551,104 @@
 	color: #adb5bd;
 	font-style: italic;
 	padding: 15px;
+	transition: color 0.3s;
+}
+
+body.dark .no-events {
+	color: #888;
+}
+
+/* Vue journalière à deux colonnes */
+.two_column_calendar-container {
+	padding: 15px;
+	border-radius: 8px;
+	background-color: #f8f9fa;
+	color: #333;
+	transition: background-color 0.3s, color 0.3s;
+}
+
+body.dark .two_column_calendar-container {
+	background-color: #1a1a1a;
+	color: #e0e0e0;
+}
+
+/* Styles pour les sections Matin et Après-midi */
+[data-name="Matin"],
+[data-name="Après-midi"] {
+	font-weight: 600;
+	padding: 8px 15px;
+	margin-top: 15px;
+	margin-bottom: 5px;
+	border-radius: 4px;
+	transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
+
+[data-name="Matin"] {
+	color: var(--color-morning);
+	background-color: rgba(2, 119, 189, 0.08);
+	border-left: 4px solid var(--color-morning);
+}
+
+[data-name="Après-midi"] {
+	color: var(--color-afternoon);
+	background-color: rgba(230, 81, 0, 0.08);
+	border-left: 4px solid var(--color-afternoon);
+}
+
+body.dark [data-name="Matin"] {
+	background-color: rgba(2, 119, 189, 0.15);
+}
+
+body.dark [data-name="Après-midi"] {
+	background-color: rgba(230, 81, 0, 0.15);
+}
+
+/* Style pour les événements dans la vue à deux colonnes */
+.two_column_calendar-container
+	> div:not([data-name]):not(.no-events):not(.loading-message):not(.error-message):not(
+		.no-events-message
+	) {
+	margin-bottom: 8px;
+	padding: 10px 15px;
+	border-radius: 6px;
+	border-left: 4px solid;
+	background-color: white;
+	box-shadow: var(--shadow-sm);
+	transition: transform 0.2s, box-shadow 0.2s, background-color 0.3s, color 0.3s;
+}
+
+.two_column_calendar-container
+	> div:not([data-name]):not(.no-events):not(.loading-message):not(.error-message):not(
+		.no-events-message
+	):hover {
+	transform: translateY(-2px);
+	box-shadow: var(--shadow-lg);
+}
+
+body.dark
+	.two_column_calendar-container
+	> div:not([data-name]):not(.no-events):not(.loading-message):not(.error-message):not(
+		.no-events-message
+	) {
+	background-color: #2d2d2d;
+}
+
+/* Styles des types d'événements pour la vue à deux colonnes */
+.two_column_calendar-container > div.event-entretien {
+	border-left-color: var(--color-entretien);
+}
+
+.two_column_calendar-container > div.event-epgz {
+	border-left-color: var(--color-epgz);
+}
+
+.two_column_calendar-container > div.event-default {
+	border-left-color: var(--color-default);
+}
+
+/* Masquer les IDs d'événements */
+.event-id {
+	display: none;
 }
 
 /* Responsive */

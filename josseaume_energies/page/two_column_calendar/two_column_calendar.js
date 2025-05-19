@@ -15,7 +15,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		fieldtype: "Select",
 		label: "Vue",
 		fieldname: "view_type",
-		options: "Mois\nSemaine\nJour",
+		options: "Mois\nSemaine\nJour\nJour (deux colonnes)",
 		default: "Mois",
 		change: function () {
 			refreshCalendar();
@@ -56,7 +56,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	page.add_inner_button(__("Précédent"), () => {
 		const viewType = page.fields_dict.view_type.get_value();
 
-		if (viewType === "Jour") {
+		if (viewType === "Jour" || viewType === "Jour (deux colonnes)") {
 			currentDate.setDate(currentDate.getDate() - 1);
 		} else if (viewType === "Semaine") {
 			currentDate.setDate(currentDate.getDate() - 7);
@@ -74,7 +74,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	page.add_inner_button(__("Suivant"), () => {
 		const viewType = page.fields_dict.view_type.get_value();
 
-		if (viewType === "Jour") {
+		if (viewType === "Jour" || viewType === "Jour (deux colonnes)") {
 			currentDate.setDate(currentDate.getDate() + 1);
 		} else if (viewType === "Semaine") {
 			currentDate.setDate(currentDate.getDate() + 7);
@@ -97,13 +97,161 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 		calendarContainer.empty();
 
-		if (viewType === "Jour") {
+		if (viewType === "Jour (deux colonnes)") {
+			renderTwoColumnDayView(currentDate, territory, employee);
+		} else if (viewType === "Jour") {
 			renderDayView(currentDate, territory, employee);
 		} else if (viewType === "Semaine") {
 			renderWeekView(currentDate, territory, employee);
 		} else {
 			renderMonthView(currentYear, currentMonth, territory, employee);
 		}
+	}
+
+	// Rendu de la vue journalière à deux colonnes
+	function renderTwoColumnDayView(date, territory, employee) {
+		const formatDate = (d) => {
+			return `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1)
+				.toString()
+				.padStart(2, "0")}/${d.getFullYear()}`;
+		};
+
+		// Créer l'en-tête
+		const dayHeader = $(`
+            <div class="calendar-header">
+                <h2>Journée du ${formatDate(date)}</h2>
+            </div>
+        `).appendTo(calendarContainer);
+
+		// Créer le conteneur à deux colonnes
+		const twoColumnContainer = $('<div class="two_column_calendar-container"></div>').appendTo(
+			calendarContainer
+		);
+
+		// Récupérer les événements pour cette journée
+		const dateStr = frappe.datetime.obj_to_str(date);
+
+		// Afficher le message de chargement
+		const loadingMessage = $(
+			'<div class="loading-message">Chargement des événements...</div>'
+		).appendTo(calendarContainer);
+
+		frappe.call({
+			method: "josseaume_energies.api.get_day_events",
+			args: {
+				date: dateStr,
+				territory: territory,
+				employee: employee,
+			},
+			callback: function (r) {
+				loadingMessage.remove();
+
+				if (r.message) {
+					const events = r.message;
+					const morningEvents = [];
+					const afternoonEvents = [];
+
+					// Séparer les événements du matin et de l'après-midi
+					events.forEach((event) => {
+						const eventTime = new Date(event.starts_on);
+						if (eventTime.getHours() < 12) {
+							morningEvents.push(event);
+						} else {
+							afternoonEvents.push(event);
+						}
+					});
+
+					// Trier par heure
+					morningEvents.sort((a, b) => new Date(a.starts_on) - new Date(b.starts_on));
+					afternoonEvents.sort((a, b) => new Date(a.starts_on) - new Date(b.starts_on));
+
+					// Ajouter les titres de section
+					$('<div data-name="Matin">Matin</div>').appendTo(twoColumnContainer);
+
+					// Ajouter les événements du matin
+					if (morningEvents.length > 0) {
+						morningEvents.forEach((event) =>
+							renderTwoColumnEventCard(event, twoColumnContainer)
+						);
+					} else {
+						$('<div class="no-events">Aucun événement le matin</div>').appendTo(
+							twoColumnContainer
+						);
+					}
+
+					// Ajouter la section après-midi
+					$('<div data-name="Après-midi">Après-midi</div>').appendTo(twoColumnContainer);
+
+					// Ajouter les événements de l'après-midi
+					if (afternoonEvents.length > 0) {
+						afternoonEvents.forEach((event) =>
+							renderTwoColumnEventCard(event, twoColumnContainer)
+						);
+					} else {
+						$('<div class="no-events">Aucun événement l\'après-midi</div>').appendTo(
+							twoColumnContainer
+						);
+					}
+
+					// Si aucun événement n'est trouvé pour la journée
+					if (events.length === 0) {
+						$(
+							'<div class="no-events-message">Aucun événement pour cette journée</div>'
+						).appendTo(calendarContainer);
+					}
+				} else {
+					$(
+						'<div class="error-message">Erreur lors du chargement des événements</div>'
+					).appendTo(calendarContainer);
+				}
+			},
+		});
+	}
+
+	// Fonction pour rendre une carte d'événement dans la vue à deux colonnes
+	function renderTwoColumnEventCard(event, container) {
+		// Déterminer la classe de couleur
+		let eventClass = "";
+		if (event.subject.includes("Entretien")) {
+			eventClass = "event-entretien";
+		} else if (event.subject.includes("EPGZ")) {
+			eventClass = "event-epgz";
+		} else {
+			eventClass = "event-default";
+		}
+
+		// Trouver les noms des participants
+		let clientName = "";
+		let technicianName = "";
+
+		if (event.event_participants) {
+			event.event_participants.forEach((participant) => {
+				if (participant.reference_doctype === "Customer") {
+					clientName = participant.reference_docname;
+				} else if (participant.reference_doctype === "Employee") {
+					technicianName = participant.reference_docname;
+				}
+			});
+		}
+
+		// Créer la carte d'événement
+		const eventCard = $(`
+			<div class="${eventClass}" data-event-id="${event.name}">
+				<span class="event-id">${event.name}</span>
+				<span class="event-title">${event.subject}</span>
+				${clientName ? `<div class="client-info"><i class="fa fa-user"></i> ${clientName}</div>` : ""}
+				${
+					technicianName
+						? `<div class="technician-info"><i class="fa fa-user-tie"></i> ${technicianName}</div>`
+						: ""
+				}
+			</div>
+		`).appendTo(container);
+
+		// Ajouter l'interaction au clic
+		eventCard.on("click", function () {
+			frappe.set_route("Form", "Event", event.name);
+		});
 	}
 
 	// Rendu de la vue mensuelle
@@ -403,11 +551,36 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 									eventClass = "event-default";
 								}
 
+								// Trouver les noms des participants
+								let clientName = "";
+								let technicianName = "";
+
+								if (event.event_participants) {
+									event.event_participants.forEach((participant) => {
+										if (participant.reference_doctype === "Customer") {
+											clientName = participant.reference_docname;
+										} else if (participant.reference_doctype === "Employee") {
+											technicianName = participant.reference_docname;
+										}
+									});
+								}
+
 								// Créer l'élément d'événement
 								const eventElement = $(`
-                                    <div class="week-event ${eventClass}" data-event-id="${event.name}">
-                                        <div class="event-time">${hours}:${minutes}</div>
+                                    <div class="week-event ${eventClass}" data-event-id="${
+									event.name
+								}">
                                         <div class="event-title">${event.subject}</div>
+                                        ${
+											clientName
+												? `<div class="client-info"><i class="fa fa-user"></i> ${clientName}</div>`
+												: ""
+										}
+                                        ${
+											technicianName
+												? `<div class="technician-info"><i class="fa fa-user-tie"></i> ${technicianName}</div>`
+												: ""
+										}
                                     </div>
                                 `).appendTo(dayContainer);
 
@@ -597,9 +770,9 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 		event.event_participants.forEach((participant) => {
 			if (participant.reference_doctype === "Customer") {
-				html += `<div class="participant customer"><i class="fa fa-user"></i> ${participant.reference_docname}</div>`;
+				html += `<div class="participant customer client-info"><i class="fa fa-user"></i> ${participant.reference_docname}</div>`;
 			} else if (participant.reference_doctype === "Employee") {
-				html += `<div class="participant employee"><i class="fa fa-user-tie"></i> ${participant.reference_docname}</div>`;
+				html += `<div class="participant employee technician-info"><i class="fa fa-user-tie"></i> ${participant.reference_docname}</div>`;
 			}
 		});
 
