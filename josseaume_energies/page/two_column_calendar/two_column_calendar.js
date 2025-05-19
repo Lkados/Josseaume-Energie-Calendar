@@ -10,12 +10,59 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	let currentYear = currentDate.getFullYear();
 	let currentMonth = currentDate.getMonth(); // 0-11
 
+	// Détection et gestion du thème pour ERPNext v15
+	function applyTheme() {
+		// Méthodes de détection pour ERPNext v15
+		const isDarkTheme =
+			$("body").hasClass("dark") ||
+			(frappe.ui.theme && frappe.ui.theme.current_theme === "Dark") ||
+			localStorage.getItem("desk_theme") === "Dark" ||
+			(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+		if (isDarkTheme && !$("body").hasClass("dark")) {
+			$("body").addClass("dark");
+		} else if (!isDarkTheme && $("body").hasClass("dark")) {
+			$("body").removeClass("dark");
+		}
+	}
+
+	// Observer les changements de thème
+	function setupThemeObserver() {
+		// Observer les changements de classe sur le body
+		const observer = new MutationObserver(function (mutations) {
+			mutations.forEach(function (mutation) {
+				if (mutation.type === "attributes" && mutation.attributeName === "class") {
+					applyTheme();
+				}
+			});
+		});
+
+		observer.observe(document.body, { attributes: true });
+
+		// Observer les changements de préférences système
+		if (window.matchMedia) {
+			window
+				.matchMedia("(prefers-color-scheme: dark)")
+				.addEventListener("change", applyTheme);
+		}
+
+		// Pour ERPNext v15, suivre les changements de thème spécifiques
+		$(document).on("theme-change", applyTheme);
+	}
+
+	// Appliquer le thème au chargement et configurer l'observateur
+	applyTheme();
+	setupThemeObserver();
+
+	// Vérifier le thème périodiquement pour s'assurer qu'il reste synchronisé
+	setInterval(applyTheme, 2000);
+
 	// Ajouter des contrôles
 	page.add_field({
 		fieldtype: "Select",
 		label: "Vue",
 		fieldname: "view_type",
-		options: "Mois\nSemaine\nJour\nJour (deux colonnes)",
+		options: "Mois\nSemaine\nJour",
 		default: "Mois",
 		change: function () {
 			refreshCalendar();
@@ -56,7 +103,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	page.add_inner_button(__("Précédent"), () => {
 		const viewType = page.fields_dict.view_type.get_value();
 
-		if (viewType === "Jour" || viewType === "Jour (deux colonnes)") {
+		if (viewType === "Jour") {
 			currentDate.setDate(currentDate.getDate() - 1);
 		} else if (viewType === "Semaine") {
 			currentDate.setDate(currentDate.getDate() - 7);
@@ -74,7 +121,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	page.add_inner_button(__("Suivant"), () => {
 		const viewType = page.fields_dict.view_type.get_value();
 
-		if (viewType === "Jour" || viewType === "Jour (deux colonnes)") {
+		if (viewType === "Jour") {
 			currentDate.setDate(currentDate.getDate() + 1);
 		} else if (viewType === "Semaine") {
 			currentDate.setDate(currentDate.getDate() + 7);
@@ -97,15 +144,35 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 		calendarContainer.empty();
 
-		if (viewType === "Jour (deux colonnes)") {
+		if (viewType === "Jour") {
 			renderTwoColumnDayView(currentDate, territory, employee);
-		} else if (viewType === "Jour") {
-			renderDayView(currentDate, territory, employee);
 		} else if (viewType === "Semaine") {
 			renderWeekView(currentDate, territory, employee);
 		} else {
 			renderMonthView(currentYear, currentMonth, territory, employee);
 		}
+	}
+
+	// Récupérer le nom complet pour un participant
+	function getParticipantNames(participants) {
+		if (!participants || !Array.isArray(participants)) {
+			return { clientName: "", technicianName: "" };
+		}
+
+		let clientName = "";
+		let technicianName = "";
+
+		participants.forEach((participant) => {
+			if (participant.reference_doctype === "Customer") {
+				// Récupérer le nom complet du client
+				clientName = participant.reference_docname;
+			} else if (participant.reference_doctype === "Employee") {
+				// Récupérer le nom complet de l'intervenant
+				technicianName = participant.reference_docname;
+			}
+		});
+
+		return { clientName, technicianName };
 	}
 
 	// Rendu de la vue journalière à deux colonnes
@@ -148,6 +215,8 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 				if (r.message) {
 					const events = r.message;
+					console.log("Événements reçus:", events);
+
 					const morningEvents = [];
 					const afternoonEvents = [];
 
@@ -220,19 +289,8 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			eventClass = "event-default";
 		}
 
-		// Trouver les noms des participants
-		let clientName = "";
-		let technicianName = "";
-
-		if (event.event_participants) {
-			event.event_participants.forEach((participant) => {
-				if (participant.reference_doctype === "Customer") {
-					clientName = participant.reference_docname;
-				} else if (participant.reference_doctype === "Employee") {
-					technicianName = participant.reference_docname;
-				}
-			});
-		}
+		// Récupérer les noms des participants
+		const { clientName, technicianName } = getParticipantNames(event.event_participants);
 
 		// Créer la carte d'événement
 		const eventCard = $(`
@@ -307,6 +365,23 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			$('<div class="calendar-day empty"></div>').appendTo(calendarGrid);
 		}
 
+		// Créer les jours du mois (sans événements pour l'instant)
+		for (let day = 1; day <= daysInMonth; day++) {
+			const isToday =
+				new Date().getDate() === day &&
+				new Date().getMonth() === month &&
+				new Date().getFullYear() === year;
+
+			const dayCell = $(`
+				<div class="calendar-day ${isToday ? "today" : ""}">
+					<div class="day-header">
+						<span class="day-number">${day}</span>
+					</div>
+					<div class="day-events"></div>
+				</div>
+			`).appendTo(calendarGrid);
+		}
+
 		// Afficher le message de chargement
 		const loadingMessage = $(
 			'<div class="loading-message">Chargement des événements...</div>'
@@ -326,70 +401,73 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 				if (r.message) {
 					const events = r.message;
+					console.log("Événements du mois reçus:", events);
 
-					// Créer un objet pour organiser les événements par jour
+					// Organiser les événements par jour
 					const eventsByDay = {};
 
 					events.forEach((event) => {
-						const eventDate = new Date(event.starts_on);
-						const eventDay = eventDate.getDate();
+						try {
+							const eventDate = new Date(event.starts_on);
+							console.log("Date de l'événement:", eventDate);
+							const eventDay = eventDate.getDate();
+							console.log("Jour de l'événement:", eventDay);
 
-						if (!eventsByDay[eventDay]) {
-							eventsByDay[eventDay] = [];
+							if (!eventsByDay[eventDay]) {
+								eventsByDay[eventDay] = [];
+							}
+
+							eventsByDay[eventDay].push(event);
+						} catch (error) {
+							console.error(
+								"Erreur lors du traitement de l'événement:",
+								error,
+								event
+							);
 						}
-
-						eventsByDay[eventDay].push(event);
 					});
 
-					// Créer les jours du mois avec leurs événements
-					for (let day = 1; day <= daysInMonth; day++) {
-						const isToday =
-							new Date().getDate() === day &&
-							new Date().getMonth() === month &&
-							new Date().getFullYear() === year;
-
-						const dayCell = $(`
-                            <div class="calendar-day ${isToday ? "today" : ""}">
-                                <div class="day-header">
-                                    <span class="day-number">${day}</span>
-                                </div>
-                                <div class="day-events"></div>
-                            </div>
-                        `).appendTo(calendarGrid);
-
-						// Ajouter les événements de ce jour
+					// Ajouter les événements dans les cellules du jour correspondantes
+					$(".calendar-day").each(function (index) {
+						const day = index + 1;
 						const dayEvents = eventsByDay[day] || [];
-						const eventsContainer = dayCell.find(".day-events");
+						console.log(`Jour ${day}:`, dayEvents);
 
 						if (dayEvents.length > 0) {
+							const eventsContainer = $(this).find(".day-events");
+
 							// Trier les événements par heure
 							dayEvents.sort(
 								(a, b) => new Date(a.starts_on) - new Date(b.starts_on)
 							);
 
 							dayEvents.forEach((event) => {
+								// Extraire les noms des participants
+								const { clientName, technicianName } = getParticipantNames(
+									event.event_participants
+								);
+
 								// Formater l'heure
 								const eventTime = new Date(event.starts_on);
 								const hours = eventTime.getHours().toString().padStart(2, "0");
 								const minutes = eventTime.getMinutes().toString().padStart(2, "0");
 
 								// Déterminer la classe de couleur
-								let eventClass = "";
+								let eventClass = "event-default";
 								if (event.subject.includes("Entretien")) {
 									eventClass = "event-entretien";
 								} else if (event.subject.includes("EPGZ")) {
 									eventClass = "event-epgz";
-								} else {
-									eventClass = "event-default";
 								}
 
 								// Créer l'élément d'événement
 								const eventElement = $(`
-                                    <div class="event ${eventClass}" data-event-id="${event.name}">
-                                        <div class="event-time">${hours}:${minutes}</div>
-                                        <div class="event-title">${event.subject}</div>
-                                    </div>
-                                `).appendTo(eventsContainer);
+									<div class="event ${eventClass}" data-event-id="${event.name}">
+										<div class="event-time">${hours}:${minutes}</div>
+										<div class="event-title">${event.subject}</div>
+										${clientName ? `<div class="client-info"><i class="fa fa-user"></i> ${clientName}</div>` : ""}
+									</div>
+								`).appendTo(eventsContainer);
 
 								// Ajouter l'interaction au clic
 								eventElement.on("click", function () {
@@ -397,7 +475,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 								});
 							});
 						}
-					}
+					});
 
 					// Si aucun événement n'est trouvé pour le mois
 					if (events.length === 0) {
@@ -512,6 +590,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 				if (r.message) {
 					const events = r.message;
+					console.log("Événements de la semaine reçus:", events);
 
 					// Organiser les événements par jour de la semaine
 					const eventsByDay = Array(7)
@@ -536,53 +615,31 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 							);
 
 							dayEvents.forEach((event) => {
-								// Formater l'heure
-								const eventTime = new Date(event.starts_on);
-								const hours = eventTime.getHours().toString().padStart(2, "0");
-								const minutes = eventTime.getMinutes().toString().padStart(2, "0");
+								// Récupérer les noms des participants
+								const { clientName, technicianName } = getParticipantNames(
+									event.event_participants
+								);
 
 								// Déterminer la classe de couleur
-								let eventClass = "";
+								let eventClass = "event-default";
 								if (event.subject.includes("Entretien")) {
 									eventClass = "event-entretien";
 								} else if (event.subject.includes("EPGZ")) {
 									eventClass = "event-epgz";
-								} else {
-									eventClass = "event-default";
-								}
-
-								// Trouver les noms des participants
-								let clientName = "";
-								let technicianName = "";
-
-								if (event.event_participants) {
-									event.event_participants.forEach((participant) => {
-										if (participant.reference_doctype === "Customer") {
-											clientName = participant.reference_docname;
-										} else if (participant.reference_doctype === "Employee") {
-											technicianName = participant.reference_docname;
-										}
-									});
 								}
 
 								// Créer l'élément d'événement
 								const eventElement = $(`
-                                    <div class="week-event ${eventClass}" data-event-id="${
-									event.name
-								}">
-                                        <div class="event-title">${event.subject}</div>
-                                        ${
-											clientName
-												? `<div class="client-info"><i class="fa fa-user"></i> ${clientName}</div>`
-												: ""
-										}
-                                        ${
+									<div class="week-event ${eventClass}" data-event-id="${event.name}">
+										<div class="event-title">${event.subject}</div>
+										${clientName ? `<div class="client-info"><i class="fa fa-user"></i> ${clientName}</div>` : ""}
+										${
 											technicianName
 												? `<div class="technician-info"><i class="fa fa-user-tie"></i> ${technicianName}</div>`
 												: ""
 										}
-                                    </div>
-                                `).appendTo(dayContainer);
+									</div>
+								`).appendTo(dayContainer);
 
 								// Ajouter l'interaction au clic
 								eventElement.on("click", function () {
@@ -609,175 +666,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				}
 			},
 		});
-	}
-
-	// Rendu de la vue journalière
-	function renderDayView(date, territory, employee) {
-		const formatDate = (d) => {
-			return `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1)
-				.toString()
-				.padStart(2, "0")}/${d.getFullYear()}`;
-		};
-
-		// Créer l'en-tête
-		const dayHeader = $(`
-            <div class="calendar-header">
-                <h2>Journée du ${formatDate(date)}</h2>
-            </div>
-        `).appendTo(calendarContainer);
-
-		// Créer les conteneurs matin et après-midi
-		const dayContainer = $(`
-            <div class="day-view-container">
-                <div class="day-section morning">
-                    <div class="section-header">Matin</div>
-                    <div class="section-events" id="morning-events"></div>
-                </div>
-                <div class="day-section afternoon">
-                    <div class="section-header">Après-midi</div>
-                    <div class="section-events" id="afternoon-events"></div>
-                </div>
-            </div>
-        `).appendTo(calendarContainer);
-
-		// Récupérer les événements pour cette journée
-		const dateStr = frappe.datetime.obj_to_str(date);
-
-		// Afficher le message de chargement
-		const loadingMessage = $(
-			'<div class="loading-message">Chargement des événements...</div>'
-		).appendTo(calendarContainer);
-
-		frappe.call({
-			method: "josseaume_energies.api.get_day_events",
-			args: {
-				date: dateStr,
-				territory: territory,
-				employee: employee,
-			},
-			callback: function (r) {
-				loadingMessage.remove();
-
-				if (r.message) {
-					const events = r.message;
-					const morningEvents = [];
-					const afternoonEvents = [];
-
-					// Séparer les événements du matin et de l'après-midi
-					events.forEach((event) => {
-						const eventTime = new Date(event.starts_on);
-						if (eventTime.getHours() < 12) {
-							morningEvents.push(event);
-						} else {
-							afternoonEvents.push(event);
-						}
-					});
-
-					// Trier par heure
-					morningEvents.sort((a, b) => new Date(a.starts_on) - new Date(b.starts_on));
-					afternoonEvents.sort((a, b) => new Date(a.starts_on) - new Date(b.starts_on));
-
-					// Remplir la section matin
-					const morningContainer = $("#morning-events");
-					if (morningEvents.length > 0) {
-						morningEvents.forEach((event) => renderEventCard(event, morningContainer));
-					} else {
-						$('<div class="no-events">Aucun événement</div>').appendTo(
-							morningContainer
-						);
-					}
-
-					// Remplir la section après-midi
-					const afternoonContainer = $("#afternoon-events");
-					if (afternoonEvents.length > 0) {
-						afternoonEvents.forEach((event) =>
-							renderEventCard(event, afternoonContainer)
-						);
-					} else {
-						$('<div class="no-events">Aucun événement</div>').appendTo(
-							afternoonContainer
-						);
-					}
-
-					// Si aucun événement n'est trouvé pour la journée
-					if (events.length === 0) {
-						$(
-							'<div class="no-events-message">Aucun événement pour cette journée</div>'
-						).appendTo(calendarContainer);
-					}
-				} else {
-					$(
-						'<div class="error-message">Erreur lors du chargement des événements</div>'
-					).appendTo(calendarContainer);
-				}
-			},
-		});
-	}
-
-	// Fonction helper pour rendre une carte d'événement
-	function renderEventCard(event, container) {
-		// Formater l'heure
-		const startTime = new Date(event.starts_on);
-		const endTime = new Date(event.ends_on);
-
-		const formatTime = (time) => {
-			return `${time.getHours().toString().padStart(2, "0")}:${time
-				.getMinutes()
-				.toString()
-				.padStart(2, "0")}`;
-		};
-
-		// Déterminer la classe de couleur
-		let eventClass = "";
-		if (event.subject.includes("Entretien")) {
-			eventClass = "event-entretien";
-		} else if (event.subject.includes("EPGZ")) {
-			eventClass = "event-epgz";
-		} else {
-			eventClass = "event-default";
-		}
-
-		// Créer la carte
-		const card = $(`
-            <div class="event-card ${eventClass}" data-event-id="${event.name}">
-                <div class="card-header">
-                    <span class="event-time">${formatTime(startTime)} - ${formatTime(
-			endTime
-		)}</span>
-                    <span class="event-title">${event.subject}</span>
-                </div>
-                <div class="card-details">
-                    ${renderParticipants(event)}
-                </div>
-            </div>
-        `).appendTo(container);
-
-		// Ajouter l'interaction au clic
-		card.on("click", function () {
-			frappe.set_route("Form", "Event", event.name);
-		});
-
-		return card;
-	}
-
-	// Fonction helper pour rendre les participants
-	function renderParticipants(event) {
-		if (!event.event_participants || event.event_participants.length === 0) {
-			return "";
-		}
-
-		let html = '<div class="participants">';
-
-		event.event_participants.forEach((participant) => {
-			if (participant.reference_doctype === "Customer") {
-				html += `<div class="participant customer client-info"><i class="fa fa-user"></i> ${participant.reference_docname}</div>`;
-			} else if (participant.reference_doctype === "Employee") {
-				html += `<div class="participant employee technician-info"><i class="fa fa-user-tie"></i> ${participant.reference_docname}</div>`;
-			}
-		});
-
-		html += "</div>";
-		return html;
 	}
 
 	// Initialiser le calendrier
