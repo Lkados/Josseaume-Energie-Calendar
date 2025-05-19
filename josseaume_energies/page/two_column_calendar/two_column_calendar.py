@@ -1,6 +1,9 @@
-# josseaume_energies/page/two_column_calendar/two_column_calendar.py
+# Copyright (c) 2023, Mohamed Kachtit and contributors
+# For license information, please see license.txt
+
 import frappe
 
 def get_context(context):
-    context.title = "Calendrier Interventions"
+    """Ajout de données contextuelles pour la page"""
+    context.title = "Calendrier des Interventions"
     return context
