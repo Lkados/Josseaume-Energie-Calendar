@@ -1,0 +1,27 @@
+{
+ "content": null,
+ "creation": "2025-05-19 23:04:27.594140",
+ "docstatus": 0,
+ "doctype": "Page",
+ "icon": "calendar",
+ "idx": 0,
+ "modified": "2025-05-20 12:35:50.728307",
+ "modified_by": "Administrator",
+ "module": "Josseaume Energies",
+ "name": "two_column_calendar",
+ "owner": "Administrator",
+ "page_name": "two_column_calendar",
+ "roles": [
+  {
+   "role": "All"
+  },
+  {
+   "role": "Administrator"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Calendrier des interventions"
+}
