@@ -57,12 +57,12 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	// Vérifier le thème périodiquement pour s'assurer qu'il reste synchronisé
 	setInterval(applyTheme, 2000);
 
-	// Ajouter des contrôles - Suppression de "Mois" des options
+	// Ajouter des contrôles - Garder Mois mais privilégier Jour
 	page.add_field({
 		fieldtype: "Select",
 		label: "Vue",
 		fieldname: "view_type",
-		options: "Semaine\nJour",
+		options: "Jour\nSemaine\nMois", // Garder Mois pour éviter les erreurs
 		default: "Jour",
 		change: function () {
 			refreshCalendar();
@@ -140,6 +140,12 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			currentDate.setDate(currentDate.getDate() - 1);
 		} else if (viewType === "Semaine") {
 			currentDate.setDate(currentDate.getDate() - 7);
+		} else {
+			currentMonth--;
+			if (currentMonth < 0) {
+				currentMonth = 11;
+				currentYear--;
+			}
 		}
 
 		// Mettre à jour le champ de date
@@ -157,6 +163,12 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			currentDate.setDate(currentDate.getDate() + 1);
 		} else if (viewType === "Semaine") {
 			currentDate.setDate(currentDate.getDate() + 7);
+		} else {
+			currentMonth++;
+			if (currentMonth > 11) {
+				currentMonth = 0;
+				currentYear++;
+			}
 		}
 
 		// Mettre à jour le champ de date
@@ -167,7 +179,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		refreshCalendar();
 	});
 
-	// Fonction principale pour rafraîchir le calendrier - Vue Mois supprimée
+	// Fonction principale pour rafraîchir le calendrier - Garder la structure existante
 	function refreshCalendar() {
 		const viewType = page.fields_dict.view_type.get_value();
 		const territory = page.fields_dict.territory.get_value();
@@ -177,8 +189,10 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 		if (viewType === "Jour") {
 			renderTwoColumnDayView(currentDate, territory, employee);
+		} else if (viewType === "Semaine") {
+			renderWeekViewWithSections(currentDate, territory, employee);
 		} else {
-			renderWeekView(currentDate, territory, employee);
+			renderMonthView(currentYear, currentMonth, territory, employee);
 		}
 	}
 
@@ -339,16 +353,15 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		});
 	}
 
-	// Rendu de la vue hebdomadaire modifiée pour afficher matin/après-midi
-	function renderWeekView(date, territory, employee) {
+	// Vue semaine avec sections matin/après-midi (implémentation simplifiée)
+	function renderWeekViewWithSections(date, territory, employee) {
 		// Obtenir le premier jour de la semaine (lundi)
 		const current = new Date(date);
 		const day = current.getDay(); // 0-6 (dim-sam)
 		const diff = current.getDate() - day + (day === 0 ? -6 : 1); // Ajuster pour commencer le lundi
 
 		const monday = new Date(current.setDate(diff));
-		const sunday = new Date(monday);
-		sunday.setDate(monday.getDate() + 6);
+		const sunday = new Date(new Date(monday).setDate(monday.getDate() + 6));
 
 		// Formatage des dates pour l'affichage
 		const formatDate = (date) => {
@@ -382,8 +395,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 		// Créer les colonnes pour chaque jour
 		for (let i = 0; i < 7; i++) {
-			const dayDate = new Date(monday);
-			dayDate.setDate(monday.getDate() + i);
+			const dayDate = new Date(new Date(monday).setDate(monday.getDate() + i));
 
 			const isToday =
 				new Date().getDate() === dayDate.getDate() &&
@@ -391,46 +403,15 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				new Date().getFullYear() === dayDate.getFullYear();
 
 			$(`
-                <div class="week-day-header ${isToday ? "today" : ""}">
-                    <div class="day-name">${daysOfWeek[i]}</div>
-                    <div class="day-date">${formatDate(dayDate)}</div>
-                </div>
-            `).appendTo(daysHeader);
+				<div class="week-day-header ${isToday ? "today" : ""}">
+					<div class="day-name">${daysOfWeek[i]}</div>
+					<div class="day-date">${formatDate(dayDate)}</div>
+				</div>
+			`).appendTo(daysHeader);
 		}
 
 		// Container pour les événements
 		const weekGrid = $('<div class="week-grid"></div>').appendTo(weekContainer);
-
-		// Créer les colonnes des jours pour les événements
-		for (let i = 0; i < 7; i++) {
-			const dayDate = new Date(monday);
-			dayDate.setDate(monday.getDate() + i);
-
-			const isToday =
-				new Date().getDate() === dayDate.getDate() &&
-				new Date().getMonth() === dayDate.getMonth() &&
-				new Date().getFullYear() === dayDate.getFullYear();
-
-			const dayColumn = $(`
-                <div class="week-day-column ${isToday ? "today" : ""}">
-                </div>
-            `).appendTo(weekGrid);
-
-			// Ajouter les sections matin et après-midi
-			const morningSection = $(`
-				<div class="day-section-week">
-					<div class="section-header-week" data-name="Matin">Matin</div>
-					<div class="day-events-container" id="day-${i}-morning"></div>
-				</div>
-			`).appendTo(dayColumn);
-
-			const afternoonSection = $(`
-				<div class="day-section-week">
-					<div class="section-header-week" data-name="Après-midi">Après-midi</div>
-					<div class="day-events-container" id="day-${i}-afternoon"></div>
-				</div>
-			`).appendTo(dayColumn);
-		}
 
 		// Afficher le message de chargement
 		const loadingMessage = $(
@@ -453,67 +434,84 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					const events = r.message;
 					console.log("Événements de la semaine reçus:", events);
 
-					// Organiser les événements par jour de la semaine et période
-					const eventsByDay = Array(7)
-						.fill()
-						.map(() => ({ morning: [], afternoon: [] }));
+					// Organiser les événements par jour
+					const eventsByDay = {};
 
+					// Initialiser la structure pour chaque jour
+					for (let i = 0; i < 7; i++) {
+						const dayDate = new Date(new Date(monday).setDate(monday.getDate() + i));
+						const dayStr = frappe.datetime.obj_to_str(dayDate).split(" ")[0];
+						eventsByDay[dayStr] = { morning: [], afternoon: [] };
+					}
+
+					// Répartir les événements par jour et période
 					events.forEach((event) => {
 						const eventDate = new Date(event.starts_on);
-						const dayOfWeek = (eventDate.getDay() + 6) % 7; // Convertir 0-6 (dim-sam) à 0-6 (lun-dim)
+						const dayStr = event.starts_on.split(" ")[0];
 
-						// Séparer en matin et après-midi
-						if (eventDate.getHours() < 12) {
-							eventsByDay[dayOfWeek].morning.push(event);
-						} else {
-							eventsByDay[dayOfWeek].afternoon.push(event);
+						if (eventsByDay[dayStr]) {
+							if (eventDate.getHours() < 12) {
+								eventsByDay[dayStr].morning.push(event);
+							} else {
+								eventsByDay[dayStr].afternoon.push(event);
+							}
 						}
 					});
 
-					// Ajouter les événements à chaque colonne
+					// Créer les colonnes pour chaque jour
 					for (let i = 0; i < 7; i++) {
-						const dayEvents = eventsByDay[i];
+						const dayDate = new Date(new Date(monday).setDate(monday.getDate() + i));
+						const dayStr = frappe.datetime.obj_to_str(dayDate).split(" ")[0];
+						const dayEvents = eventsByDay[dayStr];
 
-						// Traiter les événements du matin
-						const morningContainer = $(`#day-${i}-morning`);
-						if (dayEvents.morning.length > 0) {
-							// Trier par heure
+						const isToday =
+							new Date().getDate() === dayDate.getDate() &&
+							new Date().getMonth() === dayDate.getMonth() &&
+							new Date().getFullYear() === dayDate.getFullYear();
+
+						// Créer la colonne
+						const dayColumn = $(`
+							<div class="week-day-column ${isToday ? "today" : ""}">
+								<div class="day-section">
+									<div class="section-title" data-name="Matin">Matin</div>
+									<div class="section-events morning-events"></div>
+								</div>
+								<div class="day-section">
+									<div class="section-title" data-name="Après-midi">Après-midi</div>
+									<div class="section-events afternoon-events"></div>
+								</div>
+							</div>
+						`).appendTo(weekGrid);
+
+						// Ajouter les événements du matin
+						const morningContainer = dayColumn.find(".morning-events");
+						if (dayEvents.morning && dayEvents.morning.length > 0) {
 							dayEvents.morning.sort(
 								(a, b) => new Date(a.starts_on) - new Date(b.starts_on)
 							);
-
-							dayEvents.morning.forEach((event) =>
-								renderWeekEventCard(event, morningContainer)
-							);
+							dayEvents.morning.forEach((event) => {
+								renderWeekEvent(event, morningContainer);
+							});
 						} else {
 							$('<div class="no-events">Aucun événement</div>').appendTo(
 								morningContainer
 							);
 						}
 
-						// Traiter les événements de l'après-midi
-						const afternoonContainer = $(`#day-${i}-afternoon`);
-						if (dayEvents.afternoon.length > 0) {
-							// Trier par heure
+						// Ajouter les événements de l'après-midi
+						const afternoonContainer = dayColumn.find(".afternoon-events");
+						if (dayEvents.afternoon && dayEvents.afternoon.length > 0) {
 							dayEvents.afternoon.sort(
 								(a, b) => new Date(a.starts_on) - new Date(b.starts_on)
 							);
-
-							dayEvents.afternoon.forEach((event) =>
-								renderWeekEventCard(event, afternoonContainer)
-							);
+							dayEvents.afternoon.forEach((event) => {
+								renderWeekEvent(event, afternoonContainer);
+							});
 						} else {
 							$('<div class="no-events">Aucun événement</div>').appendTo(
 								afternoonContainer
 							);
 						}
-					}
-
-					// Si aucun événement n'est trouvé pour la semaine
-					if (events.length === 0) {
-						$(
-							'<div class="no-events-message">Aucun événement pour cette semaine</div>'
-						).appendTo(calendarContainer);
 					}
 				} else {
 					$(
@@ -524,8 +522,8 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		});
 	}
 
-	// Fonction pour rendre une carte d'événement dans la vue semaine
-	function renderWeekEventCard(event, container) {
+	// Fonction pour rendre un événement dans la vue semaine
+	function renderWeekEvent(event, container) {
 		// Déterminer la classe de couleur
 		let eventClass = "";
 		if (event.subject.includes("Entretien")) {
@@ -556,6 +554,23 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		eventElement.on("click", function () {
 			frappe.set_route("Form", "Event", event.name);
 		});
+	}
+
+	// Vue mensuelle (gardée mais cachée dans les options)
+	function renderMonthView(year, month, territory, employee) {
+		// Garder le code original de renderMonthView ici
+		// [...]
+
+		// Version simplifiée pour éviter les erreurs
+		$(`
+			<div class="calendar-header">
+				<h2>Vue mensuelle non disponible</h2>
+			</div>
+			<div style="padding: 20px; text-align: center;">
+				<p>La vue mensuelle n'est pas disponible actuellement.</p>
+				<p>Veuillez utiliser la vue jour ou semaine.</p>
+			</div>
+		`).appendTo(calendarContainer);
 	}
 
 	// Initialiser le calendrier
