@@ -277,10 +277,20 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 					// Séparer les événements du matin et de l'après-midi
 					events.forEach((event) => {
-						if (event.all_day) {
-							// Ajouter cette condition
+						console.log(
+							"Événement:",
+							event.subject,
+							"all_day:",
+							event.all_day,
+							"type:",
+							typeof event.all_day
+						);
+						// Vérifier d'abord si c'est un événement toute la journée
+						if (event.all_day === 1 || event.all_day === true) {
+							// Utiliser === 1 car il peut être stocké comme entier dans la base de données
 							allDayEvents.push(event);
 						} else {
+							// Seulement si ce n'est PAS un événement toute la journée, le classifier
 							const eventTime = new Date(event.starts_on);
 							if (eventTime.getHours() < 12) {
 								morningEvents.push(event);
@@ -289,7 +299,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 							}
 						}
 					});
-
 					// Trier par heure
 					morningEvents.sort((a, b) => new Date(a.starts_on) - new Date(b.starts_on));
 					afternoonEvents.sort((a, b) => new Date(a.starts_on) - new Date(b.starts_on));
