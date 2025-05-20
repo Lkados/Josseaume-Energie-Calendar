@@ -62,8 +62,9 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		fieldtype: "Select",
 		label: "Vue",
 		fieldname: "view_type",
-		options: "Mois\nSemaine\nJour",
-		default: "Mois",
+		//options: "Mois\nSemaine\nJour",
+		options: "Semaine\nJour",
+		default: "Semaine",
 		change: function () {
 			refreshCalendar();
 		},
@@ -85,6 +86,33 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		fieldname: "employee",
 		options: "Employee",
 		change: function () {
+			refreshCalendar();
+		},
+	});
+
+	page.add_field({
+		fieldtype: "Date",
+		label: "Date",
+		fieldname: "select_date",
+		default: frappe.datetime.get_today(),
+		change: function () {
+			const selectedDate = page.fields_dict.select_date.get_value();
+			const viewType = page.fields_dict.view_type.get_value();
+
+			if (!selectedDate) return;
+
+			// Convertir la chaîne de date en objet Date
+			const dateParts = selectedDate.split("-");
+			const year = parseInt(dateParts[0]);
+			const month = parseInt(dateParts[1]) - 1; // Les mois dans JS sont 0-11
+			const day = parseInt(dateParts[2]);
+
+			// Mettre à jour les variables globales
+			currentDate = new Date(year, month, day);
+			currentYear = year;
+			currentMonth = month;
+
+			// Rafraîchir le calendrier
 			refreshCalendar();
 		},
 	});
