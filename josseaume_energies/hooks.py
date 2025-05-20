@@ -39,7 +39,7 @@ has_permission = {
 
 doc_events = {
     "Sales Order": {
-        "on_submit": "josseaume_energies.josseaume_energies.sales_order.on_submit",
+    "on_submit": "josseaume_energies.sales_order.on_submit",
     }
 }
 
