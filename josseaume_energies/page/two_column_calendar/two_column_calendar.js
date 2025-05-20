@@ -62,9 +62,8 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		fieldtype: "Select",
 		label: "Vue",
 		fieldname: "view_type",
-		//options: "Mois\nSemaine\nJour",
-		options: "Semaine\nJour",
-		default: "Semaine",
+		options: "Mois\nSemaine\nJour",
+		default: "Mois",
 		change: function () {
 			refreshCalendar();
 		},
@@ -89,7 +88,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			refreshCalendar();
 		},
 	});
-
+	// Ajouter un champ de sélection de date
 	page.add_field({
 		fieldtype: "Date",
 		label: "Date",
