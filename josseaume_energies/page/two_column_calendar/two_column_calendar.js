@@ -78,7 +78,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			refreshCalendar();
 		},
 	});
-
+	/** 
 	page.add_field({
 		fieldtype: "Link",
 		label: "Intervenant",
@@ -88,6 +88,19 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			refreshCalendar();
 		},
 	});
+	*/
+
+	page.add_field({
+		fieldtype: "Select",
+		label: "Vue",
+		fieldname: "view_type",
+		options: "Semaine\nJour", // Enlever "Mois" des options
+		default: "Jour", // Mettre "Jour" comme vue par défaut
+		change: function () {
+			refreshCalendar();
+		},
+	});
+
 	// Ajouter un champ de sélection de date
 	page.add_field({
 		fieldtype: "Date",
@@ -127,6 +140,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		refreshCalendar();
 	});
 
+	/** 
 	page.add_inner_button(__("Précédent"), () => {
 		const viewType = page.fields_dict.view_type.get_value();
 
@@ -144,6 +158,8 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 		refreshCalendar();
 	});
+	
+
 
 	page.add_inner_button(__("Suivant"), () => {
 		const viewType = page.fields_dict.view_type.get_value();
@@ -162,7 +178,60 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 		refreshCalendar();
 	});
+	*/
+	page.add_inner_button(__("Précédent"), () => {
+		const viewType = page.fields_dict.view_type.get_value();
 
+		if (viewType === "Jour") {
+			currentDate.setDate(currentDate.getDate() - 1);
+		} else {
+			// Si ce n'est pas "Jour", c'est forcément "Semaine"
+			currentDate.setDate(currentDate.getDate() - 7);
+		}
+
+		// Mettre à jour le sélecteur de date si présent
+		if (page.fields_dict.select_date) {
+			page.fields_dict.select_date.set_value(frappe.datetime.obj_to_str(currentDate));
+		}
+
+		refreshCalendar();
+	});
+	page.add_inner_button(__("Précédent"), () => {
+		const viewType = page.fields_dict.view_type.get_value();
+
+		if (viewType === "Jour") {
+			currentDate.setDate(currentDate.getDate() - 1);
+		} else {
+			// Si ce n'est pas "Jour", c'est forcément "Semaine"
+			currentDate.setDate(currentDate.getDate() - 7);
+		}
+
+		// Mettre à jour le sélecteur de date si présent
+		if (page.fields_dict.select_date) {
+			page.fields_dict.select_date.set_value(frappe.datetime.obj_to_str(currentDate));
+		}
+
+		refreshCalendar();
+	});
+
+	page.add_inner_button(__("Suivant"), () => {
+		const viewType = page.fields_dict.view_type.get_value();
+
+		if (viewType === "Jour") {
+			currentDate.setDate(currentDate.getDate() + 1);
+		} else {
+			// Si ce n'est pas "Jour", c'est forcément "Semaine"
+			currentDate.setDate(currentDate.getDate() + 7);
+		}
+
+		// Mettre à jour le sélecteur de date si présent
+		if (page.fields_dict.select_date) {
+			page.fields_dict.select_date.set_value(frappe.datetime.obj_to_str(currentDate));
+		}
+
+		refreshCalendar();
+	});
+	/** 
 	// Fonction principale pour rafraîchir le calendrier
 	function refreshCalendar() {
 		const viewType = page.fields_dict.view_type.get_value();
@@ -198,6 +267,36 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		}
 
 		return { clientName, technicianName };
+	}
+		*/
+	function refreshCalendar() {
+		const viewType = page.fields_dict.view_type.get_value();
+		const territory = page.fields_dict.territory.get_value();
+		const employee = page.fields_dict.employee.get_value();
+		const selectedDate = page.fields_dict.select_date
+			? page.fields_dict.select_date.get_value()
+			: null;
+
+		// Si une date est sélectionnée depuis le date picker, mettre à jour currentDate
+		if (selectedDate) {
+			const dateParts = selectedDate.split("-");
+			currentDate = new Date(
+				parseInt(dateParts[0]),
+				parseInt(dateParts[1]) - 1,
+				parseInt(dateParts[2])
+			);
+			currentYear = currentDate.getFullYear();
+			currentMonth = currentDate.getMonth();
+		}
+
+		calendarContainer.empty();
+
+		if (viewType === "Jour") {
+			renderTwoColumnDayView(currentDate, territory, employee);
+		} else {
+			// Si ce n'est pas "Jour", c'est forcément "Semaine"
+			renderWeekView(currentDate, territory, employee);
+		}
 	}
 
 	// Rendu de la vue journalière à deux colonnes
