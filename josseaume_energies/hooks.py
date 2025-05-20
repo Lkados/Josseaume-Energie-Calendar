@@ -1,8 +1,10 @@
+# josseaume_energies/hooks.py
+
 app_name = "josseaume_energies"
 app_title = "Josseaume Energies"
 app_publisher = "Mohamed Kachtit"
 app_description = "Personnalisation du calendrier Event (vue jour bi-colonne)"
-app_icon = "octicon octicon-calendar" 
+app_icon = "octicon octicon-calendar"
 app_color = "grey"
 app_version = "0.1.0"
 
@@ -22,9 +24,7 @@ website_route_rules = [
 # Whitelist pour l'API
 whitelist_methods = {
     "josseaume_energies.api.create_event_from_sales_order": True,
-    "josseaume_energies.api.get_day_events": True,
-    "josseaume_energies.api.get_calendar_events": True,
-    "josseaume_energies.api.get_week_events": True
+    "josseaume_energies.api.get_day_events": True
 }
 
 # Client scripts
@@ -36,12 +36,6 @@ doctype_js = {
 has_permission = {
     "create_event_from_sales_order": "all"
 }
-
-# Configuration des éléments du menu latéral
-desk_sidebar_items = ["josseaume_energies.config.desk_sidebar_items"]
-
-# Ajouter également l'entrée suivante pour que la page apparaisse dans le Bureau
-desk_page_js = {"Accueil": "public/js/home.js"}
 
 # Fixtures - permet de sauvegarder l'état des documents de la base de données
 fixtures = [
