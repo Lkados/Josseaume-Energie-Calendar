@@ -178,7 +178,7 @@ def create_event_from_sales_order(docname):
         event = frappe.get_doc({
             "doctype": "Event",
             "subject": subject,
-            "event_type": "Private",
+            "event_type": "Public",
             "starts_on": start_time,
             "ends_on": end_time,
             "all_day": all_day,
