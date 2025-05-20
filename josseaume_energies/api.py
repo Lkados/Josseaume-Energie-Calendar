@@ -234,8 +234,8 @@ def create_event_from_sales_order(docname):
         return {"status": "error", "message": str(e)}
 
 @frappe.whitelist()
-def get_day_events(date, territory=None, employee=None):
-    """Récupère les événements pour une journée donnée, filtrés par territoire et/ou employé"""
+def get_day_events(date, territory=None, employee=None, event_type=None):
+    """Récupère les événements pour une journée donnée, filtrés par territoire, employé et/ou type d'intervention"""
     
     # Convertir la date en datetime
     start_date = frappe.utils.get_datetime(date)
@@ -256,7 +256,7 @@ def get_day_events(date, territory=None, employee=None):
     events = frappe.get_all(
         "Event",
         filters=filters,
-        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day"]
+        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day", "description"]
     )
     
     # Filtrer par employé si spécifié
@@ -276,78 +276,12 @@ def get_day_events(date, territory=None, employee=None):
                 filtered_events.append(event)
         events = filtered_events
     
-    # Récupérer les participants pour chaque événement
-    for event in events:
-        event_participants = frappe.get_all(
-            "Event Participants",
-            filters={"parent": event.name},
-            fields=["reference_doctype", "reference_docname"]
-        )
-        
-        # Ajouter les noms complets (méthode simplifiée qui ne devrait pas planter)
-        for participant in event_participants:
-            try:
-                if participant["reference_doctype"] == "Customer":
-                    participant["full_name"] = frappe.db.get_value("Customer", 
-                        participant["reference_docname"], "customer_name") or participant["reference_docname"]
-                elif participant["reference_doctype"] == "Employee":
-                    participant["full_name"] = frappe.db.get_value("Employee", 
-                        participant["reference_docname"], "employee_name") or participant["reference_docname"]
-            except Exception:
-                # En cas d'erreur, utiliser l'ID comme fallback
-                participant["full_name"] = participant["reference_docname"]
-        
-        event["event_participants"] = event_participants
-    
-    return events
-
-# Appliquer la même logique simplifiée aux autres fonctions
-@frappe.whitelist()
-def get_calendar_events(year, month, territory=None, employee=None):
-    """Récupère tous les événements pour un mois donné"""
-    
-    # Convertir en entiers
-    year = int(year)
-    month = int(month)
-    
-    # Obtenir le nombre de jours dans le mois
-    _, num_days = calendar.monthrange(year, month)
-    
-    # Créer les dates de début et fin
-    start_date = f"{year}-{month:02d}-01"
-    end_date = f"{year}-{month:02d}-{num_days}"
-    
-    # Construire les filtres
-    filters = [
-        ["starts_on", ">=", start_date],
-        ["starts_on", "<=", end_date]
-    ]
-    
-    # Ajouter le filtre de territoire si spécifié
-    if territory:
-        filters.append(["subject", "like", f"%{territory}%"])
-    
-    # Récupérer les événements
-    events = frappe.get_all(
-        "Event",
-        filters=filters,
-        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day"]
-    )
-    
-    # Filtrer par employé si spécifié
-    if employee:
+    # Filtrer par type d'intervention si spécifié
+    if event_type:
         filtered_events = []
         for event in events:
-            participants = frappe.get_all(
-                "Event Participants",
-                filters={
-                    "parent": event.name,
-                    "reference_doctype": "Employee",
-                    "reference_docname": employee
-                },
-                fields=["name"]
-            )
-            if participants:
+            # Chercher le type dans la description de l'événement
+            if event.description and f"<strong>Type:</strong> {event_type}" in event.description:
                 filtered_events.append(event)
         events = filtered_events
     
@@ -377,8 +311,19 @@ def get_calendar_events(year, month, territory=None, employee=None):
     return events
 
 @frappe.whitelist()
-def get_week_events(start_date, end_date, territory=None, employee=None):
-    """Récupère les événements pour une semaine donnée"""
+def get_calendar_events(year, month, territory=None, employee=None, event_type=None):
+    """Récupère tous les événements pour un mois donné"""
+    
+    # Convertir en entiers
+    year = int(year)
+    month = int(month)
+    
+    # Obtenir le nombre de jours dans le mois
+    _, num_days = calendar.monthrange(year, month)
+    
+    # Créer les dates de début et fin
+    start_date = f"{year}-{month:02d}-01"
+    end_date = f"{year}-{month:02d}-{num_days}"
     
     # Construire les filtres
     filters = [
@@ -394,7 +339,7 @@ def get_week_events(start_date, end_date, territory=None, employee=None):
     events = frappe.get_all(
         "Event",
         filters=filters,
-        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day"]
+        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day", "description"]
     )
     
     # Filtrer par employé si spécifié
@@ -411,6 +356,87 @@ def get_week_events(start_date, end_date, territory=None, employee=None):
                 fields=["name"]
             )
             if participants:
+                filtered_events.append(event)
+        events = filtered_events
+    
+    # Filtrer par type d'intervention si spécifié
+    if event_type:
+        filtered_events = []
+        for event in events:
+            # Chercher le type dans la description de l'événement
+            if event.description and f"<strong>Type:</strong> {event_type}" in event.description:
+                filtered_events.append(event)
+        events = filtered_events
+    
+    # Récupérer les participants pour chaque événement
+    for event in events:
+        event_participants = frappe.get_all(
+            "Event Participants",
+            filters={"parent": event.name},
+            fields=["reference_doctype", "reference_docname"]
+        )
+        
+        # Ajouter les noms complets (méthode simplifiée)
+        for participant in event_participants:
+            try:
+                if participant["reference_doctype"] == "Customer":
+                    participant["full_name"] = frappe.db.get_value("Customer", 
+                        participant["reference_docname"], "customer_name") or participant["reference_docname"]
+                elif participant["reference_doctype"] == "Employee":
+                    participant["full_name"] = frappe.db.get_value("Employee", 
+                        participant["reference_docname"], "employee_name") or participant["reference_docname"]
+            except Exception:
+                # En cas d'erreur, utiliser l'ID comme fallback
+                participant["full_name"] = participant["reference_docname"]
+        
+        event["event_participants"] = event_participants
+    
+    return events
+
+@frappe.whitelist()
+def get_week_events(start_date, end_date, territory=None, employee=None, event_type=None):
+    """Récupère les événements pour une semaine donnée"""
+    
+    # Construire les filtres
+    filters = [
+        ["starts_on", ">=", start_date],
+        ["starts_on", "<=", end_date]
+    ]
+    
+    # Ajouter le filtre de territoire si spécifié
+    if territory:
+        filters.append(["subject", "like", f"%{territory}%"])
+    
+    # Récupérer les événements
+    events = frappe.get_all(
+        "Event",
+        filters=filters,
+        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day", "description"]
+    )
+    
+    # Filtrer par employé si spécifié
+    if employee:
+        filtered_events = []
+        for event in events:
+            participants = frappe.get_all(
+                "Event Participants",
+                filters={
+                    "parent": event.name,
+                    "reference_doctype": "Employee",
+                    "reference_docname": employee
+                },
+                fields=["name"]
+            )
+            if participants:
+                filtered_events.append(event)
+        events = filtered_events
+    
+    # Filtrer par type d'intervention si spécifié
+    if event_type:
+        filtered_events = []
+        for event in events:
+            # Chercher le type dans la description de l'événement
+            if event.description and f"<strong>Type:</strong> {event_type}" in event.description:
                 filtered_events.append(event)
         events = filtered_events
     

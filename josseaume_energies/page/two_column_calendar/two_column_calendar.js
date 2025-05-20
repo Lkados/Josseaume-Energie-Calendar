@@ -89,6 +89,17 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		},
 	});
 
+	// Ajouter un champ de sélection pour le type d'intervention
+	page.add_field({
+		fieldtype: "Select",
+		label: "Type d'intervention",
+		fieldname: "event_type",
+		options: "\nEntretien\nInstallation\nLivraison Granule\nLivraison Fuel",
+		change: function () {
+			refreshCalendar();
+		},
+	});
+
 	// Ajouter un champ de sélection de date
 	page.add_field({
 		fieldtype: "Date",
@@ -184,15 +195,16 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		const viewType = page.fields_dict.view_type.get_value();
 		const territory = page.fields_dict.territory.get_value();
 		const employee = page.fields_dict.employee.get_value();
+		const event_type = page.fields_dict.event_type.get_value();
 
 		calendarContainer.empty();
 
 		if (viewType === "Jour") {
-			renderTwoColumnDayView(currentDate, territory, employee);
+			renderTwoColumnDayView(currentDate, territory, employee, event_type);
 		} else if (viewType === "Semaine") {
-			renderWeekViewWithSections(currentDate, territory, employee);
+			renderWeekViewWithSections(currentDate, territory, employee, event_type);
 		} else {
-			renderMonthView(currentYear, currentMonth, territory, employee);
+			renderMonthView(currentYear, currentMonth, territory, employee, event_type);
 		}
 	}
 
@@ -217,7 +229,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	}
 
 	// Rendu de la vue journalière à deux colonnes
-	function renderTwoColumnDayView(date, territory, employee) {
+	function renderTwoColumnDayView(date, territory, employee, event_type) {
 		const formatDate = (d) => {
 			return `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1)
 				.toString()
@@ -250,6 +262,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				date: dateStr,
 				territory: territory,
 				employee: employee,
+				event_type: event_type,
 			},
 			callback: function (r) {
 				loadingMessage.remove();
@@ -354,7 +367,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	}
 
 	// Vue semaine avec sections matin/après-midi (implémentation simplifiée)
-	function renderWeekViewWithSections(date, territory, employee) {
+	function renderWeekViewWithSections(date, territory, employee, event_type) {
 		// Obtenir le premier jour de la semaine (lundi)
 		const current = new Date(date);
 		const day = current.getDay(); // 0-6 (dim-sam)
@@ -426,6 +439,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				end_date: frappe.datetime.obj_to_str(sunday),
 				territory: territory,
 				employee: employee,
+				event_type: event_type,
 			},
 			callback: function (r) {
 				loadingMessage.remove();
@@ -557,7 +571,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	}
 
 	// Vue mensuelle (gardée mais cachée dans les options)
-	function renderMonthView(year, month, territory, employee) {
+	function renderMonthView(year, month, territory, employee, event_type) {
 		// Garder le code original de renderMonthView ici
 		// [...]
 
