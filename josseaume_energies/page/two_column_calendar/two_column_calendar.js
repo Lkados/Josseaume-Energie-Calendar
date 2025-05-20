@@ -228,6 +228,16 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		return { clientName, technicianName };
 	}
 
+	// Fonction pour vérifier si un événement est toute la journée
+	function isAllDayEvent(event) {
+		return (
+			event.all_day === 1 ||
+			event.all_day === true ||
+			event.all_day === "1" ||
+			String(event.all_day).toLowerCase() === "true"
+		);
+	}
+
 	// Rendu de la vue journalière à deux colonnes
 	function renderTwoColumnDayView(date, territory, employee, event_type) {
 		const formatDate = (d) => {
@@ -275,39 +285,36 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					const afternoonEvents = [];
 					const allDayEvents = [];
 
-					// Séparer les événements du matin et de l'après-midi
+					// IMPORTANT: Séparer d'abord les événements par type
+					const regularEvents = [];
+
+					// Étape 1: Filtrer les événements toute la journée
 					events.forEach((event) => {
-						console.log(
-							"Événement:",
-							event.subject,
-							"all_day:",
-							event.all_day,
-							"type:",
-							typeof event.all_day
-						);
-						// Vérifier d'abord si c'est un événement toute la journée
-						if (event.all_day === 1 || event.all_day === true) {
-							// Utiliser === 1 car il peut être stocké comme entier dans la base de données
+						if (isAllDayEvent(event)) {
+							console.log("Événement toute journée:", event.subject);
 							allDayEvents.push(event);
 						} else {
-							// Seulement si ce n'est PAS un événement toute la journée, le classifier
-							const eventTime = new Date(event.starts_on);
-							if (eventTime.getHours() < 12) {
-								morningEvents.push(event);
-							} else {
-								afternoonEvents.push(event);
-							}
+							// Si ce n'est pas un événement toute la journée, l'ajouter aux événements réguliers
+							regularEvents.push(event);
 						}
 					});
+
+					// Étape 2: Classifier les événements réguliers (non toute la journée)
+					regularEvents.forEach((event) => {
+						const eventTime = new Date(event.starts_on);
+						if (eventTime.getHours() < 12) {
+							morningEvents.push(event);
+						} else {
+							afternoonEvents.push(event);
+						}
+					});
+
 					// Trier par heure
 					morningEvents.sort((a, b) => new Date(a.starts_on) - new Date(b.starts_on));
 					afternoonEvents.sort((a, b) => new Date(a.starts_on) - new Date(b.starts_on));
 
-					// Ajouter les titres de section
-					$('<div data-name="Matin">Matin</div>').appendTo(twoColumnContainer);
-
+					// Ajouter la section journée complète si nécessaire
 					if (allDayEvents.length > 0) {
-						// Ajouter ce bloc
 						$('<div data-name="Journée complète">Journée complète</div>').appendTo(
 							twoColumnContainer
 						);
@@ -316,6 +323,9 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 							renderTwoColumnEventCard(event, twoColumnContainer)
 						);
 					}
+
+					// Ajouter les titres de section
+					$('<div data-name="Matin">Matin</div>').appendTo(twoColumnContainer);
 
 					// Ajouter les événements du matin
 					if (morningEvents.length > 0) {
@@ -369,6 +379,11 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			eventClass = "event-default";
 		}
 
+		// Ajouter une classe spécifique pour les événements toute la journée
+		if (isAllDayEvent(event)) {
+			eventClass += " event-all-day";
+		}
+
 		// Récupérer les noms des participants
 		const { clientName, technicianName } = getParticipantNames(event.event_participants);
 
@@ -377,6 +392,11 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			<div class="${eventClass}" data-event-id="${event.name}">
 				<span class="event-id">${event.name}</span>
 				<span class="event-title">${event.subject}</span>
+				${
+					isAllDayEvent(event)
+						? '<span class="event-all-day-indicator"><i class="fa fa-calendar-day"></i> Toute la journée</span>'
+						: ""
+				}
 				${clientName ? `<div class="client-info"><i class="fa fa-user"></i> ${clientName}</div>` : ""}
 				${
 					technicianName
@@ -481,7 +501,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					for (let i = 0; i < 7; i++) {
 						const dayDate = new Date(new Date(monday).setDate(monday.getDate() + i));
 						const dayStr = frappe.datetime.obj_to_str(dayDate).split(" ")[0];
-						eventsByDay[dayStr] = { morning: [], afternoon: [] };
+						eventsByDay[dayStr] = { morning: [], afternoon: [], allday: [] };
 					}
 
 					// Répartir les événements par jour et période
@@ -490,7 +510,9 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 						const dayStr = event.starts_on.split(" ")[0];
 
 						if (eventsByDay[dayStr]) {
-							if (eventDate.getHours() < 12) {
+							if (isAllDayEvent(event)) {
+								eventsByDay[dayStr].allday.push(event);
+							} else if (eventDate.getHours() < 12) {
 								eventsByDay[dayStr].morning.push(event);
 							} else {
 								eventsByDay[dayStr].afternoon.push(event);
@@ -512,6 +534,10 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 						// Créer la colonne
 						const dayColumn = $(`
 							<div class="week-day-column ${isToday ? "today" : ""}">
+                                <div class="day-section">
+                                    <div class="section-title" data-name="Journée complète">Journée complète</div>
+                                    <div class="section-events allday-events"></div>
+                                </div>
 								<div class="day-section">
 									<div class="section-title" data-name="Matin">Matin</div>
 									<div class="section-events morning-events"></div>
@@ -522,6 +548,18 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 								</div>
 							</div>
 						`).appendTo(weekGrid);
+
+						// Ajouter les événements toute la journée
+						const alldayContainer = dayColumn.find(".allday-events");
+						if (dayEvents.allday && dayEvents.allday.length > 0) {
+							dayEvents.allday.forEach((event) => {
+								renderWeekEvent(event, alldayContainer);
+							});
+						} else {
+							$('<div class="no-events">Aucun événement</div>').appendTo(
+								alldayContainer
+							);
+						}
 
 						// Ajouter les événements du matin
 						const morningContainer = dayColumn.find(".morning-events");
@@ -574,6 +612,11 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			eventClass = "event-default";
 		}
 
+		// Ajouter une classe spécifique pour les événements toute la journée
+		if (isAllDayEvent(event)) {
+			eventClass += " event-all-day";
+		}
+
 		// Récupérer les noms des participants
 		const { clientName, technicianName } = getParticipantNames(event.event_participants);
 
@@ -581,6 +624,11 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		const eventElement = $(`
 			<div class="week-event ${eventClass}" data-event-id="${event.name}">
 				<div class="event-title">${event.subject}</div>
+				${
+					isAllDayEvent(event)
+						? '<span class="event-all-day-indicator"><i class="fa fa-calendar-day"></i> Toute la journée</span>'
+						: ""
+				}
 				${clientName ? `<div class="client-info"><i class="fa fa-user"></i> ${clientName}</div>` : ""}
 				${
 					technicianName

@@ -24,7 +24,8 @@ body.dark {
 }
 
 /* Style pour l'en-tête de section 'Journée complète' */
-[data-name="Journée complète"] {
+[data-name="Journée complète"],
+.section-title[data-name="Journée complète"] {
 	font-weight: 600;
 	padding: 8px 15px;
 	margin-top: 15px;
@@ -34,6 +35,27 @@ body.dark {
 	background-color: rgba(98, 0, 234, 0.08);
 	border-left: 4px solid var(--color-allday);
 	transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
+
+body.dark [data-name="Journée complète"],
+body.dark .section-title[data-name="Journée complète"] {
+	background-color: rgba(98, 0, 234, 0.15);
+}
+/* Pour marquer les événements toute la journée */
+.event-all-day {
+	border-left-color: var(--color-allday) !important;
+}
+
+.event-all-day-indicator {
+	display: block;
+	color: var(--color-allday);
+	font-size: 12px;
+	margin-top: 5px;
+	margin-bottom: 5px;
+}
+
+.event-all-day-indicator i {
+	margin-right: 5px;
 }
 
 body.dark [data-name="Journée complète"] {
