@@ -37,6 +37,12 @@ has_permission = {
     "create_event_from_sales_order": "all"
 }
 
+doc_events = {
+    "Sales Order": {
+        "on_submit": "josseaume_energies.josseaume_energies.sales_order.on_submit",
+    }
+}
+
 # Fixtures - permet de sauvegarder l'état des documents de la base de données
 fixtures = [
     {
