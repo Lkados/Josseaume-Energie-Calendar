@@ -56,7 +56,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 	// Vérifier le thème périodiquement pour s'assurer qu'il reste synchronisé
 	setInterval(applyTheme, 2000);
-
+	/**
 	// Ajouter des contrôles
 	page.add_field({
 		fieldtype: "Select",
@@ -64,6 +64,18 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		fieldname: "view_type",
 		options: "Mois\nSemaine\nJour",
 		default: "Mois",
+		change: function () {
+			refreshCalendar();
+		},
+	});
+	*/
+
+	page.add_field({
+		fieldtype: "Select",
+		label: "Vue",
+		fieldname: "view_type",
+		options: "Semaine\nJour", // Enlever "Mois" des options
+		default: "Jour", // Mettre "Jour" comme vue par défaut
 		change: function () {
 			refreshCalendar();
 		},
@@ -78,24 +90,12 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			refreshCalendar();
 		},
 	});
-	/** 
+
 	page.add_field({
 		fieldtype: "Link",
 		label: "Intervenant",
 		fieldname: "employee",
 		options: "Employee",
-		change: function () {
-			refreshCalendar();
-		},
-	});
-	*/
-
-	page.add_field({
-		fieldtype: "Select",
-		label: "Vue",
-		fieldname: "view_type",
-		options: "Semaine\nJour", // Enlever "Mois" des options
-		default: "Jour", // Mettre "Jour" comme vue par défaut
 		change: function () {
 			refreshCalendar();
 		},
