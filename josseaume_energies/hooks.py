@@ -36,6 +36,13 @@ doctype_js = {
 has_permission = {
     "create_event_from_sales_order": "all"
 }
+
+# Configuration des éléments du menu latéral
+desk_sidebar_items = ["josseaume_energies.config.desk_sidebar_items"]
+
+# Ajouter également l'entrée suivante pour que la page apparaisse dans le Bureau
+desk_page_js = {"Accueil": "public/js/home.js"}
+
 # Fixtures - permet de sauvegarder l'état des documents de la base de données
 fixtures = [
     {
