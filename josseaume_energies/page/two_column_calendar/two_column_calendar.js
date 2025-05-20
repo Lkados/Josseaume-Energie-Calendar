@@ -88,7 +88,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			refreshCalendar();
 		},
 	});
-
 	// Ajouter un champ de sélection de date
 	page.add_field({
 		fieldtype: "Date",
