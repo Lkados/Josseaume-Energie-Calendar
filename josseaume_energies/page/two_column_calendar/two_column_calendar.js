@@ -190,7 +190,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		refreshCalendar();
 	});
 
-	// NOUVELLE FONCTION: Créer une commande client avec des valeurs par défaut
+	// NOUVELLE FONCTION: Ouvrir un nouveau formulaire de commande avec date et horaire pré-remplis
 	function createNewSalesOrder(date, timeSlot) {
 		try {
 			// Obtenir les filtres actuels pour pré-remplir
@@ -201,61 +201,48 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			// Formatter la date pour ERPNext (YYYY-MM-DD)
 			const formattedDate = frappe.datetime.obj_to_str(date).split(" ")[0];
 
-			// Création directe du document avec valeurs par défaut
-			frappe.db.get_doc("DocType", "Sales Order").then((doc) => {
-				// Créer un objet avec les valeurs par défaut
-				const defaultValues = {
-					delivery_date: formattedDate,
-					custom_horaire: timeSlot,
-				};
+			// Naviguer simplement vers le formulaire de nouvelle commande client
+			frappe.set_route("Form", "Sales Order", "new");
 
-				// Ajouter les valeurs optionnelles si elles existent
-				if (territory) defaultValues.territory = territory;
-				if (employee) defaultValues.custom_intervenant = employee;
-				if (event_type) defaultValues.custom_type_de_commande = event_type;
+			// Après navigation, appliquer les valeurs aux champs sans sauvegarder
+			frappe.after_ajax(() => {
+				// Attendre que le formulaire soit complètement chargé
+				setTimeout(() => {
+					if (cur_frm) {
+						// Bloquer temporairement la validation pour éviter des avertissements
+						cur_frm.set_value("delivery_date", formattedDate);
+						cur_frm.set_value("custom_horaire", timeSlot);
 
-				// Créer le document avec les valeurs par défaut
-				frappe.new_doc("Sales Order", defaultValues, (doc) => {
-					// Après création et chargement, force l'actualisation des valeurs
-					setTimeout(() => {
-						if (cur_frm) {
-							// Rétablir les valeurs au cas où elles n'ont pas été prises en compte
-							cur_frm.set_value("delivery_date", formattedDate);
-							cur_frm.set_value("custom_horaire", timeSlot);
+						if (territory) cur_frm.set_value("territory", territory);
+						if (employee) cur_frm.set_value("custom_intervenant", employee);
+						if (event_type) cur_frm.set_value("custom_type_de_commande", event_type);
 
-							if (territory) cur_frm.set_value("territory", territory);
-							if (employee) cur_frm.set_value("custom_intervenant", employee);
-							if (event_type)
-								cur_frm.set_value("custom_type_de_commande", event_type);
+						// Rafraîchir les champs sans tenter de sauvegarder
+						cur_frm.refresh_fields();
 
-							// Forcer un refresh et un update
-							cur_frm.refresh_fields();
-							cur_frm.save_or_update();
+						// Afficher un message indiquant que les champs ont été remplis
+						frappe.show_alert(
+							{
+								message: __(
+									`Formulaire ouvert pour ${timeSlot.toLowerCase()} le ${formattedDate}`
+								),
+								indicator: "blue",
+							},
+							3
+						);
 
-							// Console log pour debug
-							console.log("Date de livraison définie:", cur_frm.doc.delivery_date);
-							console.log("Horaire défini:", cur_frm.doc.custom_horaire);
-
-							// Message de confirmation
-							frappe.show_alert(
-								{
-									message: __(
-										`Commande client créée pour ${timeSlot.toLowerCase()} le ${formattedDate}`
-									),
-									indicator: "green",
-								},
-								3
-							);
-						}
-					}, 1000); // Augmentation du délai à 1000ms
-				});
+						// Console log pour debug
+						console.log("Date de livraison définie:", cur_frm.doc.delivery_date);
+						console.log("Horaire défini:", cur_frm.doc.custom_horaire);
+					}
+				}, 1000);
 			});
 		} catch (error) {
-			console.error("Erreur lors de la création de la commande client:", error);
+			console.error("Erreur lors de l'ouverture du formulaire:", error);
 			frappe.msgprint({
 				title: __("Erreur"),
 				indicator: "red",
-				message: __("Impossible de créer la commande client: ") + error.message,
+				message: __("Impossible d'ouvrir le formulaire: ") + error.message,
 			});
 		}
 	}
