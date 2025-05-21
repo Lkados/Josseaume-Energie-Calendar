@@ -201,43 +201,49 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			// Formatter la date pour ERPNext (YYYY-MM-DD)
 			const formattedDate = frappe.datetime.obj_to_str(date).split(" ")[0];
 
-			// Créer les paramètres URL pour pré-remplir la commande client
-			let params = new URLSearchParams();
+			// Utiliser frappe.new_doc pour créer et pré-remplir le document
+			frappe.new_doc("Sales Order", function () {
+				// Cette fonction est appelée après la création du document
+				setTimeout(function () {
+					// Attendre que le formulaire soit chargé et utiliser cur_frm
+					if (cur_frm && cur_frm.doc) {
+						// Définir la date de livraison
+						cur_frm.set_value("delivery_date", formattedDate);
 
-			// Ajouter la date de livraison
-			params.append("delivery_date", formattedDate);
+						// Définir le créneau horaire
+						cur_frm.set_value("custom_horaire", timeSlot);
 
-			// Ajouter le créneau horaire (custom_horaire)
-			params.append("custom_horaire", timeSlot);
+						// Définir le territoire
+						if (territory) {
+							cur_frm.set_value("territory", territory);
+						}
 
-			// Ajouter le territoire si disponible
-			if (territory) {
-				params.append("territory", territory);
-			}
+						// Définir l'intervenant
+						if (employee) {
+							cur_frm.set_value("custom_intervenant", employee);
+						}
 
-			// Ajouter l'intervenant si disponible
-			if (employee) {
-				params.append("custom_intervenant", employee);
-			}
+						// Définir le type d'intervention
+						if (event_type) {
+							cur_frm.set_value("custom_type_de_commande", event_type);
+						}
 
-			// Ajouter le type d'intervention
-			if (event_type) {
-				params.append("custom_type_de_commande", event_type);
-			}
+						// Actualiser le formulaire pour afficher les valeurs
+						cur_frm.refresh_fields();
 
-			// Naviguer vers le formulaire de création de commande client
-			frappe.set_route("Form", "Sales Order", "new?" + params.toString());
-
-			// Afficher un message
-			frappe.show_alert(
-				{
-					message: __(
-						`Création d'une nouvelle commande client pour ${timeSlot.toLowerCase()}...`
-					),
-					indicator: "blue",
-				},
-				2
-			);
+						// Afficher un message de confirmation
+						frappe.show_alert(
+							{
+								message: __(
+									`Commande client créée pour ${timeSlot.toLowerCase()} le ${formattedDate}`
+								),
+								indicator: "green",
+							},
+							3
+						);
+					}
+				}, 500); // Attendre 500ms pour s'assurer que le formulaire est complètement chargé
+			});
 		} catch (error) {
 			console.error("Erreur lors de la création de la commande client:", error);
 			frappe.msgprint({
