@@ -190,6 +190,170 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		refreshCalendar();
 	});
 
+	// NOUVELLE FONCTION: Créer un événement avec des valeurs par défaut
+	function createNewEvent(date, timeSlot) {
+		// Préparer la date et l'heure selon le créneau
+		let startTime = new Date(date);
+		let endTime = new Date(date);
+		let allDay = false;
+
+		// Définir l'heure selon le créneau sélectionné
+		switch (timeSlot) {
+			case "Matin":
+				startTime.setHours(9, 0, 0, 0); // 9h00
+				endTime.setHours(10, 0, 0, 0); // 10h00
+				break;
+			case "Après-midi":
+				startTime.setHours(14, 0, 0, 0); // 14h00
+				endTime.setHours(15, 0, 0, 0); // 15h00
+				break;
+			case "Journée complète":
+				allDay = true;
+				startTime.setHours(0, 0, 0, 0);
+				endTime.setHours(23, 59, 59, 999);
+				break;
+		}
+
+		// Obtenir les filtres actuels pour pré-remplir
+		const territory = page.fields_dict.territory.get_value();
+		const employee = page.fields_dict.employee.get_value();
+		const event_type = page.fields_dict.event_type.get_value();
+
+		// Créer le sujet pré-rempli
+		let defaultSubject = "";
+		if (event_type) {
+			defaultSubject = event_type;
+			if (territory) {
+				defaultSubject += " - " + territory;
+			}
+		} else if (territory) {
+			defaultSubject = territory;
+		}
+
+		// Naviger vers le formulaire de création d'événement
+		frappe.new_doc("Event", {
+			starts_on: frappe.datetime.obj_to_str(startTime),
+			ends_on: frappe.datetime.obj_to_str(endTime),
+			all_day: allDay,
+			subject: defaultSubject,
+			event_type: "Public",
+		});
+	}
+
+	// NOUVELLE FONCTION: Ajouter les écouteurs de double-clic
+	function addDoubleClickListeners() {
+		// Attendre un peu pour s'assurer que les éléments sont bien créés
+		setTimeout(() => {
+			// Ajouter les écouteurs pour la vue journalière
+			$('[data-name="Matin"]')
+				.off("dblclick")
+				.on("dblclick", function (e) {
+					e.preventDefault();
+					e.stopPropagation();
+					createNewEvent(currentDate, "Matin");
+					frappe.show_alert(
+						{
+							message: __("Création d'un nouvel événement pour la matinée..."),
+							indicator: "blue",
+						},
+						2
+					);
+				});
+
+			$('[data-name="Après-midi"]')
+				.off("dblclick")
+				.on("dblclick", function (e) {
+					e.preventDefault();
+					e.stopPropagation();
+					createNewEvent(currentDate, "Après-midi");
+					frappe.show_alert(
+						{
+							message: __("Création d'un nouvel événement pour l'après-midi..."),
+							indicator: "blue",
+						},
+						2
+					);
+				});
+
+			$('[data-name="Journée complète"]')
+				.off("dblclick")
+				.on("dblclick", function (e) {
+					e.preventDefault();
+					e.stopPropagation();
+					createNewEvent(currentDate, "Journée complète");
+					frappe.show_alert(
+						{
+							message: __(
+								"Création d'un nouvel événement pour la journée complète..."
+							),
+							indicator: "blue",
+						},
+						2
+					);
+				});
+
+			// Ajouter les écouteurs pour la vue hebdomadaire
+			$(".section-title[data-name]")
+				.off("dblclick")
+				.on("dblclick", function (e) {
+					e.preventDefault();
+					e.stopPropagation();
+
+					const sectionName = $(this).attr("data-name");
+					const dayColumn = $(this).closest(".week-day-column");
+					const dayIndex = $(".week-day-column").index(dayColumn);
+
+					// Calculer la date du jour correspondant
+					const viewType = page.fields_dict.view_type.get_value();
+					if (viewType === "Semaine") {
+						// Obtenir le premier jour de la semaine (lundi)
+						const current = new Date(currentDate);
+						const day = current.getDay();
+						const diff = current.getDate() - day + (day === 0 ? -6 : 1);
+						const monday = new Date(current.setDate(diff));
+						const targetDate = new Date(monday.setDate(monday.getDate() + dayIndex));
+
+						createNewEvent(targetDate, sectionName);
+						frappe.show_alert(
+							{
+								message: __(
+									`Création d'un nouvel événement pour ${sectionName.toLowerCase()}...`
+								),
+								indicator: "blue",
+							},
+							2
+						);
+					}
+				});
+
+			// Ajouter un style CSS pour indiquer que les sections sont cliquables
+			$(`
+				<style>
+					[data-name="Matin"], 
+					[data-name="Après-midi"], 
+					[data-name="Journée complète"],
+					.section-title[data-name] {
+						cursor: pointer;
+						transition: background-color 0.2s, transform 0.1s;
+					}
+					[data-name="Matin"]:hover, 
+					[data-name="Après-midi"]:hover, 
+					[data-name="Journée complète"]:hover,
+					.section-title[data-name]:hover {
+						background-color: rgba(0, 123, 255, 0.1);
+						transform: scale(1.02);
+					}
+					[data-name="Matin"]:active, 
+					[data-name="Après-midi"]:active, 
+					[data-name="Journée complète"]:active,
+					.section-title[data-name]:active {
+						transform: scale(0.98);
+					}
+				</style>
+			`).appendTo("head");
+		}, 500);
+	}
+
 	// Fonction principale pour rafraîchir le calendrier - Garder la structure existante
 	function refreshCalendar() {
 		const viewType = page.fields_dict.view_type.get_value();
@@ -206,6 +370,9 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		} else {
 			renderMonthView(currentYear, currentMonth, territory, employee, event_type);
 		}
+
+		// IMPORTANT: Ajouter les écouteurs après le rendu
+		addDoubleClickListeners();
 	}
 
 	// Fonction auxiliaire pour obtenir les noms des participants
@@ -249,7 +416,11 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		// Créer l'en-tête
 		const dayHeader = $(`
             <div class="calendar-header">
-                <h2>Journée du ${formatDate(date)}</h2>
+                <h2>Journée du ${formatDate(date)} 
+                    <small style="display: block; font-size: 12px; font-weight: normal; color: #666; margin-top: 5px;">
+                        Double-cliquez sur une section pour créer un événement
+                    </small>
+                </h2>
             </div>
         `).appendTo(calendarContainer);
 
@@ -432,7 +603,11 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		// Créer l'en-tête
 		const weekHeader = $(`
             <div class="calendar-header">
-                <h2>Semaine du ${formatDate(monday)} au ${formatDate(sunday)}</h2>
+                <h2>Semaine du ${formatDate(monday)} au ${formatDate(sunday)}
+                    <small style="display: block; font-size: 12px; font-weight: normal; color: #666; margin-top: 5px;">
+                        Double-cliquez sur une section pour créer un événement
+                    </small>
+                </h2>
             </div>
         `).appendTo(calendarContainer);
 
