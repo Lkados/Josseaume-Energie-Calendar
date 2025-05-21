@@ -201,55 +201,61 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			// Formatter la date pour ERPNext (YYYY-MM-DD)
 			const formattedDate = frappe.datetime.obj_to_str(date).split(" ")[0];
 
-			// Utiliser frappe.new_doc pour créer et pré-remplir le document
-			frappe.new_doc("Sales Order", function () {
-				// Cette fonction est appelée après la création du document
-				setTimeout(function () {
-					// Attendre que le formulaire soit chargé et utiliser cur_frm
-					if (cur_frm && cur_frm.doc) {
-						// Définir la date de livraison
-						cur_frm.set_value("delivery_date", formattedDate);
+			// Création directe du document avec valeurs par défaut
+			frappe.db.get_doc("DocType", "Sales Order").then((doc) => {
+				// Créer un objet avec les valeurs par défaut
+				const defaultValues = {
+					delivery_date: formattedDate,
+					custom_horaire: timeSlot,
+				};
 
-						// Définir le créneau horaire
-						cur_frm.set_value("custom_horaire", timeSlot);
+				// Ajouter les valeurs optionnelles si elles existent
+				if (territory) defaultValues.territory = territory;
+				if (employee) defaultValues.custom_intervenant = employee;
+				if (event_type) defaultValues.custom_type_de_commande = event_type;
 
-						// Définir le territoire
-						if (territory) {
-							cur_frm.set_value("territory", territory);
+				// Créer le document avec les valeurs par défaut
+				frappe.new_doc("Sales Order", defaultValues, (doc) => {
+					// Après création et chargement, force l'actualisation des valeurs
+					setTimeout(() => {
+						if (cur_frm) {
+							// Rétablir les valeurs au cas où elles n'ont pas été prises en compte
+							cur_frm.set_value("delivery_date", formattedDate);
+							cur_frm.set_value("custom_horaire", timeSlot);
+
+							if (territory) cur_frm.set_value("territory", territory);
+							if (employee) cur_frm.set_value("custom_intervenant", employee);
+							if (event_type)
+								cur_frm.set_value("custom_type_de_commande", event_type);
+
+							// Forcer un refresh et un update
+							cur_frm.refresh_fields();
+							cur_frm.save_or_update();
+
+							// Console log pour debug
+							console.log("Date de livraison définie:", cur_frm.doc.delivery_date);
+							console.log("Horaire défini:", cur_frm.doc.custom_horaire);
+
+							// Message de confirmation
+							frappe.show_alert(
+								{
+									message: __(
+										`Commande client créée pour ${timeSlot.toLowerCase()} le ${formattedDate}`
+									),
+									indicator: "green",
+								},
+								3
+							);
 						}
-
-						// Définir l'intervenant
-						if (employee) {
-							cur_frm.set_value("custom_intervenant", employee);
-						}
-
-						// Définir le type d'intervention
-						if (event_type) {
-							cur_frm.set_value("custom_type_de_commande", event_type);
-						}
-
-						// Actualiser le formulaire pour afficher les valeurs
-						cur_frm.refresh_fields();
-
-						// Afficher un message de confirmation
-						frappe.show_alert(
-							{
-								message: __(
-									`Commande client créée pour ${timeSlot.toLowerCase()} le ${formattedDate}`
-								),
-								indicator: "green",
-							},
-							3
-						);
-					}
-				}, 500); // Attendre 500ms pour s'assurer que le formulaire est complètement chargé
+					}, 1000); // Augmentation du délai à 1000ms
+				});
 			});
 		} catch (error) {
 			console.error("Erreur lors de la création de la commande client:", error);
 			frappe.msgprint({
 				title: __("Erreur"),
 				indicator: "red",
-				message: __("Impossible de créer la commande client"),
+				message: __("Impossible de créer la commande client: ") + error.message,
 			});
 		}
 	}
