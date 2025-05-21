@@ -190,64 +190,60 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		refreshCalendar();
 	});
 
-	// NOUVELLE FONCTION: Créer un événement avec des valeurs par défaut
-	function createNewEvent(date, timeSlot) {
+	// NOUVELLE FONCTION: Créer une commande client avec des valeurs par défaut
+	function createNewSalesOrder(date, timeSlot) {
 		try {
-			// Préparer la date et l'heure selon le créneau
-			let startTime = new Date(date);
-			let endTime = new Date(date);
-			let allDay = 0;
-
-			// Définir l'heure selon le créneau sélectionné
-			if (timeSlot === "Matin") {
-				startTime.setHours(9, 0, 0, 0); // 9h00
-				endTime.setHours(10, 0, 0, 0); // 10h00
-			} else if (timeSlot === "Après-midi") {
-				startTime.setHours(14, 0, 0, 0); // 14h00
-				endTime.setHours(15, 0, 0, 0); // 15h00
-			} else if (timeSlot === "Journée complète") {
-				allDay = 1;
-				startTime.setHours(0, 0, 0, 0);
-				endTime.setHours(23, 59, 59, 999);
-			}
-
 			// Obtenir les filtres actuels pour pré-remplir
 			const territory = page.fields_dict.territory.get_value();
 			const employee = page.fields_dict.employee.get_value();
 			const event_type = page.fields_dict.event_type.get_value();
 
-			// Créer le sujet pré-rempli
-			let defaultSubject = "";
-			if (event_type) {
-				defaultSubject = event_type;
-				if (territory) {
-					defaultSubject += " - " + territory;
-				}
-			} else if (territory) {
-				defaultSubject = territory;
-			}
+			// Formatter la date pour ERPNext (YYYY-MM-DD)
+			const formattedDate = frappe.datetime.obj_to_str(date).split(" ")[0];
 
-			// Construire l'URL avec les paramètres
-			let url = "#Form/Event/new";
+			// Créer les paramètres URL pour pré-remplir la commande client
 			let params = new URLSearchParams();
 
-			params.append("starts_on", frappe.datetime.obj_to_str(startTime));
-			params.append("ends_on", frappe.datetime.obj_to_str(endTime));
-			params.append("all_day", allDay);
-			params.append("event_type", "Public");
+			// Ajouter la date de livraison
+			params.append("delivery_date", formattedDate);
 
-			if (defaultSubject) {
-				params.append("subject", defaultSubject);
+			// Ajouter le créneau horaire (custom_horaire)
+			params.append("custom_horaire", timeSlot);
+
+			// Ajouter le territoire si disponible
+			if (territory) {
+				params.append("territory", territory);
 			}
 
-			// Naviguer vers le formulaire
-			frappe.set_route("Form", "Event", "new?" + params.toString());
+			// Ajouter l'intervenant si disponible
+			if (employee) {
+				params.append("custom_intervenant", employee);
+			}
+
+			// Ajouter le type d'intervention
+			if (event_type) {
+				params.append("custom_type_de_commande", event_type);
+			}
+
+			// Naviguer vers le formulaire de création de commande client
+			frappe.set_route("Form", "Sales Order", "new?" + params.toString());
+
+			// Afficher un message
+			frappe.show_alert(
+				{
+					message: __(
+						`Création d'une nouvelle commande client pour ${timeSlot.toLowerCase()}...`
+					),
+					indicator: "blue",
+				},
+				2
+			);
 		} catch (error) {
-			console.error("Erreur lors de la création de l'événement:", error);
+			console.error("Erreur lors de la création de la commande client:", error);
 			frappe.msgprint({
 				title: __("Erreur"),
 				indicator: "red",
-				message: __("Impossible de créer l'événement"),
+				message: __("Impossible de créer la commande client"),
 			});
 		}
 	}
@@ -261,40 +257,19 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		$(document).on("dblclick.calendar", '[data-name="Matin"]', function (e) {
 			e.preventDefault();
 			e.stopPropagation();
-			createNewEvent(currentDate, "Matin");
-			frappe.show_alert(
-				{
-					message: __("Création d'un nouvel événement pour la matinée..."),
-					indicator: "blue",
-				},
-				2
-			);
+			createNewSalesOrder(currentDate, "Matin");
 		});
 
 		$(document).on("dblclick.calendar", '[data-name="Après-midi"]', function (e) {
 			e.preventDefault();
 			e.stopPropagation();
-			createNewEvent(currentDate, "Après-midi");
-			frappe.show_alert(
-				{
-					message: __("Création d'un nouvel événement pour l'après-midi..."),
-					indicator: "blue",
-				},
-				2
-			);
+			createNewSalesOrder(currentDate, "Après-midi");
 		});
 
 		$(document).on("dblclick.calendar", '[data-name="Journée complète"]', function (e) {
 			e.preventDefault();
 			e.stopPropagation();
-			createNewEvent(currentDate, "Journée complète");
-			frappe.show_alert(
-				{
-					message: __("Création d'un nouvel événement pour la journée complète..."),
-					indicator: "blue",
-				},
-				2
-			);
+			createNewSalesOrder(currentDate, "Journée complète");
 		});
 
 		// Pour la vue semaine
@@ -316,16 +291,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				const monday = new Date(current.setDate(diff));
 				const targetDate = new Date(monday.setDate(monday.getDate() + dayIndex));
 
-				createNewEvent(targetDate, sectionName);
-				frappe.show_alert(
-					{
-						message: __(
-							`Création d'un nouvel événement pour ${sectionName.toLowerCase()}...`
-						),
-						indicator: "blue",
-					},
-					2
-				);
+				createNewSalesOrder(targetDate, sectionName);
 			}
 		});
 
@@ -420,7 +386,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
             <div class="calendar-header">
                 <h2>Journée du ${formatDate(date)} 
                     <small style="display: block; font-size: 12px; font-weight: normal; color: #666; margin-top: 5px;">
-                        Double-cliquez sur une section pour créer un événement
+                        Double-cliquez sur une section pour créer une commande client
                     </small>
                 </h2>
             </div>
@@ -610,7 +576,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
             <div class="calendar-header">
                 <h2>Semaine du ${formatDate(monday)} au ${formatDate(sunday)}
                     <small style="display: block; font-size: 12px; font-weight: normal; color: #666; margin-top: 5px;">
-                        Double-cliquez sur une section pour créer un événement
+                        Double-cliquez sur une section pour créer une commande client
                     </small>
                 </h2>
             </div>
