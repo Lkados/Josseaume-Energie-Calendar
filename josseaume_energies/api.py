@@ -329,12 +329,6 @@ def get_day_events(date, territory=None, employee=None, event_type=None):
             # Fallback: essayer d'extraire depuis la description
             sales_order_ref = get_sales_order_info_from_event(event.description)
         
-        if sales_order_ref: commande client directement
-        sales_order_ref = event.get("custom_sales_order")
-        if not sales_order_ref:
-            # Fallback: essayer d'extraire depuis la description
-            sales_order_ref = get_sales_order_info_from_event(event.description)
-        
         if sales_order_ref:
             try:
                 sales_order = frappe.get_doc("Sales Order", sales_order_ref)
