@@ -364,6 +364,29 @@ body.dark .week-event {
 	margin-right: 5px;
 }
 
+/* NOUVEAU - Style des commentaires */
+.event-comments {
+	display: flex;
+	align-items: flex-start;
+	margin-top: 5px;
+	font-size: 12px;
+	color: #6c757d;
+	font-style: italic;
+	line-height: 1.3;
+	word-wrap: break-word;
+	transition: color 0.3s;
+}
+
+.event-comments i {
+	margin-right: 5px;
+	margin-top: 2px;
+	flex-shrink: 0;
+}
+
+body.dark .event-comments {
+	color: #aaa;
+}
+
 /* Thème clair */
 .client-info,
 .customer {
@@ -453,5 +476,11 @@ body.dark .no-events {
 
 	.day-section-week {
 		margin-bottom: 10px;
+	}
+
+	/* Responsive pour les commentaires sur mobile */
+	.event-comments {
+		font-size: 11px;
+		margin-top: 3px;
 	}
 }

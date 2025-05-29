@@ -362,6 +362,22 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		return { clientName, technicianName };
 	}
 
+	// NOUVELLE FONCTION: Extraire les commentaires de la description HTML
+	function extractComments(description) {
+		if (!description) return "";
+
+		// Chercher le pattern <strong>Commentaires:</strong> suivi du contenu
+		const commentRegex = /<strong>Commentaires:<\/strong>\s*([^<]*)/i;
+		const match = description.match(commentRegex);
+
+		if (match && match[1]) {
+			// Nettoyer le texte (supprimer les balises HTML restantes et espacements)
+			return match[1].trim().replace(/<[^>]*>/g, "");
+		}
+
+		return "";
+	}
+
 	// Fonction pour vérifier si un événement est toute la journée
 	function isAllDayEvent(event) {
 		return (
@@ -508,7 +524,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		});
 	}
 
-	// Fonction pour rendre une carte d'événement dans la vue à deux colonnes
+	// Fonction pour rendre une carte d'événement dans la vue à deux colonnes - MODIFIÉE
 	function renderTwoColumnEventCard(event, container) {
 		// Déterminer la classe de couleur
 		let eventClass = "";
@@ -528,7 +544,10 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		// Récupérer les noms des participants
 		const { clientName, technicianName } = getParticipantNames(event.event_participants);
 
-		// Créer la carte d'événement
+		// Extraire les commentaires
+		const comments = extractComments(event.description);
+
+		// Créer la carte d'événement avec les commentaires
 		const eventCard = $(`
 			<div class="${eventClass}" data-event-id="${event.name}">
 				<span class="event-id">${event.name}</span>
@@ -544,6 +563,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 						? `<div class="technician-info"><i class="fa fa-user-tie"></i> ${technicianName}</div>`
 						: ""
 				}
+				${comments ? `<div class="event-comments"><i class="fa fa-comment"></i> ${comments}</div>` : ""}
 			</div>
 		`).appendTo(container);
 
@@ -748,7 +768,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		});
 	}
 
-	// Fonction pour rendre un événement dans la vue semaine
+	// Fonction pour rendre un événement dans la vue semaine - MODIFIÉE
 	function renderWeekEvent(event, container) {
 		// Déterminer la classe de couleur
 		let eventClass = "";
@@ -768,7 +788,10 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		// Récupérer les noms des participants
 		const { clientName, technicianName } = getParticipantNames(event.event_participants);
 
-		// Créer l'élément d'événement
+		// Extraire les commentaires
+		const comments = extractComments(event.description);
+
+		// Créer l'élément d'événement avec les commentaires
 		const eventElement = $(`
 			<div class="week-event ${eventClass}" data-event-id="${event.name}">
 				<div class="event-title">${event.subject}</div>
@@ -783,6 +806,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 						? `<div class="technician-info"><i class="fa fa-user-tie"></i> ${technicianName}</div>`
 						: ""
 				}
+				${comments ? `<div class="event-comments"><i class="fa fa-comment"></i> ${comments}</div>` : ""}
 			</div>
 		`).appendTo(container);
 
