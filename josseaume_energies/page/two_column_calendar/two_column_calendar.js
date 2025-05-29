@@ -342,40 +342,31 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		}
 	}
 
-	// Fonction auxiliaire pour obtenir les noms des participants
-	function getParticipantNames(participants) {
-		if (!participants || !Array.isArray(participants)) {
-			return { clientName: "", technicianName: "" };
-		}
-
+	// NOUVELLE FONCTION: Obtenir les informations depuis les données de la commande client directement
+	function getEventInfo(event) {
 		let clientName = "";
 		let technicianName = "";
+		let comments = "";
 
-		for (const participant of participants) {
-			if (participant.reference_doctype === "Customer") {
-				clientName = participant.full_name || participant.reference_docname;
-			} else if (participant.reference_doctype === "Employee") {
-				technicianName = participant.full_name || participant.reference_docname;
+		// Priorité 1: Utiliser les informations de la commande client si disponibles
+		if (event.sales_order_info) {
+			clientName = event.sales_order_info.customer_name || "";
+			technicianName = event.sales_order_info.employee_name || "";
+			comments = event.sales_order_info.comments || "";
+		} else {
+			// Priorité 2: Fallback sur les participants de l'événement
+			if (event.event_participants && Array.isArray(event.event_participants)) {
+				for (const participant of event.event_participants) {
+					if (participant.reference_doctype === "Customer") {
+						clientName = participant.full_name || participant.reference_docname;
+					} else if (participant.reference_doctype === "Employee") {
+						technicianName = participant.full_name || participant.reference_docname;
+					}
+				}
 			}
 		}
 
-		return { clientName, technicianName };
-	}
-
-	// NOUVELLE FONCTION: Extraire les commentaires de la description HTML
-	function extractComments(description) {
-		if (!description) return "";
-
-		// Chercher le pattern <strong>Commentaires:</strong> suivi du contenu
-		const commentRegex = /<strong>Commentaires:<\/strong>\s*([^<]*)/i;
-		const match = description.match(commentRegex);
-
-		if (match && match[1]) {
-			// Nettoyer le texte (supprimer les balises HTML restantes et espacements)
-			return match[1].trim().replace(/<[^>]*>/g, "");
-		}
-
-		return "";
+		return { clientName, technicianName, comments };
 	}
 
 	// Fonction pour vérifier si un événement est toute la journée
@@ -524,7 +515,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		});
 	}
 
-	// Fonction pour rendre une carte d'événement dans la vue à deux colonnes - MODIFIÉE
+	// Fonction pour rendre une carte d'événement dans la vue à deux colonnes - MODIFIÉE POUR UTILISER LES DONNÉES DIRECTES
 	function renderTwoColumnEventCard(event, container) {
 		// Déterminer la classe de couleur
 		let eventClass = "";
@@ -541,13 +532,10 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			eventClass += " event-all-day";
 		}
 
-		// Récupérer les noms des participants
-		const { clientName, technicianName } = getParticipantNames(event.event_participants);
+		// Récupérer les informations depuis les données directes de la commande client
+		const { clientName, technicianName, comments } = getEventInfo(event);
 
-		// Extraire les commentaires
-		const comments = extractComments(event.description);
-
-		// Créer la carte d'événement avec les commentaires
+		// Créer la carte d'événement avec les commentaires depuis la commande client
 		const eventCard = $(`
 			<div class="${eventClass}" data-event-id="${event.name}">
 				<span class="event-id">${event.name}</span>
@@ -768,7 +756,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		});
 	}
 
-	// Fonction pour rendre un événement dans la vue semaine - MODIFIÉE
+	// Fonction pour rendre un événement dans la vue semaine - MODIFIÉE POUR UTILISER LES DONNÉES DIRECTES
 	function renderWeekEvent(event, container) {
 		// Déterminer la classe de couleur
 		let eventClass = "";
@@ -785,13 +773,10 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			eventClass += " event-all-day";
 		}
 
-		// Récupérer les noms des participants
-		const { clientName, technicianName } = getParticipantNames(event.event_participants);
+		// Récupérer les informations depuis les données directes de la commande client
+		const { clientName, technicianName, comments } = getEventInfo(event);
 
-		// Extraire les commentaires
-		const comments = extractComments(event.description);
-
-		// Créer l'élément d'événement avec les commentaires
+		// Créer l'élément d'événement avec les commentaires depuis la commande client
 		const eventElement = $(`
 			<div class="week-event ${eventClass}" data-event-id="${event.name}">
 				<div class="event-title">${event.subject}</div>

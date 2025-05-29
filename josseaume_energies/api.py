@@ -183,7 +183,9 @@ def create_event_from_sales_order(docname):
             "ends_on": end_time,
             "all_day": all_day,
             "description": description,
-            "color": color
+            "color": color,
+            # NOUVEAU: Ajouter une référence vers la commande client
+            "custom_sales_order": doc.name
         })
 
         # Insérer l'événement
@@ -233,6 +235,18 @@ def create_event_from_sales_order(docname):
                        f"Event creation from {docname}")
         return {"status": "error", "message": str(e)}
 
+def get_sales_order_info_from_event(event_description):
+    """Extrait la référence de commande client depuis la description de l'événement"""
+    if not event_description:
+        return None
+    
+    # Chercher le pattern <strong>Référence:</strong> suivi de l'ID
+    import re
+    ref_match = re.search(r'<strong>Référence:</strong>\s*([^<\s]+)', event_description)
+    if ref_match:
+        return ref_match.group(1).strip()
+    return None
+
 @frappe.whitelist()
 def get_day_events(date, territory=None, employee=None, event_type=None):
     """Récupère les événements pour une journée donnée, filtrés par territoire, employé et/ou type d'intervention"""
@@ -252,11 +266,11 @@ def get_day_events(date, territory=None, employee=None, event_type=None):
         # Pour le territoire, on cherche dans le sujet de l'événement
         filters.append(["subject", "like", f"%{territory}%"])
     
-    # Récupérer les événements
+    # Récupérer les événements avec les champs nécessaires
     events = frappe.get_all(
         "Event",
         filters=filters,
-        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day", "description"]
+        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day", "description", "custom_sales_order"]
     )
     
     # Filtrer par employé si spécifié
@@ -285,8 +299,9 @@ def get_day_events(date, territory=None, employee=None, event_type=None):
                 filtered_events.append(event)
         events = filtered_events
     
-    # Récupérer les participants pour chaque événement
+    # Enrichir chaque événement avec les informations de la commande client
     for event in events:
+        # Récupérer les participants
         event_participants = frappe.get_all(
             "Event Participants",
             filters={"parent": event.name},
@@ -307,6 +322,29 @@ def get_day_events(date, territory=None, employee=None, event_type=None):
                 participant["full_name"] = participant["reference_docname"]
         
         event["event_participants"] = event_participants
+        
+        # NOUVEAU: Récupérer les informations de la commande client directement
+        sales_order_ref = event.get("custom_sales_order")
+        if not sales_order_ref:
+            # Fallback: essayer d'extraire depuis la description
+            sales_order_ref = get_sales_order_info_from_event(event.description)
+        
+        if sales_order_ref:
+            try:
+                sales_order = frappe.get_doc("Sales Order", sales_order_ref)
+                event["sales_order_info"] = {
+                    "name": sales_order.name,
+                    "customer_name": frappe.db.get_value("Customer", sales_order.customer, "customer_name") if sales_order.customer else "",
+                    "employee_name": frappe.db.get_value("Employee", sales_order.custom_intervenant, "employee_name") if sales_order.custom_intervenant else "",
+                    "comments": sales_order.custom_commentaire or "",
+                    "type": sales_order.custom_type_de_commande or "",
+                    "territory": sales_order.territory or ""
+                }
+            except Exception as e:
+                # Si la commande n'existe plus ou erreur, continuer sans les infos
+                event["sales_order_info"] = None
+        else:
+            event["sales_order_info"] = None
     
     return events
 
@@ -339,7 +377,7 @@ def get_calendar_events(year, month, territory=None, employee=None, event_type=N
     events = frappe.get_all(
         "Event",
         filters=filters,
-        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day", "description"]
+        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day", "description", "custom_sales_order"]
     )
     
     # Filtrer par employé si spécifié
@@ -368,8 +406,9 @@ def get_calendar_events(year, month, territory=None, employee=None, event_type=N
                 filtered_events.append(event)
         events = filtered_events
     
-    # Récupérer les participants pour chaque événement
+    # Enrichir chaque événement avec les informations de la commande client
     for event in events:
+        # Récupérer les participants
         event_participants = frappe.get_all(
             "Event Participants",
             filters={"parent": event.name},
@@ -390,6 +429,29 @@ def get_calendar_events(year, month, territory=None, employee=None, event_type=N
                 participant["full_name"] = participant["reference_docname"]
         
         event["event_participants"] = event_participants
+        
+        # NOUVEAU: Récupérer les informations de la commande client directement
+        sales_order_ref = event.get("custom_sales_order")
+        if not sales_order_ref:
+            # Fallback: essayer d'extraire depuis la description
+            sales_order_ref = get_sales_order_info_from_event(event.description)
+        
+        if sales_order_ref:
+            try:
+                sales_order = frappe.get_doc("Sales Order", sales_order_ref)
+                event["sales_order_info"] = {
+                    "name": sales_order.name,
+                    "customer_name": frappe.db.get_value("Customer", sales_order.customer, "customer_name") if sales_order.customer else "",
+                    "employee_name": frappe.db.get_value("Employee", sales_order.custom_intervenant, "employee_name") if sales_order.custom_intervenant else "",
+                    "comments": sales_order.custom_commentaire or "",
+                    "type": sales_order.custom_type_de_commande or "",
+                    "territory": sales_order.territory or ""
+                }
+            except Exception as e:
+                # Si la commande n'existe plus ou erreur, continuer sans les infos
+                event["sales_order_info"] = None
+        else:
+            event["sales_order_info"] = None
     
     return events
 
@@ -411,7 +473,7 @@ def get_week_events(start_date, end_date, territory=None, employee=None, event_t
     events = frappe.get_all(
         "Event",
         filters=filters,
-        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day", "description"]
+        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day", "description", "custom_sales_order"]
     )
     
     # Filtrer par employé si spécifié
@@ -440,8 +502,9 @@ def get_week_events(start_date, end_date, territory=None, employee=None, event_t
                 filtered_events.append(event)
         events = filtered_events
     
-    # Récupérer les participants pour chaque événement
+    # Enrichir chaque événement avec les informations de la commande client
     for event in events:
+        # Récupérer les participants
         event_participants = frappe.get_all(
             "Event Participants",
             filters={"parent": event.name},
@@ -462,5 +525,28 @@ def get_week_events(start_date, end_date, territory=None, employee=None, event_t
                 participant["full_name"] = participant["reference_docname"]
         
         event["event_participants"] = event_participants
+        
+        # NOUVEAU: Récupérer les informations de la commande client directement
+        sales_order_ref = event.get("custom_sales_order")
+        if not sales_order_ref:
+            # Fallback: essayer d'extraire depuis la description
+            sales_order_ref = get_sales_order_info_from_event(event.description)
+        
+        if sales_order_ref:
+            try:
+                sales_order = frappe.get_doc("Sales Order", sales_order_ref)
+                event["sales_order_info"] = {
+                    "name": sales_order.name,
+                    "customer_name": frappe.db.get_value("Customer", sales_order.customer, "customer_name") if sales_order.customer else "",
+                    "employee_name": frappe.db.get_value("Employee", sales_order.custom_intervenant, "employee_name") if sales_order.custom_intervenant else "",
+                    "comments": sales_order.custom_commentaire or "",
+                    "type": sales_order.custom_type_de_commande or "",
+                    "territory": sales_order.territory or ""
+                }
+            except Exception as e:
+                # Si la commande n'existe plus ou erreur, continuer sans les infos
+                event["sales_order_info"] = None
+        else:
+            event["sales_order_info"] = None
     
     return events
