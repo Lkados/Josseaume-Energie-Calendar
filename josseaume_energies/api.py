@@ -183,9 +183,7 @@ def create_event_from_sales_order(docname):
             "ends_on": end_time,
             "all_day": all_day,
             "description": description,
-            "color": color,
-            # NOUVEAU: Ajouter une référence vers la commande client
-            "custom_sales_order": doc.name
+            "color": color
         })
 
         # Insérer l'événement
@@ -270,7 +268,7 @@ def get_day_events(date, territory=None, employee=None, event_type=None):
     events = frappe.get_all(
         "Event",
         filters=filters,
-        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day", "description", "custom_sales_order"]
+        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day", "description"]
     )
     
     # Filtrer par employé si spécifié
@@ -324,6 +322,14 @@ def get_day_events(date, territory=None, employee=None, event_type=None):
         event["event_participants"] = event_participants
         
         # NOUVEAU: Récupérer les informations de la commande client directement
+        # Utiliser la relation inverse : chercher la Sales Order qui référence cet événement
+        sales_order_ref = frappe.db.get_value("Sales Order", {"custom_calendar_event": event.name}, "name")
+        
+        if not sales_order_ref:
+            # Fallback: essayer d'extraire depuis la description
+            sales_order_ref = get_sales_order_info_from_event(event.description)
+        
+        if sales_order_ref: commande client directement
         sales_order_ref = event.get("custom_sales_order")
         if not sales_order_ref:
             # Fallback: essayer d'extraire depuis la description
@@ -377,7 +383,7 @@ def get_calendar_events(year, month, territory=None, employee=None, event_type=N
     events = frappe.get_all(
         "Event",
         filters=filters,
-        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day", "description", "custom_sales_order"]
+        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day", "description"]
     )
     
     # Filtrer par employé si spécifié
@@ -431,7 +437,9 @@ def get_calendar_events(year, month, territory=None, employee=None, event_type=N
         event["event_participants"] = event_participants
         
         # NOUVEAU: Récupérer les informations de la commande client directement
-        sales_order_ref = event.get("custom_sales_order")
+        # Utiliser la relation inverse : chercher la Sales Order qui référence cet événement
+        sales_order_ref = frappe.db.get_value("Sales Order", {"custom_calendar_event": event.name}, "name")
+        
         if not sales_order_ref:
             # Fallback: essayer d'extraire depuis la description
             sales_order_ref = get_sales_order_info_from_event(event.description)
@@ -473,7 +481,7 @@ def get_week_events(start_date, end_date, territory=None, employee=None, event_t
     events = frappe.get_all(
         "Event",
         filters=filters,
-        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day", "description", "custom_sales_order"]
+        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day", "description"]
     )
     
     # Filtrer par employé si spécifié
@@ -527,7 +535,9 @@ def get_week_events(start_date, end_date, territory=None, employee=None, event_t
         event["event_participants"] = event_participants
         
         # NOUVEAU: Récupérer les informations de la commande client directement
-        sales_order_ref = event.get("custom_sales_order")
+        # Utiliser la relation inverse : chercher la Sales Order qui référence cet événement
+        sales_order_ref = frappe.db.get_value("Sales Order", {"custom_calendar_event": event.name}, "name")
+        
         if not sales_order_ref:
             # Fallback: essayer d'extraire depuis la description
             sales_order_ref = get_sales_order_info_from_event(event.description)
