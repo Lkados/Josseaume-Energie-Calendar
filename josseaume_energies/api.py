@@ -554,3 +554,429 @@ def get_week_events(start_date, end_date, territory=None, employee=None, event_t
             event["sales_order_info"] = None
     
     return events
+
+@frappe.whitelist()
+def sync_event_to_sales_order(event_name):
+    """
+    Synchronisation manuelle: Event -> Sales Order (avec articles)
+    """
+    try:
+        if not event_name:
+            return {"status": "error", "message": "ID d'événement manquant"}
+        
+        # Récupérer l'événement
+        event_doc = frappe.get_doc("Event", event_name)
+        
+        # Trouver la commande client liée
+        sales_order_ref = frappe.db.get_value("Sales Order", {"custom_calendar_event": event_name}, "name")
+        
+        if not sales_order_ref:
+            # Fallback: chercher dans la description
+            sales_order_ref = get_sales_order_info_from_event(event_doc.description)
+        
+        if not sales_order_ref:
+            return {"status": "error", "message": "Aucune commande client liée trouvée"}
+        
+        # Récupérer la commande client
+        sales_order_doc = frappe.get_doc("Sales Order", sales_order_ref)
+        
+        # Extraire la date de l'événement
+        new_delivery_date = frappe.utils.get_datetime(event_doc.starts_on).date()
+        
+        # Sauvegarder l'ancienne date pour le rapport
+        old_delivery_date = sales_order_doc.delivery_date
+        
+        # Mettre à jour la commande client
+        sales_order_doc.delivery_date = new_delivery_date
+        
+        # Désactiver les hooks pour éviter une boucle
+        sales_order_doc.flags.ignore_hooks = True
+        sales_order_doc.save()
+        
+        # NOUVEAU: Mettre à jour aussi tous les articles
+        items_updated = update_sales_order_items_delivery_date(sales_order_ref, new_delivery_date)
+        
+        return {
+            "status": "success",
+            "message": f"Date de livraison mise à jour pour {sales_order_ref} ({items_updated} articles)",
+            "old_date": str(old_delivery_date),
+            "new_date": str(new_delivery_date),
+            "items_updated": items_updated
+        }
+        
+    except Exception as e:
+        frappe.log_error(f"Erreur lors de la sync manuelle Event->Sales Order: {str(e)}", 
+                       f"Manual sync from event {event_name}")
+        return {"status": "error", "message": str(e)}
+
+def sync_all_items_to_main_delivery_date(sales_order_doc):
+    """
+    Synchronise tous les articles avec la date de livraison principale
+    """
+    try:
+        if not sales_order_doc.delivery_date:
+            return 0
+            
+        items_updated = 0
+        main_delivery_date = sales_order_doc.delivery_date
+        
+        # Mettre à jour chaque article qui a une date différente
+        for item in sales_order_doc.items:
+            current_item_date = frappe.utils.get_datetime(item.delivery_date).date() if item.delivery_date else None
+            main_date = frappe.utils.get_datetime(main_delivery_date).date()
+            
+            if current_item_date != main_date:
+                frappe.db.set_value("Sales Order Item", item.name, "delivery_date", main_delivery_date, update_modified=False)
+                items_updated += 1
+        
+        if items_updated > 0:
+            frappe.db.commit()
+        
+        return items_updated
+        
+    except Exception as e:
+        frappe.log_error(f"Erreur lors de la sync des articles vers date principale: {str(e)}", 
+                       f"Items sync for {sales_order_doc.name}")
+        return 0
+
+def update_sales_order_items_delivery_date(sales_order_name, new_delivery_date):
+    """
+    Met à jour la date de livraison de tous les articles d'une commande client
+    (Fonction utilitaire pour l'API)
+    """
+    try:
+        # Récupérer tous les articles de la commande
+        items = frappe.get_all("Sales Order Item", 
+            filters={"parent": sales_order_name},
+            fields=["name", "delivery_date"]
+        )
+        
+        items_updated = 0
+        
+        for item in items:
+            # Mettre à jour chaque article individuellement
+            frappe.db.set_value("Sales Order Item", item.name, "delivery_date", new_delivery_date, update_modified=False)
+            items_updated += 1
+        
+        # Valider les changements
+        frappe.db.commit()
+        
+        return items_updated
+        
+    except Exception as e:
+        frappe.log_error(f"Erreur lors de la mise à jour des articles via API: {str(e)}", 
+                       f"API Items update for {sales_order_name}")
+        return 0
+
+@frappe.whitelist()
+def sync_sales_order_to_event(sales_order_name):
+    """
+    Synchronisation manuelle: Sales Order -> Event (avec articles)
+    """
+    try:
+        if not sales_order_name:
+            return {"status": "error", "message": "ID de commande client manquant"}
+        
+        # Récupérer la commande client
+        sales_order_doc = frappe.get_doc("Sales Order", sales_order_name)
+        
+        # Vérifier s'il y a un événement lié
+        if not sales_order_doc.custom_calendar_event:
+            return {"status": "error", "message": "Aucun événement lié à cette commande"}
+        
+        # Récupérer l'événement
+        event_doc = frappe.get_doc("Event", sales_order_doc.custom_calendar_event)
+        
+        # Calculer la nouvelle date/heure pour l'événement
+        if not sales_order_doc.delivery_date:
+            return {"status": "error", "message": "Date de livraison non définie"}
+        
+        # Sauvegarder l'ancienne date pour le rapport
+        old_start = event_doc.starts_on
+        
+        new_start_time = frappe.utils.get_datetime(sales_order_doc.delivery_date)
+        
+        # Ajuster l'heure selon l'horaire
+        if hasattr(sales_order_doc, 'custom_horaire') and sales_order_doc.custom_horaire:
+            if sales_order_doc.custom_horaire == "Matin":
+                new_start_time = new_start_time.replace(hour=8, minute=0)
+            elif sales_order_doc.custom_horaire == "Après-midi":
+                new_start_time = new_start_time.replace(hour=14, minute=0)
+            elif sales_order_doc.custom_horaire == "Journée complète":
+                # Pour les événements toute la journée, garder le début de journée
+                new_start_time = new_start_time.replace(hour=0, minute=0)
+                event_doc.all_day = True
+        
+        # Mettre à jour l'événement
+        event_doc.starts_on = new_start_time
+        event_doc.ends_on = frappe.utils.add_to_date(new_start_time, hours=1)
+        
+        # Désactiver les hooks pour éviter une boucle
+        event_doc.flags.ignore_hooks = True
+        event_doc.save()
+        
+        # NOUVEAU: Synchroniser aussi les dates des articles
+        items_updated = sync_all_items_to_main_delivery_date(sales_order_doc)
+        
+        return {
+            "status": "success",
+            "message": f"Événement {event_doc.name} mis à jour ({items_updated} articles synchronisés)",
+            "old_date": str(old_start),
+            "new_date": str(new_start_time),
+            "items_updated": items_updated
+        }
+        
+    except Exception as e:
+        frappe.log_error(f"Erreur lors de la sync manuelle Sales Order->Event: {str(e)}", 
+                       f"Manual sync from sales order {sales_order_name}")
+        return {"status": "error", "message": str(e)}
+
+@frappe.whitelist()
+def get_items_sync_report(sales_order_name):
+    """
+    Génère un rapport détaillé de synchronisation des articles
+    """
+    try:
+        if not sales_order_name:
+            return {"status": "error", "message": "ID de commande client manquant"}
+        
+        # Récupérer la commande client
+        sales_order = frappe.get_doc("Sales Order", sales_order_name)
+        
+        report = {
+            "status": "success",
+            "sales_order": sales_order_name,
+            "main_delivery_date": str(sales_order.delivery_date) if sales_order.delivery_date else None,
+            "total_items": len(sales_order.items),
+            "items_details": [],
+            "synchronized_items": 0,
+            "out_of_sync_items": 0
+        }
+        
+        main_date = frappe.utils.get_datetime(sales_order.delivery_date).date() if sales_order.delivery_date else None
+        
+        for item in sales_order.items:
+            item_date = frappe.utils.get_datetime(item.delivery_date).date() if item.delivery_date else None
+            is_synchronized = item_date == main_date if (item_date and main_date) else False
+            
+            item_info = {
+                "item_code": item.item_code,
+                "item_name": item.item_name,
+                "delivery_date": str(item.delivery_date) if item.delivery_date else None,
+                "is_synchronized": is_synchronized,
+                "date_difference": None
+            }
+            
+            if item_date and main_date:
+                diff = (item_date - main_date).days
+                if diff != 0:
+                    item_info["date_difference"] = f"{diff:+d} jour(s)"
+                    report["out_of_sync_items"] += 1
+                else:
+                    report["synchronized_items"] += 1
+            
+            report["items_details"].append(item_info)
+        
+        # Statut global
+        if report["out_of_sync_items"] == 0:
+            report["sync_status"] = "all_synchronized"
+        elif report["synchronized_items"] == 0:
+            report["sync_status"] = "all_out_of_sync"
+        else:
+            report["sync_status"] = "partially_synchronized"
+        
+        return report
+        
+    except Exception as e:
+        frappe.log_error(f"Erreur lors de la génération du rapport d'articles: {str(e)}", 
+                       f"Items sync report for {sales_order_name}")
+        return {"status": "error", "message": str(e)}
+
+@frappe.whitelist()
+def force_sync_all_items(sales_order_name):
+    """
+    Force la synchronisation de tous les articles avec la date principale
+    """
+    try:
+        if not sales_order_name:
+            return {"status": "error", "message": "ID de commande client manquant"}
+        
+        # Récupérer la commande client
+        sales_order = frappe.get_doc("Sales Order", sales_order_name)
+        
+        if not sales_order.delivery_date:
+            return {"status": "error", "message": "Date de livraison principale non définie"}
+        
+        main_delivery_date = sales_order.delivery_date
+        items_updated = 0
+        updates_details = []
+        
+        for item in sales_order.items:
+            current_date = item.delivery_date
+            
+            if frappe.utils.get_datetime(current_date).date() != frappe.utils.get_datetime(main_delivery_date).date():
+                # Mettre à jour l'article
+                frappe.db.set_value("Sales Order Item", item.name, "delivery_date", main_delivery_date, update_modified=False)
+                
+                updates_details.append({
+                    "item_code": item.item_code,
+                    "old_date": str(current_date),
+                    "new_date": str(main_delivery_date)
+                })
+                
+                items_updated += 1
+        
+        if items_updated > 0:
+            frappe.db.commit()
+        
+        return {
+            "status": "success",
+            "message": f"{items_updated} article(s) synchronisé(s)",
+            "items_updated": items_updated,
+            "total_items": len(sales_order.items),
+            "updates_details": updates_details
+        }
+        
+    except Exception as e:
+        frappe.log_error(f"Erreur lors de la synchronisation forcée des articles: {str(e)}", 
+                       f"Force sync items for {sales_order_name}")
+        return {"status": "error", "message": str(e)}
+
+@frappe.whitelist()
+def check_sync_status(doctype, docname):
+    """
+    Vérifie le statut de synchronisation entre une commande et son événement
+    """
+    try:
+        if doctype == "Sales Order":
+            sales_order = frappe.get_doc("Sales Order", docname)
+            
+            if not sales_order.custom_calendar_event:
+                return {
+                    "status": "no_event",
+                    "message": "Aucun événement lié à cette commande"
+                }
+            
+            # Vérifier si l'événement existe
+            if not frappe.db.exists("Event", sales_order.custom_calendar_event):
+                return {
+                    "status": "event_missing",
+                    "message": "L'événement lié n'existe plus"
+                }
+            
+            event = frappe.get_doc("Event", sales_order.custom_calendar_event)
+            
+            # Comparer les dates
+            so_date = frappe.utils.get_datetime(sales_order.delivery_date).date()
+            event_date = frappe.utils.get_datetime(event.starts_on).date()
+            
+            if so_date == event_date:
+                return {
+                    "status": "synchronized",
+                    "message": "Les dates sont synchronisées",
+                    "sales_order_date": str(so_date),
+                    "event_date": str(event_date)
+                }
+            else:
+                return {
+                    "status": "out_of_sync",
+                    "message": "Les dates ne sont pas synchronisées",
+                    "sales_order_date": str(so_date),
+                    "event_date": str(event_date)
+                }
+        
+        elif doctype == "Event":
+            # Logique similaire mais dans l'autre sens
+            event = frappe.get_doc("Event", docname)
+            
+            # Trouver la commande liée
+            sales_order_ref = frappe.db.get_value("Sales Order", {"custom_calendar_event": docname}, "name")
+            
+            if not sales_order_ref:
+                return {
+                    "status": "no_sales_order",
+                    "message": "Aucune commande liée à cet événement"
+                }
+            
+            sales_order = frappe.get_doc("Sales Order", sales_order_ref)
+            
+            # Comparer les dates
+            so_date = frappe.utils.get_datetime(sales_order.delivery_date).date()
+            event_date = frappe.utils.get_datetime(event.starts_on).date()
+            
+            if so_date == event_date:
+                return {
+                    "status": "synchronized",
+                    "message": "Les dates sont synchronisées",
+                    "sales_order_date": str(so_date),
+                    "event_date": str(event_date)
+                }
+            else:
+                return {
+                    "status": "out_of_sync",
+                    "message": "Les dates ne sont pas synchronisées",
+                    "sales_order_date": str(so_date),
+                    "event_date": str(event_date)
+                }
+        
+        else:
+            return {"status": "error", "message": "Type de document non supporté"}
+            
+    except Exception as e:
+        frappe.log_error(f"Erreur lors de la vérification du statut de sync: {str(e)}", 
+                       f"Sync status check {doctype} {docname}")
+        return {"status": "error", "message": str(e)}
+
+@frappe.whitelist()
+def bulk_sync_events(direction="event_to_sales_order", filters=None):
+    """
+    Synchronisation en masse
+    direction: "event_to_sales_order" ou "sales_order_to_event"
+    """
+    try:
+        results = []
+        
+        if direction == "event_to_sales_order":
+            # Trouver tous les événements avec des commandes liées
+            events = frappe.get_all("Event", 
+                filters={"name": ["in", 
+                    frappe.get_all("Sales Order", 
+                        filters={"custom_calendar_event": ["!=", ""]}, 
+                        pluck="custom_calendar_event")
+                ]},
+                fields=["name", "subject", "starts_on"]
+            )
+            
+            for event in events:
+                result = sync_event_to_sales_order(event.name)
+                results.append({
+                    "event": event.name,
+                    "result": result
+                })
+                
+        else:  # sales_order_to_event
+            # Trouver toutes les commandes avec des événements liés
+            sales_orders = frappe.get_all("Sales Order",
+                filters={"custom_calendar_event": ["!=", ""]},
+                fields=["name", "delivery_date", "custom_calendar_event"]
+            )
+            
+            for so in sales_orders:
+                result = sync_sales_order_to_event(so.name)
+                results.append({
+                    "sales_order": so.name,
+                    "result": result
+                })
+        
+        success_count = len([r for r in results if r.get("result", {}).get("status") == "success"])
+        
+        return {
+            "status": "completed",
+            "message": f"Synchronisation terminée: {success_count}/{len(results)} réussies",
+            "details": results
+        }
+        
+    except Exception as e:
+        frappe.log_error(f"Erreur lors de la synchronisation en masse: {str(e)}", 
+                       f"Bulk sync {direction}")
+        return {"status": "error", "message": str(e)}

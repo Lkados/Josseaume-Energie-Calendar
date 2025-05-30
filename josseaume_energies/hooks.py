@@ -24,12 +24,21 @@ website_route_rules = [
 # Whitelist pour l'API
 whitelist_methods = {
     "josseaume_energies.api.create_event_from_sales_order": True,
-    "josseaume_energies.api.get_day_events": True
+    "josseaume_energies.api.get_day_events": True,
+    "josseaume_energies.api.get_calendar_events": True,
+    "josseaume_energies.api.get_week_events": True,
+    "josseaume_energies.api.sync_event_to_sales_order": True,
+    "josseaume_energies.api.sync_sales_order_to_event": True,
+    "josseaume_energies.api.check_sync_status": True,
+    "josseaume_energies.api.bulk_sync_events": True,
+    "josseaume_energies.api.get_items_sync_report": True,
+    "josseaume_energies.api.force_sync_all_items": True
 }
 
 # Client scripts
 doctype_js = {
-    "Sales Order": "public/js/sales_order.js"
+    "Sales Order": "public/js/sales_order.js",
+    "Event": "public/js/event.js"
 }
 
 # Whitelist pour l'API
@@ -37,9 +46,15 @@ has_permission = {
     "create_event_from_sales_order": "all"
 }
 
+# NOUVEAU: Événements de documents pour la synchronisation bidirectionnelle
 doc_events = {
     "Sales Order": {
-    "on_submit": "josseaume_energies.sales_order.on_submit",
+        "on_submit": "josseaume_energies.sales_order.on_submit",
+        "on_update": "josseaume_energies.sales_order.on_update"
+    },
+    "Event": {
+        "on_update": "josseaume_energies.event.on_update",
+        "on_trash": "josseaume_energies.event.on_trash"
     }
 }
 
