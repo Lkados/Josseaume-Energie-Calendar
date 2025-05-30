@@ -13,7 +13,12 @@ frappe.ui.form.on("Sales Order", {
 			);
 		}
 
-		// NOUVELLE FONCTION: Afficher le rapport de synchronisation des articles
+		// Vérifier le statut de synchronisation si un événement existe
+		if (frm.doc.custom_calendar_event) {
+			check_and_display_sync_status(frm);
+		}
+
+		// NOUVEAU: Fonction pour afficher le rapport de synchronisation des articles
 		function show_items_sync_report(frm) {
 			frappe.call({
 				method: "josseaume_energies.api.get_items_sync_report",
@@ -72,7 +77,7 @@ frappe.ui.form.on("Sales Order", {
 			});
 		}
 
-		// NOUVELLE FONCTION: Forcer la synchronisation de tous les articles
+		// NOUVEAU: Fonction pour forcer la synchronisation de tous les articles
 		function force_sync_all_items(frm) {
 			frappe.confirm(
 				__(
@@ -137,11 +142,6 @@ frappe.ui.form.on("Sales Order", {
 					});
 				}
 			);
-
-			// NOUVEAU: Vérifier le statut de synchronisation si un événement existe
-			if (frm.doc.custom_calendar_event) {
-				check_and_display_sync_status(frm);
-			}
 		}
 	},
 });
@@ -238,17 +238,30 @@ function check_and_display_sync_status(frm) {
 					);
 				}
 
-				// Ajouter un lien vers l'événement si il existe
+				// AMÉLIORÉ: Ajouter un lien vers l'événement si il existe
 				if (status === "synchronized" || status === "out_of_sync") {
+					// Bouton principal (plus visible)
+					frm.add_custom_button(__("📅 Voir l'événement"), function () {
+						frappe.set_route("Form", "Event", frm.doc.custom_calendar_event);
+					}).addClass("btn-primary"); // Rendre le bouton plus visible
+
+					// Aussi ajouter dans le groupe Actions pour la cohérence
 					frm.add_custom_button(
-						__("Voir l'événement"),
+						__("Ouvrir événement"),
 						function () {
 							frappe.set_route("Form", "Event", frm.doc.custom_calendar_event);
 						},
 						__("Actions")
 					);
 
-					// NOUVEAU: Boutons pour la gestion des articles
+					// NOUVEAU: Ajouter l'information dans l'intro
+					frm.set_intro(
+						__("Cette commande est liée à l'événement: ") +
+							`<a href='/app/event/${frm.doc.custom_calendar_event}'>${frm.doc.custom_calendar_event}</a>`,
+						"blue"
+					);
+
+					// Boutons pour la gestion des articles
 					frm.add_custom_button(
 						__("Rapport articles"),
 						function () {
@@ -267,9 +280,11 @@ function check_and_display_sync_status(frm) {
 				}
 
 				// Afficher les détails dans un petit message
-				if (r.message.message) {
+				if (r.message.message && !frm.intro_area.find(".sync-status-message").length) {
+					const existingIntro = frm.intro_area.html();
 					frm.set_intro(
-						r.message.message,
+						existingIntro +
+							`<div class="sync-status-message">${r.message.message}</div>`,
 						status === "synchronized" ? "green" : "orange"
 					);
 				}
