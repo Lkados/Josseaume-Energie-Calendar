@@ -980,7 +980,11 @@ def bulk_sync_events(direction="event_to_sales_order", filters=None):
         frappe.log_error(f"Erreur lors de la synchronisation en masse: {str(e)}", 
                        f"Bulk sync {direction}")
         return {"status": "error", "message": str(e)}
-    
+
+# ========================================
+# NOUVELLES FONCTIONS POUR LA VUE EMPLOYÉS
+# ========================================
+
 @frappe.whitelist()
 def get_employees_with_team_filter(team_filter=None):
     """Récupère la liste des employés avec filtre par équipe"""

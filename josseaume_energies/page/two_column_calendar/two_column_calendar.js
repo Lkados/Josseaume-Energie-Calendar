@@ -873,18 +873,244 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		});
 	}
 
-	// Vue semaine avec sections matin/après-midi (code existant conservé)
+	// Vue semaine avec sections matin/après-midi (implémentation simplifiée)
 	function renderWeekViewWithSections(date, territory, employee, event_type) {
-		// Code existant pour la vue semaine...
-		// (Je garde le code tel quel pour éviter de faire trop long)
-		$(`
-			<div class="calendar-header">
-				<h2>Vue semaine</h2>
+		// Obtenir le premier jour de la semaine (lundi)
+		const current = new Date(date);
+		const day = current.getDay(); // 0-6 (dim-sam)
+		const diff = current.getDate() - day + (day === 0 ? -6 : 1); // Ajuster pour commencer le lundi
+
+		const monday = new Date(current.setDate(diff));
+		const sunday = new Date(new Date(monday).setDate(monday.getDate() + 6));
+
+		// Formatage des dates pour l'affichage
+		const formatDate = (date) => {
+			return `${date.getDate().toString().padStart(2, "0")}/${(date.getMonth() + 1)
+				.toString()
+				.padStart(2, "0")}`;
+		};
+
+		// Créer l'en-tête
+		const weekHeader = $(`
+            <div class="calendar-header">
+                <h2>Semaine du ${formatDate(monday)} au ${formatDate(sunday)}
+                    <small style="display: block; font-size: 12px; font-weight: normal; color: #666; margin-top: 5px;">
+                        Double-cliquez sur une section pour créer une commande client
+                    </small>
+                </h2>
+            </div>
+        `).appendTo(calendarContainer);
+
+		// Créer la structure de la semaine
+		const weekContainer = $('<div class="week-container"></div>').appendTo(calendarContainer);
+
+		// En-tête des jours
+		const daysHeader = $('<div class="week-days-header"></div>').appendTo(weekContainer);
+
+		const daysOfWeek = [
+			"Lundi",
+			"Mardi",
+			"Mercredi",
+			"Jeudi",
+			"Vendredi",
+			"Samedi",
+			"Dimanche",
+		];
+
+		// Créer les colonnes pour chaque jour
+		for (let i = 0; i < 7; i++) {
+			const dayDate = new Date(new Date(monday).setDate(monday.getDate() + i));
+
+			const isToday =
+				new Date().getDate() === dayDate.getDate() &&
+				new Date().getMonth() === dayDate.getMonth() &&
+				new Date().getFullYear() === dayDate.getFullYear();
+
+			$(`
+				<div class="week-day-header ${isToday ? "today" : ""}">
+					<div class="day-name">${daysOfWeek[i]}</div>
+					<div class="day-date">${formatDate(dayDate)}</div>
+				</div>
+			`).appendTo(daysHeader);
+		}
+
+		// Container pour les événements
+		const weekGrid = $('<div class="week-grid"></div>').appendTo(weekContainer);
+
+		// Afficher le message de chargement
+		const loadingMessage = $(
+			'<div class="loading-message">Chargement des événements...</div>'
+		).appendTo(calendarContainer);
+
+		// Récupérer les événements pour cette semaine
+		frappe.call({
+			method: "josseaume_energies.api.get_week_events",
+			args: {
+				start_date: frappe.datetime.obj_to_str(monday),
+				end_date: frappe.datetime.obj_to_str(sunday),
+				territory: territory,
+				employee: employee,
+				event_type: event_type,
+			},
+			callback: function (r) {
+				loadingMessage.remove();
+
+				if (r.message) {
+					const events = r.message;
+					console.log("Événements de la semaine reçus:", events);
+
+					// Organiser les événements par jour
+					const eventsByDay = {};
+
+					// Initialiser la structure pour chaque jour
+					for (let i = 0; i < 7; i++) {
+						const dayDate = new Date(new Date(monday).setDate(monday.getDate() + i));
+						const dayStr = frappe.datetime.obj_to_str(dayDate).split(" ")[0];
+						eventsByDay[dayStr] = { morning: [], afternoon: [], allday: [] };
+					}
+
+					// Répartir les événements par jour et période
+					events.forEach((event) => {
+						const eventDate = new Date(event.starts_on);
+						const dayStr = event.starts_on.split(" ")[0];
+
+						if (eventsByDay[dayStr]) {
+							if (isAllDayEvent(event)) {
+								eventsByDay[dayStr].allday.push(event);
+							} else if (eventDate.getHours() < 12) {
+								eventsByDay[dayStr].morning.push(event);
+							} else {
+								eventsByDay[dayStr].afternoon.push(event);
+							}
+						}
+					});
+
+					// Créer les colonnes pour chaque jour
+					for (let i = 0; i < 7; i++) {
+						const dayDate = new Date(new Date(monday).setDate(monday.getDate() + i));
+						const dayStr = frappe.datetime.obj_to_str(dayDate).split(" ")[0];
+						const dayEvents = eventsByDay[dayStr];
+
+						const isToday =
+							new Date().getDate() === dayDate.getDate() &&
+							new Date().getMonth() === dayDate.getMonth() &&
+							new Date().getFullYear() === dayDate.getFullYear();
+
+						// Créer la colonne
+						const dayColumn = $(`
+							<div class="week-day-column ${isToday ? "today" : ""}">
+                                <div class="day-section">
+                                    <div class="section-title" data-name="Journée complète">Journée complète</div>
+                                    <div class="section-events allday-events"></div>
+                                </div>
+								<div class="day-section">
+									<div class="section-title" data-name="Matin">Matin</div>
+									<div class="section-events morning-events"></div>
+								</div>
+								<div class="day-section">
+									<div class="section-title" data-name="Après-midi">Après-midi</div>
+									<div class="section-events afternoon-events"></div>
+								</div>
+							</div>
+						`).appendTo(weekGrid);
+
+						// Ajouter les événements toute la journée
+						const alldayContainer = dayColumn.find(".allday-events");
+						if (dayEvents.allday && dayEvents.allday.length > 0) {
+							dayEvents.allday.forEach((event) => {
+								renderWeekEvent(event, alldayContainer);
+							});
+						} else {
+							$('<div class="no-events">Aucun événement</div>').appendTo(
+								alldayContainer
+							);
+						}
+
+						// Ajouter les événements du matin
+						const morningContainer = dayColumn.find(".morning-events");
+						if (dayEvents.morning && dayEvents.morning.length > 0) {
+							dayEvents.morning.sort(
+								(a, b) => new Date(a.starts_on) - new Date(b.starts_on)
+							);
+							dayEvents.morning.forEach((event) => {
+								renderWeekEvent(event, morningContainer);
+							});
+						} else {
+							$('<div class="no-events">Aucun événement</div>').appendTo(
+								morningContainer
+							);
+						}
+
+						// Ajouter les événements de l'après-midi
+						const afternoonContainer = dayColumn.find(".afternoon-events");
+						if (dayEvents.afternoon && dayEvents.afternoon.length > 0) {
+							dayEvents.afternoon.sort(
+								(a, b) => new Date(a.starts_on) - new Date(b.starts_on)
+							);
+							dayEvents.afternoon.forEach((event) => {
+								renderWeekEvent(event, afternoonContainer);
+							});
+						} else {
+							$('<div class="no-events">Aucun événement</div>').appendTo(
+								afternoonContainer
+							);
+						}
+					}
+				} else {
+					$(
+						'<div class="error-message">Erreur lors du chargement des événements</div>'
+					).appendTo(calendarContainer);
+				}
+
+				// Ajouter les écouteurs après le rendu
+				addDoubleClickListeners();
+			},
+		});
+	}
+
+	// Fonction pour rendre un événement dans la vue semaine - MODIFIÉE POUR UTILISER LES DONNÉES DIRECTES
+	function renderWeekEvent(event, container) {
+		// Déterminer la classe de couleur
+		let eventClass = "";
+		if (event.subject.includes("Entretien")) {
+			eventClass = "event-entretien";
+		} else if (event.subject.includes("EPGZ")) {
+			eventClass = "event-epgz";
+		} else {
+			eventClass = "event-default";
+		}
+
+		// Ajouter une classe spécifique pour les événements toute la journée
+		if (isAllDayEvent(event)) {
+			eventClass += " event-all-day";
+		}
+
+		// Récupérer les informations depuis les données directes de la commande client
+		const { clientName, technicianName, comments } = getEventInfo(event);
+
+		// Créer l'élément d'événement avec les commentaires depuis la commande client
+		const eventElement = $(`
+			<div class="week-event ${eventClass}" data-event-id="${event.name}">
+				<div class="event-title">${event.subject}</div>
+				${
+					isAllDayEvent(event)
+						? '<span class="event-all-day-indicator"><i class="fa fa-calendar-day"></i> Toute la journée</span>'
+						: ""
+				}
+				${clientName ? `<div class="client-info"><i class="fa fa-user"></i> ${clientName}</div>` : ""}
+				${
+					technicianName
+						? `<div class="technician-info"><i class="fa fa-user-tie"></i> ${technicianName}</div>`
+						: ""
+				}
+				${comments ? `<div class="event-comments"><i class="fa fa-comment"></i> ${comments}</div>` : ""}
 			</div>
-			<div style="padding: 20px; text-align: center;">
-				<p>Vue semaine disponible.</p>
-			</div>
-		`).appendTo(calendarContainer);
+		`).appendTo(container);
+
+		// Ajouter l'interaction au clic
+		eventElement.on("click", function () {
+			frappe.set_route("Form", "Event", event.name);
+		});
 	}
 
 	// Vue mensuelle (gardée mais cachée dans les options)

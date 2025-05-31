@@ -326,3 +326,245 @@ def run_tests():
 
 if __name__ == "__main__":
     test_synchronization()
+    
+def test_employee_view_setup():
+    """
+    Script de test complet pour vérifier que la vue Employés fonctionne
+    """
+    print("🧪 Test de la vue Employés - Début des vérifications...")
+    print("=" * 60)
+    
+    # Test 1: Vérifier les champs custom Employee
+    print("\n📋 Test 1: Vérification des champs Employee")
+    required_fields = [
+        "custom_livraisons", "custom_installations", "custom_entretiensramonages",
+        "custom_depannages_poeles", "custom_depannages_chauffage", "custom_electricite",
+        "custom_photovoltaique", "custom_bureau", "custom_commercial", "custom_renovation"
+    ]
+    
+    missing_fields = []
+    for field in required_fields:
+        if not frappe.db.exists("Custom Field", f"Employee-{field}"):
+            missing_fields.append(field)
+            print(f"❌ Champ manquant: {field}")
+        else:
+            print(f"✅ Champ trouvé: {field}")
+    
+    if missing_fields:
+        print(f"\n⚠️  {len(missing_fields)} champ(s) manquant(s). Créez-les avant de continuer.")
+        return False
+    
+    # Test 2: Vérifier les méthodes API
+    print("\n🔌 Test 2: Vérification des méthodes API")
+    api_methods = [
+        "josseaume_energies.api.get_employees_with_team_filter",
+        "josseaume_energies.api.get_day_events_by_employees",
+        "josseaume_energies.api.get_team_options"
+    ]
+    
+    for method in api_methods:
+        try:
+            # Tester l'accès à la méthode
+            func = frappe.get_attr(method)
+            print(f"✅ Méthode API trouvée: {method}")
+        except Exception as e:
+            print(f"❌ Erreur méthode API {method}: {str(e)}")
+            return False
+    
+    # Test 3: Tester la récupération des employés
+    print("\n👥 Test 3: Récupération des employés")
+    try:
+        result = frappe.call("josseaume_energies.api.get_employees_with_team_filter")
+        if result["status"] == "success":
+            print(f"✅ {result['total']} employé(s) récupéré(s)")
+            
+            # Afficher quelques exemples
+            for i, emp in enumerate(result["employees"][:3]):
+                teams = ", ".join(emp.get("teams", []))
+                print(f"   - {emp['employee_name']} ({teams or 'Aucune équipe'})")
+                
+            if result["total"] == 0:
+                print("⚠️  Aucun employé actif trouvé. Vérifiez vos données.")
+        else:
+            print(f"❌ Erreur récupération employés: {result.get('message')}")
+            return False
+    except Exception as e:
+        print(f"❌ Exception récupération employés: {str(e)}")
+        return False
+    
+    # Test 4: Tester les filtres d'équipe
+    print("\n🔍 Test 4: Filtres par équipe")
+    teams = ["Livraisons", "Installations", "Entretiens/Ramonages"]
+    
+    for team in teams:
+        try:
+            result = frappe.call("josseaume_energies.api.get_employees_with_team_filter", 
+                               team_filter=team)
+            if result["status"] == "success":
+                print(f"✅ Équipe {team}: {result['total']} employé(s)")
+            else:
+                print(f"❌ Erreur filtre {team}: {result.get('message')}")
+        except Exception as e:
+            print(f"❌ Exception filtre {team}: {str(e)}")
+    
+    # Test 5: Tester la récupération des événements par employé
+    print("\n📅 Test 5: Événements par employé")
+    try:
+        today = datetime.now().strftime("%Y-%m-%d")
+        result = frappe.call("josseaume_energies.api.get_day_events_by_employees", 
+                           date=today)
+        if result["status"] == "success":
+            events_count = sum(
+                len(emp_events["all_day"]) + len(emp_events["morning"]) + len(emp_events["afternoon"])
+                for emp_events in result["events_by_employee"].values()
+            )
+            print(f"✅ {events_count} événement(s) trouvé(s) pour aujourd'hui")
+            print(f"   Employés avec événements: {len([e for e in result['events_by_employee'].values() if any([e['all_day'], e['morning'], e['afternoon']])])}")
+        else:
+            print(f"❌ Erreur événements: {result.get('message')}")
+    except Exception as e:
+        print(f"❌ Exception événements: {str(e)}")
+    
+    # Test 6: Vérifier les champs Sales Order
+    print("\n📋 Test 6: Champs Sales Order")
+    so_fields = ["custom_intervenant", "custom_horaire", "custom_type_de_commande", 
+                "custom_commentaire", "custom_calendar_event"]
+    
+    missing_so_fields = []
+    for field in so_fields:
+        if not frappe.db.exists("Custom Field", f"Sales Order-{field}"):
+            missing_so_fields.append(field)
+            print(f"❌ Champ SO manquant: {field}")
+        else:
+            print(f"✅ Champ SO trouvé: {field}")
+    
+    if missing_so_fields:
+        print(f"\n⚠️  {len(missing_so_fields)} champ(s) Sales Order manquant(s)")
+    
+    # Test 7: Statistiques des employés par équipe
+    print("\n📊 Test 7: Statistiques par équipe")
+    try:
+        all_employees = frappe.call("josseaume_energies.api.get_employees_with_team_filter")["employees"]
+        team_stats = {}
+        
+        for emp in all_employees:
+            for team in emp.get("teams", []):
+                team_stats[team] = team_stats.get(team, 0) + 1
+        
+        if team_stats:
+            print("Répartition des employés par équipe:")
+            for team, count in sorted(team_stats.items()):
+                print(f"   - {team}: {count} employé(s)")
+        else:
+            print("⚠️  Aucun employé n'est assigné à une équipe")
+            
+    except Exception as e:
+        print(f"❌ Erreur statistiques: {str(e)}")
+    
+    print("\n" + "=" * 60)
+    print("✅ Tests terminés avec succès!")
+    print("\n📝 Actions recommandées:")
+    print("1. Vérifiez que les employés sont bien assignés aux équipes")
+    print("2. Testez la vue dans le navigateur: /app/two-column-calendar")
+    print("3. Vérifiez que la vue 'Employés' est sélectionnée par défaut")
+    print("4. Testez le double-clic pour créer des commandes")
+    
+    return True
+
+def create_test_employee():
+    """
+    Crée un employé de test avec des équipes assignées
+    """
+    try:
+        # Vérifier si l'employé test existe déjà
+        if frappe.db.exists("Employee", {"employee_name": "Test Employé Calendrier"}):
+            print("Employé de test existe déjà")
+            return
+        
+        # Créer l'employé de test
+        employee = frappe.get_doc({
+            "doctype": "Employee",
+            "employee_name": "Test Employé Calendrier",
+            "first_name": "Test",
+            "last_name": "Employé",
+            "status": "Active",
+            "custom_livraisons": 1,
+            "custom_installations": 1,
+            "custom_entretiens_ramonages": 0,
+        })
+        
+        employee.insert(ignore_permissions=True)
+        print(f"✅ Employé de test créé: {employee.name}")
+        
+    except Exception as e:
+        print(f"❌ Erreur création employé test: {str(e)}")
+
+def assign_employees_to_teams():
+    """
+    Script d'aide pour assigner des employés aux équipes
+    """
+    print("🏷️  Assistant d'assignation d'équipes")
+    print("=" * 40)
+    
+    # Récupérer tous les employés actifs
+    employees = frappe.get_all("Employee", 
+                              filters={"status": "Active"}, 
+                              fields=["name", "employee_name"])
+    
+    if not employees:
+        print("Aucun employé actif trouvé")
+        return
+    
+    print(f"Trouvé {len(employees)} employé(s) actif(s):")
+    
+    teams = [
+        "custom_livraisons", "custom_installations", "custom_entretiensramonages",
+        "custom_depannages_poeles", "custom_depannages_chauffage", "custom_electricite",
+        "custom_photovoltaique", "custom_bureau", "custom_commercial", "custom_renovation"
+    ]
+    
+    for emp in employees:
+        print(f"\n👤 {emp.employee_name} ({emp.name})")
+        
+        # Afficher les équipes actuelles
+        emp_doc = frappe.get_doc("Employee", emp.name)
+        current_teams = []
+        for team in teams:
+            if getattr(emp_doc, team, 0):
+                current_teams.append(team.replace("custom_", "").replace("_", " ").title())
+        
+        if current_teams:
+            print(f"   Équipes actuelles: {', '.join(current_teams)}")
+        else:
+            print("   Aucune équipe assignée")
+            print("   💡 Assignez cet employé à des équipes via l'interface ERPNext")
+
+# Point d'entrée principal
+def run_all_tests():
+    """
+    Exécute tous les tests de la vue Employés
+    
+    Usage dans bench console:
+    >>> from josseaume_energies.test_employee_view import run_all_tests
+    >>> run_all_tests()
+    """
+    print("🚀 Lancement des tests complets de la vue Employés")
+    print("" + "=" * 60)
+    
+    success = test_employee_view_setup()
+    
+    if success:
+        print("\n🎉 Tous les tests sont passés avec succès!")
+        print("Votre vue Employés devrait fonctionner correctement.")
+        
+        # Proposer d'afficher les statistiques
+        print("\n📊 Voulez-vous voir les statistiques détaillées?")
+        assign_employees_to_teams()
+    else:
+        print("\n❌ Certains tests ont échoué.")
+        print("Référez-vous aux messages d'erreur ci-dessus.")
+    
+    return success
+
+if __name__ == "__main__":
+    run_all_tests()
