@@ -1,5 +1,5 @@
 frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
-	console.log("🚀 Calendrier complet - Début chargement");
+	console.log("🚀 Calendrier complet - Version corrigée");
 
 	try {
 		var page = frappe.ui.make_app_page({
@@ -234,7 +234,9 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		function addDoubleClickListeners() {
 			$(document).off("dblclick.calendar");
 
-			const viewType = page.fields_dict.view_type.get_value();
+			const viewType = page.fields_dict.view_type
+				? page.fields_dict.view_type.get_value()
+				: "Employés";
 
 			if (viewType === "Employés") {
 				$(document).on(
@@ -306,29 +308,92 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			}
 		}
 
-		// Gestion de la visibilité des champs
+		// FONCTION CORRIGÉE - Gestion de la visibilité des champs
 		function updateFieldVisibility() {
-			const viewType = page.fields_dict.view_type.get_value();
+			try {
+				console.log("🔧 Mise à jour visibilité des champs");
 
-			if (viewType === "Employés") {
-				page.fields_dict.team_filter.wrapper.show();
-				page.fields_dict.employee.wrapper.hide();
-			} else {
-				page.fields_dict.team_filter.wrapper.hide();
-				page.fields_dict.employee.wrapper.show();
+				const viewType = page.fields_dict.view_type
+					? page.fields_dict.view_type.get_value()
+					: "Employés";
+				console.log("Vue actuelle:", viewType);
+
+				if (viewType === "Employés") {
+					// Afficher le champ équipe en vue Employés
+					if (page.fields_dict.team_filter && page.fields_dict.team_filter.wrapper) {
+						try {
+							$(page.fields_dict.team_filter.wrapper).show();
+							console.log("✅ Champ équipe affiché");
+						} catch (e) {
+							console.warn("⚠️ Erreur affichage champ équipe:", e);
+						}
+					}
+
+					// Cacher le champ employé en vue Employés
+					if (page.fields_dict.employee && page.fields_dict.employee.wrapper) {
+						try {
+							$(page.fields_dict.employee.wrapper).hide();
+							console.log("✅ Champ employé caché");
+						} catch (e) {
+							console.warn("⚠️ Erreur masquage champ employé:", e);
+						}
+					}
+				} else {
+					// Cacher le champ équipe dans les autres vues
+					if (page.fields_dict.team_filter && page.fields_dict.team_filter.wrapper) {
+						try {
+							$(page.fields_dict.team_filter.wrapper).hide();
+							console.log("✅ Champ équipe caché");
+						} catch (e) {
+							console.warn("⚠️ Erreur masquage champ équipe:", e);
+						}
+					}
+
+					// Afficher le champ employé dans les autres vues
+					if (page.fields_dict.employee && page.fields_dict.employee.wrapper) {
+						try {
+							$(page.fields_dict.employee.wrapper).show();
+							console.log("✅ Champ employé affiché");
+						} catch (e) {
+							console.warn("⚠️ Erreur affichage champ employé:", e);
+						}
+					}
+				}
+			} catch (error) {
+				console.error("❌ Erreur dans updateFieldVisibility:", error);
+				// Ne pas faire planter l'application, juste logger l'erreur
 			}
 		}
 
 		// Fonction principale de rafraîchissement
 		function refreshCalendar() {
 			try {
-				const viewType = page.fields_dict.view_type.get_value();
-				const territory = page.fields_dict.territory.get_value();
-				const employee = page.fields_dict.employee.get_value();
-				const event_type = page.fields_dict.event_type.get_value();
-				const team_filter = page.fields_dict.team_filter.get_value();
+				console.log("🔄 refreshCalendar - Version corrigée");
 
-				updateFieldVisibility();
+				const viewType = page.fields_dict.view_type
+					? page.fields_dict.view_type.get_value()
+					: "Employés";
+				const territory = page.fields_dict.territory
+					? page.fields_dict.territory.get_value()
+					: "";
+				const employee = page.fields_dict.employee
+					? page.fields_dict.employee.get_value()
+					: "";
+				const event_type = page.fields_dict.event_type
+					? page.fields_dict.event_type.get_value()
+					: "";
+				const team_filter = page.fields_dict.team_filter
+					? page.fields_dict.team_filter.get_value()
+					: "";
+
+				console.log("Paramètres:", {
+					viewType,
+					territory,
+					employee,
+					event_type,
+					team_filter,
+				});
+
 				calendarContainer.empty();
 
 				if (viewType === "Employés") {
@@ -342,9 +407,13 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				}
 			} catch (error) {
 				console.error("❌ Erreur dans refreshCalendar:", error);
-				calendarContainer.html(
-					`<div style="padding: 20px; color: red;">Erreur: ${error.message}</div>`
-				);
+				calendarContainer.html(`
+					<div style="padding: 20px; color: red; text-align: center;">
+						<h3>Erreur de chargement</h3>
+						<p>${error.message}</p>
+						<button onclick="location.reload()">Recharger la page</button>
+					</div>
+				`);
 			}
 		}
 
@@ -708,10 +777,16 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			`);
 		}
 
-		// Initialisation
-		updateFieldVisibility();
-		refreshCalendar();
-		console.log("✅ Calendrier complet initialisé");
+		// Initialisation avec délai pour s'assurer que les champs sont créés
+		setTimeout(() => {
+			try {
+				updateFieldVisibility();
+				refreshCalendar();
+				console.log("✅ Calendrier complet initialisé avec succès");
+			} catch (error) {
+				console.error("❌ Erreur lors de l'initialisation:", error);
+			}
+		}, 100);
 	} catch (mainError) {
 		console.error("🚨 ERREUR CRITIQUE:", mainError);
 		$(wrapper).html(
