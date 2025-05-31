@@ -359,298 +359,324 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 	// Fonction pour gérer la visibilité des champs selon la vue sélectionnée
 	function updateFieldVisibility() {
-		const viewType = page.fields_dict.view_type.get_value();
+		try {
+			const viewType = page.fields_dict.view_type.get_value();
 
-		// Cacher/Afficher le champ équipe selon la vue
-		if (viewType === "Employés") {
-			page.fields_dict.team_filter.wrapper.show();
-			// En vue employés, on peut cacher le champ intervenant car on montre tous les employés
-			page.fields_dict.employee.wrapper.hide();
-		} else {
-			page.fields_dict.team_filter.wrapper.hide();
-			page.fields_dict.employee.wrapper.show();
+			// Vérifier que les champs existent avant de les manipuler
+			if (page.fields_dict.team_filter && page.fields_dict.team_filter.wrapper) {
+				if (viewType === "Employés") {
+					page.fields_dict.team_filter.wrapper.show();
+				} else {
+					page.fields_dict.team_filter.wrapper.hide();
+				}
+			}
+
+			if (page.fields_dict.employee && page.fields_dict.employee.wrapper) {
+				if (viewType === "Employés") {
+					page.fields_dict.employee.wrapper.hide();
+				} else {
+					page.fields_dict.employee.wrapper.show();
+				}
+			}
+		} catch (error) {
+			console.error("Erreur lors de la mise à jour de la visibilité des champs:", error);
 		}
 	}
 
 	// Fonction principale pour rafraîchir le calendrier - MODIFIÉE
 	function refreshCalendar() {
-		const viewType = page.fields_dict.view_type.get_value();
-		const territory = page.fields_dict.territory.get_value();
-		const employee = page.fields_dict.employee.get_value();
-		const event_type = page.fields_dict.event_type.get_value();
-		const team_filter = page.fields_dict.team_filter.get_value();
+		try {
+			const viewType = page.fields_dict.view_type.get_value();
+			const territory = page.fields_dict.territory.get_value();
+			const employee = page.fields_dict.employee.get_value();
+			const event_type = page.fields_dict.event_type.get_value();
+			const team_filter = page.fields_dict.team_filter.get_value();
 
-		// Mettre à jour la visibilité des champs
-		updateFieldVisibility();
+			// Mettre à jour la visibilité des champs
+			updateFieldVisibility();
 
-		calendarContainer.empty();
+			calendarContainer.empty();
 
-		if (viewType === "Employés") {
-			renderEmployeeDayView(currentDate, territory, team_filter, event_type);
-		} else if (viewType === "Jour") {
-			renderTwoColumnDayView(currentDate, territory, employee, event_type);
-		} else if (viewType === "Semaine") {
-			renderWeekViewWithSections(currentDate, territory, employee, event_type);
-		} else {
-			renderMonthView(currentYear, currentMonth, territory, employee, event_type);
+			if (viewType === "Employés") {
+				renderEmployeeDayView(currentDate, territory, team_filter, event_type);
+			} else if (viewType === "Jour") {
+				renderTwoColumnDayView(currentDate, territory, employee, event_type);
+			} else if (viewType === "Semaine") {
+				renderWeekViewWithSections(currentDate, territory, employee, event_type);
+			} else {
+				renderMonthView(currentYear, currentMonth, territory, employee, event_type);
+			}
+		} catch (error) {
+			console.error("Erreur lors du rafraîchissement du calendrier:", error);
+			calendarContainer.empty();
+			$('<div class="error-message">Erreur lors du chargement du calendrier</div>').appendTo(
+				calendarContainer
+			);
 		}
 	}
 
 	// NOUVELLE FONCTION: Vue journalière par employés
 	function renderEmployeeDayView(date, territory, team_filter, event_type) {
-		const formatDate = (d) => {
-			return `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1)
-				.toString()
-				.padStart(2, "0")}/${d.getFullYear()}`;
-		};
+		try {
+			const formatDate = (d) => {
+				return `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1)
+					.toString()
+					.padStart(2, "0")}/${d.getFullYear()}`;
+			};
 
-		// Créer l'en-tête
-		const dayHeader = $(`
-            <div class="calendar-header">
-                <h2>Employés - ${formatDate(date)} ${team_filter ? `(Équipe: ${team_filter})` : ""}
-                    <small style="display: block; font-size: 12px; font-weight: normal; color: #666; margin-top: 5px;">
-                        Double-cliquez sur une section pour créer une commande client
-                    </small>
-                </h2>
-            </div>
-        `).appendTo(calendarContainer);
+			// Créer l'en-tête
+			const dayHeader = $(`
+				<div class="calendar-header">
+					<h2>Employés - ${formatDate(date)} ${team_filter ? `(Équipe: ${team_filter})` : ""}
+						<small style="display: block; font-size: 12px; font-weight: normal; color: #666; margin-top: 5px;">
+							Double-cliquez sur une section pour créer une commande client
+						</small>
+					</h2>
+				</div>
+			`).appendTo(calendarContainer);
 
-		// Afficher le message de chargement
-		const loadingMessage = $(
-			'<div class="loading-message">Chargement des employés et événements...</div>'
-		).appendTo(calendarContainer);
+			// Afficher le message de chargement
+			const loadingMessage = $(
+				'<div class="loading-message">Chargement des employés et événements...</div>'
+			).appendTo(calendarContainer);
 
-		const dateStr = frappe.datetime.obj_to_str(date);
+			const dateStr = frappe.datetime.obj_to_str(date);
 
-		frappe.call({
-			method: "josseaume_energies.api.get_day_events_by_employees",
-			args: {
-				date: dateStr,
-				team_filter: team_filter,
-				territory: territory,
-				event_type: event_type,
-			},
-			callback: function (r) {
-				loadingMessage.remove();
+			frappe.call({
+				method: "josseaume_energies.api.get_day_events_by_employees",
+				args: {
+					date: dateStr,
+					team_filter: team_filter,
+					territory: territory,
+					event_type: event_type,
+				},
+				callback: function (r) {
+					try {
+						loadingMessage.remove();
 
-				if (r.message && r.message.status === "success") {
-					const data = r.message;
-					const employees = data.employees;
-					const eventsByEmployee = data.events_by_employee;
+						if (r.message && r.message.status === "success") {
+							const data = r.message;
+							const employees = data.employees || [];
+							const eventsByEmployee = data.events_by_employee || {};
 
-					console.log("Employés récupérés:", employees);
-					console.log("Événements par employé:", eventsByEmployee);
+							console.log("Employés récupérés:", employees);
+							console.log("Événements par employé:", eventsByEmployee);
 
-					if (employees.length === 0) {
+							if (employees.length === 0) {
+								$(
+									'<div class="no-events-message">Aucun employé trouvé pour cette équipe</div>'
+								).appendTo(calendarContainer);
+								return;
+							}
+
+							// Créer le conteneur en grille pour les employés
+							const employeesGrid = $('<div class="employees-grid"></div>').appendTo(
+								calendarContainer
+							);
+
+							// Créer une colonne pour chaque employé
+							employees.forEach((employee) => {
+								try {
+									createEmployeeColumn(
+										employee,
+										eventsByEmployee,
+										employeesGrid
+									);
+								} catch (empError) {
+									console.error(
+										"Erreur lors de la création de la colonne employé:",
+										empError
+									);
+								}
+							});
+						} else {
+							const errorMessage = r.message ? r.message.message : "Erreur inconnue";
+							$(
+								`<div class="error-message">Erreur lors du chargement des employés: ${errorMessage}</div>`
+							).appendTo(calendarContainer);
+						}
+
+						// Ajouter les écouteurs après le rendu
+						addDoubleClickListeners();
+					} catch (callbackError) {
+						console.error("Erreur dans le callback:", callbackError);
+						loadingMessage.remove();
 						$(
-							'<div class="no-events-message">Aucun employé trouvé pour cette équipe</div>'
+							'<div class="error-message">Erreur lors du traitement des données</div>'
 						).appendTo(calendarContainer);
-						return;
 					}
+				},
+				error: function (err) {
+					console.error("Erreur API:", err);
+					loadingMessage.remove();
+					$('<div class="error-message">Erreur de connexion à l\'API</div>').appendTo(
+						calendarContainer
+					);
+				},
+			});
+		} catch (error) {
+			console.error("Erreur générale dans renderEmployeeDayView:", error);
+			calendarContainer.empty();
+			$(
+				'<div class="error-message">Erreur lors de l\'initialisation de la vue</div>'
+			).appendTo(calendarContainer);
+		}
+	}
 
-					// Créer le conteneur en grille pour les employés
-					const employeesGrid = $(`
-						<div class="employees-grid" style="
-							display: grid; 
-							grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
-							gap: 15px; 
-							padding: 15px;
-						"></div>
-					`).appendTo(calendarContainer);
+	// Fonction helper pour créer une colonne employé
+	function createEmployeeColumn(employee, eventsByEmployee, employeesGrid) {
+		try {
+			const employeeEvents = eventsByEmployee[employee.name] || {
+				all_day: [],
+				morning: [],
+				afternoon: [],
+			};
 
-					// Créer une colonne pour chaque employé
-					employees.forEach((employee) => {
-						const employeeEvents = eventsByEmployee[employee.name];
+			// Créer la colonne employé en utilisant les classes CSS existantes
+			const employeeColumn = $(`
+				<div class="employee-column">
+					<div class="employee-header">
+						<h4>${employee.employee_name || "Nom non défini"}</h4>
+						<small>${employee.designation || ""}</small>
+						${createTeamsDisplay(employee.teams)}
+					</div>
+					<div class="employee-events"></div>
+				</div>
+			`).appendTo(employeesGrid);
 
-						// Créer la colonne employé
-						const employeeColumn = $(`
-							<div class="employee-column" style="
-								border: 1px solid #dee2e6;
-								border-radius: 8px;
-								background-color: white;
-								overflow: hidden;
-								transition: background-color 0.3s;
-							">
-								<div class="employee-header" style="
-									padding: 15px;
-									background-color: #f8f9fa;
-									border-bottom: 1px solid #dee2e6;
-									text-align: center;
-									transition: background-color 0.3s;
-								">
-									<h4 style="margin: 0; font-size: 16px; font-weight: 600;">${employee.employee_name}</h4>
-									<small style="color: #6c757d;">${employee.designation || ""}</small>
-									${
-										employee.teams && employee.teams.length > 0
-											? `<div style="margin-top: 5px; font-size: 11px; color: #007bff;">
-											${employee.teams.join(", ")}
-										</div>`
-											: ""
-									}
-								</div>
-								<div class="employee-events" style="padding: 10px;"></div>
-							</div>
-						`).appendTo(employeesGrid);
+			const eventsContainer = employeeColumn.find(".employee-events");
 
-						const eventsContainer = employeeColumn.find(".employee-events");
+			// Ajouter les sections
+			createEmployeeSection(
+				eventsContainer,
+				"Journée complète",
+				employee.name,
+				employeeEvents.all_day
+			);
+			createEmployeeSection(eventsContainer, "Matin", employee.name, employeeEvents.morning);
+			createEmployeeSection(
+				eventsContainer,
+				"Après-midi",
+				employee.name,
+				employeeEvents.afternoon
+			);
+		} catch (error) {
+			console.error("Erreur lors de la création de la colonne employé:", error);
+		}
+	}
 
-						// Ajouter les sections pour cet employé
-						// Section Journée complète
-						$(`<div class="employee-section-title" data-name="Journée complète" data-employee="${employee.name}" style="
-							font-weight: 600;
-							padding: 8px 15px;
-							margin-top: 10px;
-							margin-bottom: 5px;
-							border-radius: 4px;
-							color: var(--label-text-color);
-							background-color: var(--label-bg-color);
-							border-left: 4px solid var(--label-border-color);
-						">Journée complète</div>`).appendTo(eventsContainer);
+	// Fonction helper pour afficher les équipes
+	function createTeamsDisplay(teams) {
+		if (teams && teams.length > 0) {
+			return `<div style="margin-top: 5px; font-size: 11px; color: #007bff;">${teams.join(
+				", "
+			)}</div>`;
+		}
+		return "";
+	}
 
-						// Événements toute la journée
-						if (employeeEvents.all_day && employeeEvents.all_day.length > 0) {
-							employeeEvents.all_day.forEach((event) => {
-								renderEmployeeEventCard(event, eventsContainer);
-							});
-						} else {
-							$(
-								'<div class="no-events" style="text-align: center; color: #adb5bd; font-style: italic; padding: 5px; font-size: 12px;">Aucun événement</div>'
-							).appendTo(eventsContainer);
-						}
+	// Fonction helper pour créer une section employé
+	function createEmployeeSection(container, sectionName, employeeId, events) {
+		try {
+			// Ajouter le titre de section en utilisant la classe CSS existante
+			$(`<div class="employee-section-title" data-name="${sectionName}" data-employee="${employeeId}">
+				${sectionName}
+			</div>`).appendTo(container);
 
-						// Section Matin
-						$(`<div class="employee-section-title" data-name="Matin" data-employee="${employee.name}" style="
-							font-weight: 600;
-							padding: 8px 15px;
-							margin-top: 10px;
-							margin-bottom: 5px;
-							border-radius: 4px;
-							color: var(--label-text-color);
-							background-color: var(--label-bg-color);
-							border-left: 4px solid var(--label-border-color);
-						">Matin</div>`).appendTo(eventsContainer);
-
-						// Événements du matin
-						if (employeeEvents.morning && employeeEvents.morning.length > 0) {
-							employeeEvents.morning.forEach((event) => {
-								renderEmployeeEventCard(event, eventsContainer);
-							});
-						} else {
-							$(
-								'<div class="no-events" style="text-align: center; color: #adb5bd; font-style: italic; padding: 5px; font-size: 12px;">Aucun événement</div>'
-							).appendTo(eventsContainer);
-						}
-
-						// Section Après-midi
-						$(`<div class="employee-section-title" data-name="Après-midi" data-employee="${employee.name}" style="
-							font-weight: 600;
-							padding: 8px 15px;
-							margin-top: 10px;
-							margin-bottom: 5px;
-							border-radius: 4px;
-							color: var(--label-text-color);
-							background-color: var(--label-bg-color);
-							border-left: 4px solid var(--label-border-color);
-						">Après-midi</div>`).appendTo(eventsContainer);
-
-						// Événements de l'après-midi
-						if (employeeEvents.afternoon && employeeEvents.afternoon.length > 0) {
-							employeeEvents.afternoon.forEach((event) => {
-								renderEmployeeEventCard(event, eventsContainer);
-							});
-						} else {
-							$(
-								'<div class="no-events" style="text-align: center; color: #adb5bd; font-style: italic; padding: 5px; font-size: 12px;">Aucun événement</div>'
-							).appendTo(eventsContainer);
-						}
-					});
-
-					// Appliquer le thème sombre si nécessaire
-					if ($("body").hasClass("dark")) {
-						$(".employee-column").css("background-color", "#2d2d2d");
-						$(".employee-header").css("background-color", "#383838");
-					}
-				} else {
-					$(
-						'<div class="error-message">Erreur lors du chargement des employés</div>'
-					).appendTo(calendarContainer);
-				}
-
-				// Ajouter les écouteurs après le rendu
-				addDoubleClickListeners();
-			},
-		});
+			// Ajouter les événements
+			if (events && events.length > 0) {
+				events.forEach((event) => {
+					renderEmployeeEventCard(event, container);
+				});
+			} else {
+				$('<div class="no-events">Aucun événement</div>').appendTo(container);
+			}
+		} catch (error) {
+			console.error("Erreur lors de la création de la section:", error);
+		}
 	}
 
 	// NOUVELLE FONCTION: Rendre une carte d'événement pour la vue employé
 	function renderEmployeeEventCard(event, container) {
-		// Déterminer la classe de couleur
-		let eventClass = "";
-		if (event.subject.includes("Entretien")) {
-			eventClass = "event-entretien";
-		} else if (event.subject.includes("EPGZ")) {
-			eventClass = "event-epgz";
-		} else {
-			eventClass = "event-default";
-		}
+		try {
+			if (!event || !container) {
+				console.warn("Événement ou conteneur manquant");
+				return;
+			}
 
-		// Ajouter une classe spécifique pour les événements toute la journée
-		if (isAllDayEvent(event)) {
-			eventClass += " event-all-day";
-		}
+			// Déterminer la classe de couleur
+			let eventClass = "event-default";
+			const subject = event.subject || "";
 
-		// Récupérer les informations
-		const { clientName, technicianName, comments } = getEventInfo(event);
+			if (subject.includes("Entretien")) {
+				eventClass = "event-entretien";
+			} else if (subject.includes("EPGZ")) {
+				eventClass = "event-epgz";
+			}
 
-		// Créer la carte d'événement compacte pour la vue employé
-		const eventCard = $(`
-			<div class="${eventClass}" data-event-id="${event.name}" style="
-				margin-bottom: 6px;
-				padding: 8px 10px;
-				border-radius: 4px;
-				border-left: 4px solid;
-				background-color: white;
-				box-shadow: var(--shadow-sm);
-				cursor: pointer;
-				transition: all 0.2s;
-				font-size: 12px;
-			">
-				<div style="font-weight: 600; margin-bottom: 3px;">${event.subject}</div>
-				${
-					isAllDayEvent(event)
-						? '<div style="color: var(--color-allday); font-size: 10px; margin-bottom: 3px;"><i class="fa fa-calendar-day"></i> Toute la journée</div>'
-						: ""
+			// Ajouter une classe spécifique pour les événements toute la journée
+			if (isAllDayEvent(event)) {
+				eventClass += " event-all-day";
+			}
+
+			// Récupérer les informations
+			const { clientName, technicianName, comments } = getEventInfo(event);
+
+			// Créer la carte d'événement compacte pour la vue employé
+			const eventCard = $(`
+				<div class="${eventClass}" data-event-id="${event.name}" style="
+					margin-bottom: 6px;
+					padding: 8px 10px;
+					border-radius: 4px;
+					border-left: 4px solid;
+					background-color: white;
+					box-shadow: var(--shadow-sm);
+					cursor: pointer;
+					transition: all 0.2s;
+					font-size: 12px;
+				">
+					<div style="font-weight: 600; margin-bottom: 3px;">${subject}</div>
+					${
+						isAllDayEvent(event)
+							? '<div style="color: var(--color-allday); font-size: 10px; margin-bottom: 3px;"><i class="fa fa-calendar-day"></i> Toute la journée</div>'
+							: ""
+					}
+					${
+						clientName
+							? `<div style="color: #2196f3; font-size: 11px;"><i class="fa fa-user"></i> ${clientName}</div>`
+							: ""
+					}
+					${
+						comments
+							? `<div style="color: #6c757d; font-size: 10px; margin-top: 3px; font-style: italic;"><i class="fa fa-comment"></i> ${comments}</div>`
+							: ""
+					}
+				</div>
+			`).appendTo(container);
+
+			// Ajouter l'interaction au clic
+			eventCard.on("click", function () {
+				try {
+					frappe.set_route("Form", "Event", event.name);
+				} catch (clickError) {
+					console.error("Erreur lors du clic:", clickError);
 				}
-				${
-					clientName
-						? `<div style="color: #2196f3; font-size: 11px;"><i class="fa fa-user"></i> ${clientName}</div>`
-						: ""
-				}
-				${
-					comments
-						? `<div style="color: #6c757d; font-size: 10px; margin-top: 3px; font-style: italic;"><i class="fa fa-comment"></i> ${comments}</div>`
-						: ""
-				}
-			</div>
-		`).appendTo(container);
-
-		// Ajouter l'interaction au clic
-		eventCard.on("click", function () {
-			frappe.set_route("Form", "Event", event.name);
-		});
-
-		// Effet hover
-		eventCard
-			.on("mouseenter", function () {
-				$(this).css("transform", "translateY(-2px)").css("box-shadow", "var(--shadow-lg)");
-			})
-			.on("mouseleave", function () {
-				$(this).css("transform", "translateY(0)").css("box-shadow", "var(--shadow-sm)");
 			});
 
-		// Appliquer le thème sombre si nécessaire
-		if ($("body").hasClass("dark")) {
-			eventCard.css("background-color", "#383838");
+			// Effet hover
+			eventCard
+				.on("mouseenter", function () {
+					$(this)
+						.css("transform", "translateY(-2px)")
+						.css("box-shadow", "var(--shadow-lg)");
+				})
+				.on("mouseleave", function () {
+					$(this)
+						.css("transform", "translateY(0)")
+						.css("box-shadow", "var(--shadow-sm)");
+				});
+		} catch (error) {
+			console.error("Erreur lors de la création de la carte événement:", error);
 		}
 	}
 
@@ -660,22 +686,30 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		let technicianName = "";
 		let comments = "";
 
-		// Priorité 1: Utiliser les informations de la commande client si disponibles
-		if (event.sales_order_info) {
-			clientName = event.sales_order_info.customer_name || "";
-			technicianName = event.sales_order_info.employee_name || "";
-			comments = event.sales_order_info.comments || "";
-		} else {
-			// Priorité 2: Fallback sur les participants de l'événement
-			if (event.event_participants && Array.isArray(event.event_participants)) {
+		try {
+			// Priorité 1: Utiliser les informations de la commande client si disponibles
+			if (event.sales_order_info) {
+				clientName = event.sales_order_info.customer_name || "";
+				technicianName = event.sales_order_info.employee_name || "";
+				comments = event.sales_order_info.comments || "";
+			} else if (event.event_participants && Array.isArray(event.event_participants)) {
+				// Priorité 2: Fallback sur les participants de l'événement
 				for (const participant of event.event_participants) {
-					if (participant.reference_doctype === "Customer") {
-						clientName = participant.full_name || participant.reference_docname;
-					} else if (participant.reference_doctype === "Employee") {
-						technicianName = participant.full_name || participant.reference_docname;
+					try {
+						if (participant.reference_doctype === "Customer") {
+							clientName =
+								participant.full_name || participant.reference_docname || "";
+						} else if (participant.reference_doctype === "Employee") {
+							technicianName =
+								participant.full_name || participant.reference_docname || "";
+						}
+					} catch (participantError) {
+						console.warn("Erreur participant:", participantError);
 					}
 				}
 			}
+		} catch (error) {
+			console.warn("Erreur lors de l'extraction des infos événement:", error);
 		}
 
 		return { clientName, technicianName, comments };
