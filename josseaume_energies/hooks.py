@@ -32,7 +32,11 @@ whitelist_methods = {
     "josseaume_energies.api.check_sync_status": True,
     "josseaume_energies.api.bulk_sync_events": True,
     "josseaume_energies.api.get_items_sync_report": True,
-    "josseaume_energies.api.force_sync_all_items": True
+    "josseaume_energies.api.force_sync_all_items": True,
+    # NOUVELLES MÉTHODES POUR LA VUE EMPLOYÉS
+    "josseaume_energies.api.get_employees_with_team_filter": True,
+    "josseaume_energies.api.get_day_events_by_employees": True,
+    "josseaume_energies.api.get_team_options": True,
 }
 
 # Client scripts

@@ -456,6 +456,305 @@ body.dark .no-events {
 	display: none;
 }
 
+.employees-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+	gap: 15px;
+	padding: 15px;
+	transition: all 0.3s;
+}
+
+/* Responsive pour la grille d'employés */
+@media (max-width: 1200px) {
+	.employees-grid {
+		grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+		gap: 12px;
+	}
+}
+
+@media (max-width: 768px) {
+	.employees-grid {
+		grid-template-columns: 1fr;
+		gap: 10px;
+		padding: 10px;
+	}
+}
+
+/* Colonne employé */
+.employee-column {
+	border: 1px solid #dee2e6;
+	border-radius: 8px;
+	background-color: white;
+	overflow: hidden;
+	transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
+	box-shadow: var(--shadow-sm);
+}
+
+.employee-column:hover {
+	box-shadow: var(--shadow-md);
+	border-color: #007bff;
+}
+
+body.dark .employee-column {
+	background-color: #2d2d2d;
+	border-color: #444;
+}
+
+body.dark .employee-column:hover {
+	border-color: #0d6efd;
+}
+
+/* En-tête employé */
+.employee-header {
+	padding: 15px;
+	background-color: #f8f9fa;
+	border-bottom: 1px solid #dee2e6;
+	text-align: center;
+	transition: background-color 0.3s, border-color 0.3s;
+}
+
+body.dark .employee-header {
+	background-color: #383838;
+	border-bottom-color: #444;
+}
+
+.employee-header h4 {
+	margin: 0;
+	font-size: 16px;
+	font-weight: 600;
+	color: #343a40;
+	transition: color 0.3s;
+}
+
+body.dark .employee-header h4 {
+	color: #f0f0f0;
+}
+
+.employee-header small {
+	color: #6c757d;
+	transition: color 0.3s;
+}
+
+body.dark .employee-header small {
+	color: #aaa;
+}
+
+/* Conteneur des événements employé */
+.employee-events {
+	padding: 10px;
+	min-height: 200px;
+}
+
+/* Titre de section employé (avec double-clic) */
+.employee-section-title {
+	font-weight: 600;
+	padding: 8px 15px;
+	margin-top: 10px;
+	margin-bottom: 5px;
+	border-radius: 4px;
+	color: var(--label-text-color);
+	background-color: var(--label-bg-color);
+	border-left: 4px solid var(--label-border-color);
+	transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+	cursor: pointer;
+	user-select: none;
+	font-size: 13px;
+}
+
+.employee-section-title:hover {
+	background-color: rgba(0, 123, 255, 0.1) !important;
+	transform: scale(1.02);
+}
+
+.employee-section-title:active {
+	transform: scale(0.98);
+}
+
+body.dark .employee-section-title {
+	background-color: var(--label-bg-color);
+}
+
+/* Événements dans la vue employé */
+.employee-column .event-entretien,
+.employee-column .event-epgz,
+.employee-column .event-default {
+	margin-bottom: 6px;
+	padding: 8px 10px;
+	border-radius: 4px;
+	border-left: 4px solid;
+	background-color: white;
+	box-shadow: var(--shadow-sm);
+	cursor: pointer;
+	transition: all 0.2s;
+	font-size: 12px;
+}
+
+body.dark .employee-column .event-entretien,
+body.dark .employee-column .event-epgz,
+body.dark .employee-column .event-default {
+	background-color: #383838;
+}
+
+.employee-column .event-entretien:hover,
+.employee-column .event-epgz:hover,
+.employee-column .event-default:hover {
+	transform: translateY(-2px);
+	box-shadow: var(--shadow-lg);
+}
+
+/* Messages "aucun événement" dans la vue employé */
+.employee-column .no-events {
+	text-align: center;
+	color: #adb5bd;
+	font-style: italic;
+	padding: 5px;
+	font-size: 12px;
+	margin-bottom: 5px;
+	transition: color 0.3s;
+}
+
+body.dark .employee-column .no-events {
+	color: #666;
+}
+
+/* Équipes dans l'en-tête employé */
+.employee-header div[style*="color: #007bff"] {
+	margin-top: 5px;
+	font-size: 11px;
+	color: #007bff;
+	transition: color 0.3s;
+}
+
+body.dark .employee-header div[style*="color: #007bff"] {
+	color: #64b5f6 !important;
+}
+
+/* Titre d'événement dans la vue employé */
+.employee-column div[style*="font-weight: 600"] {
+	font-weight: 600;
+	margin-bottom: 3px;
+	color: #343a40;
+	transition: color 0.3s;
+}
+
+body.dark .employee-column div[style*="font-weight: 600"] {
+	color: #f0f0f0;
+}
+
+/* Informations client dans la vue employé */
+.employee-column div[style*="color: #2196f3"] {
+	color: #2196f3;
+	font-size: 11px;
+	transition: color 0.3s;
+}
+
+body.dark .employee-column div[style*="color: #2196f3"] {
+	color: #64b5f6 !important;
+}
+
+/* Commentaires dans la vue employé */
+.employee-column div[style*="color: #6c757d"] {
+	color: #6c757d;
+	font-size: 10px;
+	margin-top: 3px;
+	font-style: italic;
+	transition: color 0.3s;
+}
+
+body.dark .employee-column div[style*="color: #6c757d"] {
+	color: #aaa !important;
+}
+
+/* Indicateur événement toute la journée dans la vue employé */
+.employee-column div[style*="color: var(--color-allday)"] {
+	color: var(--color-allday);
+	font-size: 10px;
+	margin-bottom: 3px;
+	transition: color 0.3s;
+}
+
+/* Animations pour la vue employé */
+@keyframes fadeInEmployee {
+	from {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.employee-column {
+	animation: fadeInEmployee 0.3s ease-out;
+}
+
+/* Optimisation pour la performance - éviter les reflows */
+.employees-grid * {
+	will-change: auto;
+}
+
+.employee-column:hover * {
+	will-change: transform;
+}
+
+.employee-column:not(:hover) * {
+	will-change: auto;
+}
+
+/* Scrollbar personnalisée pour les colonnes employé sur webkit */
+.employee-events::-webkit-scrollbar {
+	width: 6px;
+}
+
+.employee-events::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.employee-events::-webkit-scrollbar-thumb {
+	background-color: rgba(0, 0, 0, 0.2);
+	border-radius: 3px;
+}
+
+body.dark .employee-events::-webkit-scrollbar-thumb {
+	background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Indicateurs de statut pour les employés */
+.employee-status-indicator {
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	margin-left: 8px;
+	vertical-align: middle;
+}
+
+.employee-status-busy {
+	background-color: #dc3545;
+}
+
+.employee-status-available {
+	background-color: #28a745;
+}
+
+.employee-status-partial {
+	background-color: #ffc107;
+}
+
+/* Amélioration de l'accessibilité */
+.employee-section-title:focus {
+	outline: 2px solid #007bff;
+	outline-offset: 2px;
+}
+
+.employee-column .event-entretien:focus,
+.employee-column .event-epgz:focus,
+.employee-column .event-default:focus {
+	outline: 2px solid #007bff;
+	outline-offset: 1px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
 	.week-grid {

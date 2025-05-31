@@ -980,3 +980,150 @@ def bulk_sync_events(direction="event_to_sales_order", filters=None):
         frappe.log_error(f"Erreur lors de la synchronisation en masse: {str(e)}", 
                        f"Bulk sync {direction}")
         return {"status": "error", "message": str(e)}
+    
+@frappe.whitelist()
+def get_employees_with_team_filter(team_filter=None):
+    """Récupère la liste des employés avec filtre par équipe"""
+    try:
+        # Définir les champs d'équipe disponibles
+        team_fields = {
+            "Livraisons": "custom_livraisons",
+            "Installations": "custom_installations", 
+            "Entretiens/Ramonages": "custom_entretiensramonages",
+            "Dépannages Poêles": "custom_depannages_poeles",
+            "Dépannages Chauffage": "custom_depannages_chauffage",
+            "Électricité": "custom_electricite",
+            "Photovoltaïque": "custom_photovoltaique",
+            "Bureau": "custom_bureau",
+            "Commercial": "custom_commercial",
+            "Rénovation": "custom_renovation"
+        }
+        
+        # Construire les filtres
+        filters = [["status", "=", "Active"]]
+        
+        if team_filter and team_filter in team_fields:
+            field_name = team_fields[team_filter]
+            filters.append([field_name, "=", 1])
+        
+        # Récupérer les employés
+        employees = frappe.get_all(
+            "Employee",
+            filters=filters,
+            fields=["name", "employee_name", "designation"] + list(team_fields.values()),
+            order_by="employee_name"
+        )
+        
+        # Enrichir avec les informations d'équipe
+        for emp in employees:
+            emp["teams"] = []
+            for team_name, field_name in team_fields.items():
+                if emp.get(field_name):
+                    emp["teams"].append(team_name)
+        
+        return {
+            "status": "success",
+            "employees": employees,
+            "total": len(employees)
+        }
+        
+    except Exception as e:
+        frappe.log_error(f"Erreur lors de la récupération des employés: {str(e)}", 
+                       "Employee team filter")
+        return {"status": "error", "message": str(e)}
+
+@frappe.whitelist()
+def get_day_events_by_employees(date, team_filter=None, territory=None, event_type=None):
+    """Récupère les événements d'une journée organisés par employé"""
+    try:
+        # Récupérer les employés filtrés
+        employees_result = get_employees_with_team_filter(team_filter)
+        
+        if employees_result["status"] != "success":
+            return employees_result
+        
+        employees = employees_result["employees"]
+        
+        # Récupérer tous les événements du jour
+        events = get_day_events(date, territory, None, event_type)
+        
+        # Organiser les événements par employé
+        events_by_employee = {}
+        
+        # Initialiser la structure pour chaque employé
+        for emp in employees:
+            events_by_employee[emp["name"]] = {
+                "employee_info": emp,
+                "all_day": [],
+                "morning": [],
+                "afternoon": []
+            }
+        
+        # Répartir les événements par employé
+        for event in events:
+            employee_id = None
+            
+            # Trouver l'employé assigné à cet événement
+            if event.get("event_participants"):
+                for participant in event["event_participants"]:
+                    if participant["reference_doctype"] == "Employee":
+                        employee_id = participant["reference_docname"]
+                        break
+            
+            # Si pas trouvé dans les participants, chercher dans sales_order_info
+            if not employee_id and event.get("sales_order_info") and event["sales_order_info"].get("employee_name"):
+                # Trouver l'employé par nom
+                for emp in employees:
+                    if emp["employee_name"] == event["sales_order_info"]["employee_name"]:
+                        employee_id = emp["name"]
+                        break
+            
+            # Ajouter l'événement à l'employé correspondant
+            if employee_id and employee_id in events_by_employee:
+                # Déterminer la période
+                if event.get("all_day"):
+                    events_by_employee[employee_id]["all_day"].append(event)
+                else:
+                    event_time = frappe.utils.get_datetime(event["starts_on"])
+                    if event_time.hour < 12:
+                        events_by_employee[employee_id]["morning"].append(event)
+                    else:
+                        events_by_employee[employee_id]["afternoon"].append(event)
+        
+        # Trier les événements par heure dans chaque catégorie
+        for emp_id in events_by_employee:
+            events_by_employee[emp_id]["morning"].sort(
+                key=lambda x: frappe.utils.get_datetime(x["starts_on"])
+            )
+            events_by_employee[emp_id]["afternoon"].sort(
+                key=lambda x: frappe.utils.get_datetime(x["starts_on"])
+            )
+        
+        return {
+            "status": "success",
+            "date": date,
+            "team_filter": team_filter,
+            "events_by_employee": events_by_employee,
+            "employees": employees
+        }
+        
+    except Exception as e:
+        frappe.log_error(f"Erreur lors de la récupération des événements par employé: {str(e)}", 
+                       f"Employee events for {date}")
+        return {"status": "error", "message": str(e)}
+
+@frappe.whitelist()
+def get_team_options():
+    """Retourne la liste des équipes disponibles"""
+    return [
+        "Livraisons",
+        "Installations", 
+        "Entretiens/Ramonages",
+        "Dépannages Poêles",
+        "Dépannages Chauffage",
+        "Électricité",
+        "Photovoltaïque",
+        "Bureau",
+        "Commercial",
+        "Rénovation"
+    ]
