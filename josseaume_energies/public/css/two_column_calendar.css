@@ -457,10 +457,167 @@ body.dark .no-events {
 }
 
 /* =============================================== */
-/* NOUVEAU CSS POUR LA VUE EMPLOYÉS */
+/* NOUVEAU CSS POUR LA VUE EMPLOYÉS AVEC RESPONSIVE AMÉLIORÉ */
 /* =============================================== */
 
-/* Vue Employés - Grille d'employés */
+/* NOUVELLE CLASSE: Vue Employés avec responsive amélioré */
+.employees-grid-responsive {
+	display: grid;
+	gap: 12px;
+	padding: 15px;
+	transition: all 0.3s;
+}
+
+/* Responsive breakpoints pour doubler le nombre de colonnes sur grand écran */
+
+/* Ultra grand écran (2560px+) : 10 colonnes */
+@media (min-width: 2560px) {
+	.employees-grid-responsive {
+		grid-template-columns: repeat(10, 1fr);
+		gap: 8px;
+		max-width: 95vw;
+		margin: 0 auto;
+	}
+
+	.employee-header h4 {
+		font-size: 14px;
+	}
+
+	.employee-section-title {
+		font-size: 10px;
+		padding: 4px 6px;
+	}
+
+	.employee-column .event-entretien,
+	.employee-column .event-epgz,
+	.employee-column .event-default {
+		font-size: 10px;
+		padding: 4px 6px;
+	}
+}
+
+/* Très grand écran (1920px-2559px) : 8 colonnes */
+@media (min-width: 1920px) and (max-width: 2559px) {
+	.employees-grid-responsive {
+		grid-template-columns: repeat(8, 1fr);
+		gap: 10px;
+	}
+
+	.employee-column {
+		max-width: none;
+	}
+
+	.employee-header {
+		padding: 12px;
+	}
+
+	.employee-header h4 {
+		font-size: 15px;
+	}
+
+	.employee-events {
+		padding: 8px;
+		min-height: 180px;
+	}
+
+	.employee-section-title {
+		font-size: 11px;
+		padding: 6px 8px;
+		margin-top: 8px;
+		margin-bottom: 4px;
+	}
+
+	.employee-column .event-entretien,
+	.employee-column .event-epgz,
+	.employee-column .event-default {
+		font-size: 11px;
+		padding: 6px 8px;
+		margin-bottom: 4px;
+	}
+
+	.client-info,
+	.event-comments {
+		font-size: 10px;
+	}
+}
+
+/* Grand écran (1600px-1919px) : 6 colonnes */
+@media (min-width: 1600px) and (max-width: 1919px) {
+	.employees-grid-responsive {
+		grid-template-columns: repeat(6, 1fr);
+		gap: 12px;
+	}
+}
+
+/* Écran large (1200px-1599px) : 4 colonnes */
+@media (min-width: 1200px) and (max-width: 1599px) {
+	.employees-grid-responsive {
+		grid-template-columns: repeat(4, 1fr);
+		gap: 14px;
+	}
+}
+
+/* Écran moyen (992px-1199px) : 3 colonnes */
+@media (min-width: 992px) and (max-width: 1199px) {
+	.employees-grid-responsive {
+		grid-template-columns: repeat(3, 1fr);
+		gap: 15px;
+	}
+}
+
+/* Tablette (768px-991px) : 2 colonnes */
+@media (min-width: 768px) and (max-width: 991px) {
+	.employees-grid-responsive {
+		grid-template-columns: repeat(2, 1fr);
+		gap: 15px;
+	}
+}
+
+/* Mobile (moins de 768px) : 1 colonne */
+@media (max-width: 767px) {
+	.employees-grid-responsive {
+		grid-template-columns: 1fr;
+		gap: 10px;
+		padding: 10px;
+	}
+}
+
+/* Ajustements pour les colonnes employé sur petits écrans */
+@media (max-width: 1199px) {
+	.employee-column {
+		min-height: auto;
+	}
+
+	.employee-header h4 {
+		font-size: 14px;
+	}
+
+	.employee-events {
+		padding: 8px;
+		min-height: 150px;
+	}
+
+	.employee-section-title {
+		font-size: 12px;
+		padding: 6px 10px;
+	}
+}
+
+/* Hauteur uniforme des colonnes employé */
+.employees-grid-responsive .employee-column {
+	height: auto;
+	min-height: 250px;
+	display: flex;
+	flex-direction: column;
+}
+
+.employees-grid-responsive .employee-events {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+}
+
+/* Vue Employés - Grille d'employés (ancienne classe pour compatibilité) */
 .employees-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -469,7 +626,7 @@ body.dark .no-events {
 	transition: all 0.3s;
 }
 
-/* Responsive pour la grille d'employés */
+/* Responsive pour la grille d'employés (ancienne) */
 @media (max-width: 1200px) {
 	.employees-grid {
 		grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -587,6 +744,7 @@ body.dark .employee-section-title {
 	padding: 8px 10px;
 	border-radius: 4px;
 	border-left: 4px solid;
+	background-color: white;
 	box-shadow: var(--shadow-sm);
 	cursor: pointer;
 	transition: all 0.2s;

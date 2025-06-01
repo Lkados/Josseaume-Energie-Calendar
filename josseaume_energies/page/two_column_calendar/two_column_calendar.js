@@ -383,7 +383,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		}
 	}
 
-	// Fonction principale pour rafraîchir le calendrier - MODIFIÉE
+	// FONCTION CORRIGÉE: refreshCalendar avec nettoyage complet
 	function refreshCalendar() {
 		try {
 			const viewType = page.fields_dict.view_type.get_value();
@@ -395,7 +395,9 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			// Mettre à jour la visibilité des champs
 			updateFieldVisibility();
 
+			// IMPORTANT: Nettoyage complet avant le rendu
 			calendarContainer.empty();
+			$(document).off("dblclick.calendar"); // Supprimer les anciens écouteurs
 
 			if (viewType === "Employés") {
 				renderEmployeeDayView(currentDate, territory, team_filter, event_type);
@@ -415,7 +417,74 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		}
 	}
 
-	// NOUVELLE FONCTION: Vue journalière par employés
+	// NOUVELLE FONCTION: Dédupliquer les employés
+	function deduplicateEmployees(employees) {
+		const seen = new Map();
+		const deduplicated = [];
+
+		employees.forEach((employee) => {
+			const key = employee.name; // Utiliser l'ID unique de l'employé
+
+			if (!seen.has(key)) {
+				seen.set(key, true);
+				deduplicated.push(employee);
+			} else {
+				console.log("Doublon détecté et supprimé:", employee.name, employee.employee_name);
+			}
+		});
+
+		return deduplicated;
+	}
+
+	// NOUVELLE FONCTION: Nettoyer les événements corrompus
+	function cleanEvents(events) {
+		if (!Array.isArray(events)) {
+			return [];
+		}
+
+		return events.filter((event) => {
+			// Filtrer les événements avec des données suspectes
+			if (!event || typeof event !== "object") {
+				return false;
+			}
+
+			// Vérifier que l'événement a un sujet valide
+			if (!event.subject || typeof event.subject !== "string") {
+				return false;
+			}
+
+			// Filtrer les sujets qui contiennent des commandes git ou autres données corrompues
+			const suspiciousPatterns = [
+				/git\s+(reset|push|commit|pull)/i,
+				/--hard|--force/i,
+				/\b[a-f0-9]{7,40}\b/i, // Hash git
+			];
+
+			for (const pattern of suspiciousPatterns) {
+				if (pattern.test(event.subject)) {
+					console.warn("Événement avec données suspectes filtré:", event.subject);
+					return false;
+				}
+			}
+
+			return true;
+		});
+	}
+
+	// NOUVELLE FONCTION: Nettoyer le texte
+	function sanitizeText(text) {
+		if (!text || typeof text !== "string") {
+			return "";
+		}
+
+		// Supprimer les caractères de contrôle et les séquences suspectes
+		return text
+			.replace(/[\x00-\x1F\x7F]/g, "") // Caractères de contrôle
+			.replace(/git\s+reset.*$/gi, "") // Commandes git
+			.trim();
+	}
+
+	// NOUVELLE FONCTION CORRIGÉE: Vue journalière par employés
 	function renderEmployeeDayView(date, territory, team_filter, event_type) {
 		try {
 			const formatDate = (d) => {
@@ -456,11 +525,15 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 						if (r.message && r.message.status === "success") {
 							const data = r.message;
-							const employees = data.employees || [];
+							let employees = data.employees || [];
 							const eventsByEmployee = data.events_by_employee || {};
 
-							console.log("Employés récupérés:", employees);
-							console.log("Événements par employé:", eventsByEmployee);
+							console.log("Données brutes reçues:", data);
+							console.log("Employés avant déduplication:", employees.length);
+
+							// CORRECTION 1: Dédupliquer les employés par ID
+							employees = deduplicateEmployees(employees);
+							console.log("Employés après déduplication:", employees.length);
 
 							if (employees.length === 0) {
 								$(
@@ -469,14 +542,24 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 								return;
 							}
 
-							// Créer le conteneur en grille pour les employés
-							const employeesGrid = $('<div class="employees-grid"></div>').appendTo(
-								calendarContainer
-							);
+							// Créer le conteneur en grille pour les employés avec la nouvelle classe responsive
+							const employeesGrid = $(
+								'<div class="employees-grid-responsive"></div>'
+							).appendTo(calendarContainer);
+
+							// CORRECTION 2: Utiliser un Set pour éviter les doublons lors de l'affichage
+							const processedEmployees = new Set();
 
 							// Créer une colonne pour chaque employé
 							employees.forEach((employee) => {
 								try {
+									// Éviter les doublons
+									if (processedEmployees.has(employee.name)) {
+										console.log("Employé déjà traité, ignoré:", employee.name);
+										return;
+									}
+									processedEmployees.add(employee.name);
+
 									createEmployeeColumn(
 										employee,
 										eventsByEmployee,
@@ -489,6 +572,11 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 									);
 								}
 							});
+
+							console.log(
+								"Employés effectivement affichés:",
+								processedEmployees.size
+							);
 						} else {
 							const errorMessage = r.message ? r.message.message : "Erreur inconnue";
 							$(
@@ -523,7 +611,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		}
 	}
 
-	// Fonction helper pour créer une colonne employé
+	// FONCTION CORRIGÉE: createEmployeeColumn avec protection contre les données corrompues
 	function createEmployeeColumn(employee, eventsByEmployee, employeesGrid) {
 		try {
 			const employeeEvents = eventsByEmployee[employee.name] || {
@@ -532,12 +620,19 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				afternoon: [],
 			};
 
+			// CORRECTION 3: Nettoyer les événements corrompus
+			const cleanedEvents = {
+				all_day: cleanEvents(employeeEvents.all_day || []),
+				morning: cleanEvents(employeeEvents.morning || []),
+				afternoon: cleanEvents(employeeEvents.afternoon || []),
+			};
+
 			// Créer la colonne employé en utilisant les classes CSS existantes
 			const employeeColumn = $(`
 				<div class="employee-column">
 					<div class="employee-header">
-						<h4>${employee.employee_name || "Nom non défini"}</h4>
-						<small>${employee.designation || ""}</small>
+						<h4>${sanitizeText(employee.employee_name) || "Nom non défini"}</h4>
+						<small>${sanitizeText(employee.designation) || ""}</small>
 						${createTeamsDisplay(employee.teams)}
 					</div>
 					<div class="employee-events"></div>
@@ -551,14 +646,14 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				eventsContainer,
 				"Journée complète",
 				employee.name,
-				employeeEvents.all_day
+				cleanedEvents.all_day
 			);
-			createEmployeeSection(eventsContainer, "Matin", employee.name, employeeEvents.morning);
+			createEmployeeSection(eventsContainer, "Matin", employee.name, cleanedEvents.morning);
 			createEmployeeSection(
 				eventsContainer,
 				"Après-midi",
 				employee.name,
-				employeeEvents.afternoon
+				cleanedEvents.afternoon
 			);
 		} catch (error) {
 			console.error("Erreur lors de la création de la colonne employé:", error);
@@ -596,21 +691,23 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		}
 	}
 
-	// NOUVELLE FONCTION: Rendre une carte d'événement pour la vue employé
+	// FONCTION CORRIGÉE: renderEmployeeEventCard avec nettoyage des données
 	function renderEmployeeEventCard(event, container) {
 		try {
-			if (!event || !container) {
-				console.warn("Événement ou conteneur manquant");
+			if (!event || !container || !event.name) {
+				console.warn("Événement invalide ou conteneur manquant");
 				return;
 			}
 
+			// Nettoyer et valider les données de l'événement
+			const cleanSubject = sanitizeText(event.subject) || "Événement sans titre";
+
 			// Déterminer la classe de couleur
 			let eventClass = "event-default";
-			const subject = event.subject || "";
 
-			if (subject.includes("Entretien")) {
+			if (cleanSubject.includes("Entretien")) {
 				eventClass = "event-entretien";
-			} else if (subject.includes("EPGZ")) {
+			} else if (cleanSubject.includes("EPGZ")) {
 				eventClass = "event-epgz";
 			}
 
@@ -619,8 +716,8 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				eventClass += " event-all-day";
 			}
 
-			// Récupérer les informations
-			const { clientName, technicianName, comments } = getEventInfo(event);
+			// Récupérer les informations nettoyées
+			const { clientName, technicianName, comments } = getCleanEventInfo(event);
 
 			// Créer la carte d'événement compacte pour la vue employé
 			const eventCard = $(`
@@ -635,7 +732,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					transition: all 0.2s;
 					font-size: 12px;
 				">
-					<div style="font-weight: 600; margin-bottom: 3px;">${subject}</div>
+					<div style="font-weight: 600; margin-bottom: 3px;">${cleanSubject}</div>
 					${
 						isAllDayEvent(event)
 							? '<div style="color: var(--color-allday); font-size: 10px; margin-bottom: 3px;"><i class="fa fa-calendar-day"></i> Toute la journée</div>'
@@ -680,8 +777,8 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		}
 	}
 
-	// NOUVELLE FONCTION: Obtenir les informations depuis les données de la commande client directement
-	function getEventInfo(event) {
+	// FONCTION CORRIGÉE: getEventInfo avec nettoyage des données
+	function getCleanEventInfo(event) {
 		let clientName = "";
 		let technicianName = "";
 		let comments = "";
@@ -689,22 +786,39 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		try {
 			// Priorité 1: Utiliser les informations de la commande client si disponibles
 			if (event.sales_order_info) {
-				clientName = event.sales_order_info.customer_name || "";
-				technicianName = event.sales_order_info.employee_name || "";
-				comments = event.sales_order_info.comments || "";
+				clientName = sanitizeText(event.sales_order_info.customer_name) || "";
+				technicianName = sanitizeText(event.sales_order_info.employee_name) || "";
+				comments = sanitizeText(event.sales_order_info.comments) || "";
 			} else if (event.event_participants && Array.isArray(event.event_participants)) {
 				// Priorité 2: Fallback sur les participants de l'événement
 				for (const participant of event.event_participants) {
 					try {
 						if (participant.reference_doctype === "Customer") {
 							clientName =
-								participant.full_name || participant.reference_docname || "";
+								sanitizeText(
+									participant.full_name || participant.reference_docname
+								) || "";
 						} else if (participant.reference_doctype === "Employee") {
 							technicianName =
-								participant.full_name || participant.reference_docname || "";
+								sanitizeText(
+									participant.full_name || participant.reference_docname
+								) || "";
 						}
 					} catch (participantError) {
 						console.warn("Erreur participant:", participantError);
+					}
+				}
+			}
+
+			// Nettoyer les commentaires qui pourraient contenir des données corrompues
+			if (comments) {
+				const suspiciousPatterns = [/git\s+(reset|push|commit|pull)/i, /--hard|--force/i];
+
+				for (const pattern of suspiciousPatterns) {
+					if (pattern.test(comments)) {
+						console.warn("Commentaire suspect nettoyé:", comments);
+						comments = ""; // Vider complètement si suspect
+						break;
 					}
 				}
 			}
@@ -879,7 +993,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		}
 
 		// Récupérer les informations depuis les données directes de la commande client
-		const { clientName, technicianName, comments } = getEventInfo(event);
+		const { clientName, technicianName, comments } = getCleanEventInfo(event);
 
 		// Créer la carte d'événement avec les commentaires depuis la commande client
 		const eventCard = $(`
@@ -1120,7 +1234,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		}
 
 		// Récupérer les informations depuis les données directes de la commande client
-		const { clientName, technicianName, comments } = getEventInfo(event);
+		const { clientName, technicianName, comments } = getCleanEventInfo(event);
 
 		// Créer l'élément d'événement avec les commentaires depuis la commande client
 		const eventElement = $(`
