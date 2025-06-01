@@ -830,11 +830,13 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		}
 	}
 
-	// FONCTION AMÉLIORÉE: Récupération des informations d'événement avec commentaires
+	// FONCTION AMÉLIORÉE: Récupération des informations d'événement avec commentaires et nouveaux champs client
 	function getCleanEventInfo(event) {
 		let clientName = "";
 		let technicianName = "";
 		let comments = "";
+		let customerAppareil = "";
+		let customerCamion = "";
 
 		try {
 			// DEBUG: Log des données reçues
@@ -857,9 +859,13 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					"";
 				comments = sanitizeText(rawComments);
 
-				console.log("Comments extraits:", {
-					raw: rawComments,
-					sanitized: comments,
+				// NOUVEAU: Récupération des nouveaux champs client
+				customerAppareil = sanitizeText(event.sales_order_info.customer_appareil) || "";
+				customerCamion = sanitizeText(event.sales_order_info.customer_camion) || "";
+
+				console.log("Nouveaux champs client extraits:", {
+					customerAppareil: customerAppareil,
+					customerCamion: customerCamion,
 				});
 			} else if (event.event_participants && Array.isArray(event.event_participants)) {
 				// Priorité 2: Fallback sur les participants de l'événement
@@ -893,6 +899,25 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				}
 			}
 
+			// NOUVEAU: Récupération alternative des champs client depuis la description
+			if (!customerAppareil && event.description) {
+				const appareilMatch = event.description.match(
+					/<strong>Appareil:<\/strong>\s*([^<]+)/i
+				);
+				if (appareilMatch) {
+					customerAppareil = sanitizeText(appareilMatch[1].trim());
+				}
+			}
+
+			if (!customerCamion && event.description) {
+				const camionMatch = event.description.match(
+					/<strong>Camion requis:<\/strong>\s*([^<]+)/i
+				);
+				if (camionMatch) {
+					customerCamion = sanitizeText(camionMatch[1].trim());
+				}
+			}
+
 			// Nettoyer les commentaires qui pourraient contenir des données corrompues
 			if (comments) {
 				const suspiciousPatterns = [/git\s+(reset|push|commit|pull)/i, /--hard|--force/i];
@@ -910,12 +935,14 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				clientName,
 				technicianName,
 				comments,
+				customerAppareil,
+				customerCamion,
 			});
 		} catch (error) {
 			console.warn("Erreur lors de l'extraction des infos événement:", error);
 		}
 
-		return { clientName, technicianName, comments };
+		return { clientName, technicianName, comments, customerAppareil, customerCamion };
 	}
 
 	// Fonction pour vérifier si un événement est toute la journée
@@ -1167,7 +1194,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		}
 	}
 
-	// FONCTION AMÉLIORÉE: renderEmployeeEventCard avec affichage des commentaires
+	// FONCTION AMÉLIORÉE: renderEmployeeEventCard avec affichage des commentaires et nouveaux champs client
 	function renderEmployeeEventCard(event, container) {
 		try {
 			if (!event || !container || !event.name) {
@@ -1186,17 +1213,20 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				eventClass += " event-all-day";
 			}
 
-			// AMÉLIORATION: Récupération plus robuste des commentaires
-			const { clientName, technicianName, comments } = getCleanEventInfo(event);
+			// AMÉLIORATION: Récupération plus robuste des commentaires et nouveaux champs
+			const { clientName, technicianName, comments, customerAppareil, customerCamion } =
+				getCleanEventInfo(event);
 
 			// DEBUG: Log pour vérifier les données
 			console.log("Event data pour", event.name, ":", {
 				sales_order_info: event.sales_order_info,
 				extracted_comments: comments,
 				clientName: clientName,
+				customerAppareil: customerAppareil,
+				customerCamion: customerCamion,
 			});
 
-			// Créer la carte d'événement compacte pour la vue employé
+			// Créer la carte d'événement compacte pour la vue employé avec les nouveaux champs
 			const eventCard = $(`
 				<div class="${eventClass}" data-event-id="${event.name}" style="
 					margin-bottom: 6px;
@@ -1217,6 +1247,16 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					${
 						clientName
 							? `<div style="color: #2196f3; font-size: 11px; margin-bottom: 2px;"><i class="fa fa-user" style="margin-right: 4px;"></i> ${clientName}</div>`
+							: ""
+					}
+					${
+						customerAppareil
+							? `<div style="color: #795548; font-size: 10px; margin-bottom: 2px;"><i class="fa fa-cog" style="margin-right: 4px;"></i> ${customerAppareil}</div>`
+							: ""
+					}
+					${
+						customerCamion && customerCamion !== "Aucun"
+							? `<div style="color: #ff9800; font-size: 10px; margin-bottom: 2px;"><i class="fa fa-truck" style="margin-right: 4px;"></i> ${customerCamion}</div>`
 							: ""
 					}
 					${
@@ -1389,7 +1429,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		});
 	}
 
-	// FONCTION AMÉLIORÉE: renderTwoColumnEventCard pour cohérence des couleurs
+	// FONCTION AMÉLIORÉE: renderTwoColumnEventCard pour cohérence des couleurs et nouveaux champs
 	function renderTwoColumnEventCard(event, container) {
 		// Utiliser la même logique de détection que pour la vue employé
 		const cleanSubject = sanitizeText(event.subject) || "Événement sans titre";
@@ -1401,9 +1441,10 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		}
 
 		// Récupérer les informations depuis les données directes de la commande client
-		const { clientName, technicianName, comments } = getCleanEventInfo(event);
+		const { clientName, technicianName, comments, customerAppareil, customerCamion } =
+			getCleanEventInfo(event);
 
-		// Créer la carte d'événement avec les commentaires depuis la commande client
+		// Créer la carte d'événement avec les commentaires et nouveaux champs
 		const eventCard = $(`
 			<div class="${eventClass}" data-event-id="${event.name}">
 				<span class="event-id">${event.name}</span>
@@ -1417,6 +1458,16 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				${
 					technicianName
 						? `<div class="technician-info"><i class="fa fa-user-tie"></i> ${technicianName}</div>`
+						: ""
+				}
+				${
+					customerAppareil
+						? `<div class="appareil-info"><i class="fa fa-cog"></i> ${customerAppareil}</div>`
+						: ""
+				}
+				${
+					customerCamion && customerCamion !== "Aucun"
+						? `<div class="camion-info"><i class="fa fa-truck"></i> ${customerCamion}</div>`
 						: ""
 				}
 				${comments ? `<div class="event-comments"><i class="fa fa-comment"></i> ${comments}</div>` : ""}
@@ -1624,7 +1675,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		});
 	}
 
-	// FONCTION AMÉLIORÉE: renderWeekEvent pour cohérence des couleurs
+	// FONCTION AMÉLIORÉE: renderWeekEvent pour cohérence des couleurs et nouveaux champs
 	function renderWeekEvent(event, container) {
 		// Utiliser la même logique de détection que pour les autres vues
 		const cleanSubject = sanitizeText(event.subject) || "Événement sans titre";
@@ -1636,9 +1687,10 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		}
 
 		// Récupérer les informations depuis les données directes de la commande client
-		const { clientName, technicianName, comments } = getCleanEventInfo(event);
+		const { clientName, technicianName, comments, customerAppareil, customerCamion } =
+			getCleanEventInfo(event);
 
-		// Créer l'élément d'événement avec les commentaires depuis la commande client
+		// Créer l'élément d'événement avec les commentaires et nouveaux champs
 		const eventElement = $(`
 			<div class="${eventClass}" data-event-id="${event.name}">
 				<div class="event-title">${cleanSubject}</div>
@@ -1651,6 +1703,16 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				${
 					technicianName
 						? `<div class="technician-info"><i class="fa fa-user-tie"></i> ${technicianName}</div>`
+						: ""
+				}
+				${
+					customerAppareil
+						? `<div class="appareil-info"><i class="fa fa-cog"></i> ${customerAppareil}</div>`
+						: ""
+				}
+				${
+					customerCamion && customerCamion !== "Aucun"
+						? `<div class="camion-info"><i class="fa fa-truck"></i> ${customerCamion}</div>`
 						: ""
 				}
 				${comments ? `<div class="event-comments"><i class="fa fa-comment"></i> ${comments}</div>` : ""}

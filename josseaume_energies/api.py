@@ -127,15 +127,29 @@ def create_event_from_sales_order(docname):
         if tech_name:
             description = description + "<p><strong>Intervenant:</strong> " + tech_name + "</p>"
 
-        # Ajouter les coordonnées
+        # Ajouter les coordonnées et nouvelles informations client
         if doc.customer:
-            customer_email = frappe.db.get_value("Customer", doc.customer, "email_id") or ""
-            customer_phone = frappe.db.get_value("Customer", doc.customer, "mobile_no") or ""
+            customer_data = frappe.db.get_value("Customer", doc.customer, [
+                "email_id", 
+                "mobile_no", 
+                "custom_appareil", 
+                "custom_camion"
+            ], as_dict=True)
             
-            if customer_phone:
-                description = description + "<p><strong>Tél client:</strong> " + customer_phone + "</p>"
-            if customer_email:
-                description = description + "<p><strong>Email client:</strong> " + customer_email + "</p>"
+            if customer_data:
+                customer_email = customer_data.get("email_id") or ""
+                customer_phone = customer_data.get("mobile_no") or ""
+                customer_appareil = customer_data.get("custom_appareil") or ""
+                customer_camion = customer_data.get("custom_camion") or ""
+                
+                if customer_phone:
+                    description = description + "<p><strong>Tél client:</strong> " + customer_phone + "</p>"
+                if customer_email:
+                    description = description + "<p><strong>Email client:</strong> " + customer_email + "</p>"
+                if customer_appareil:
+                    description = description + "<p><strong>Appareil:</strong> " + customer_appareil + "</p>"
+                if customer_camion and customer_camion != "Aucun":
+                    description = description + "<p><strong>Camion requis:</strong> " + customer_camion + "</p>"
             
             # Ajouter l'adresse si elle existe
             if doc.customer_address:
@@ -281,15 +295,26 @@ def enrich_event_with_comments(event):
                         if sales_order_data.custom_intervenant:
                             employee_name = frappe.db.get_value("Employee", sales_order_data.custom_intervenant, "employee_name") or ""
                         
+                        # NOUVEAU: Récupérer les données client supplémentaires
+                        customer_extra_data = {}
+                        if sales_order_data.customer:
+                            customer_extra_data = frappe.db.get_value("Customer", sales_order_data.customer, [
+                                "custom_appareil", 
+                                "custom_camion"
+                            ], as_dict=True) or {}
+                        
                         # Mettre à jour ou créer sales_order_info
                         event["sales_order_info"] = {
                             "name": sales_order_data.name,
                             "customer_name": customer_name,
                             "employee_name": employee_name,
                             "comments": sales_order_data.custom_commentaire or "",
-                            "custom_commentaire": sales_order_data.custom_commentaire or "",  # Champ supplémentaire pour debug
+                            "custom_commentaire": sales_order_data.custom_commentaire or "",
                             "type": sales_order_data.custom_type_de_commande or "",
-                            "territory": sales_order_data.territory or ""
+                            "territory": sales_order_data.territory or "",
+                            # NOUVEAUX CHAMPS CLIENT
+                            "customer_appareil": customer_extra_data.get("custom_appareil") or "",
+                            "customer_camion": customer_extra_data.get("custom_camion") or ""
                         }
                         
                         # Log pour debug
@@ -418,14 +443,28 @@ def get_day_events(date, territory=None, employee=None, event_type=None):
                     except Exception:
                         pass
                     
+                    # NOUVEAU: Récupérer les données client supplémentaires
+                    customer_extra_data = {}
+                    if sales_order_data.customer:
+                        try:
+                            customer_extra_data = frappe.db.get_value("Customer", sales_order_data.customer, [
+                                "custom_appareil", 
+                                "custom_camion"
+                            ], as_dict=True) or {}
+                        except Exception:
+                            pass
+                    
                     event["sales_order_info"] = {
                         "name": sales_order_data.name,
                         "customer_name": customer_name,
                         "employee_name": employee_name,
                         "comments": sales_order_data.custom_commentaire or "",
-                        "custom_commentaire": sales_order_data.custom_commentaire or "",  # Redondance pour debug
+                        "custom_commentaire": sales_order_data.custom_commentaire or "",
                         "type": sales_order_data.custom_type_de_commande or "",
-                        "territory": sales_order_data.territory or ""
+                        "territory": sales_order_data.territory or "",
+                        # NOUVEAUX CHAMPS CLIENT
+                        "customer_appareil": customer_extra_data.get("custom_appareil") or "",
+                        "customer_camion": customer_extra_data.get("custom_camion") or ""
                     }
                     
                     # Debug log pour les commentaires
@@ -537,15 +576,44 @@ def get_calendar_events(year, month, territory=None, employee=None, event_type=N
         
         if sales_order_ref:
             try:
-                sales_order = frappe.get_doc("Sales Order", sales_order_ref)
-                event["sales_order_info"] = {
-                    "name": sales_order.name,
-                    "customer_name": frappe.db.get_value("Customer", sales_order.customer, "customer_name") if sales_order.customer else "",
-                    "employee_name": frappe.db.get_value("Employee", sales_order.custom_intervenant, "employee_name") if sales_order.custom_intervenant else "",
-                    "comments": sales_order.custom_commentaire or "",
-                    "type": sales_order.custom_type_de_commande or "",
-                    "territory": sales_order.territory or ""
-                }
+                sales_order_data = frappe.db.get_value("Sales Order", sales_order_ref, [
+                    "name", 
+                    "customer", 
+                    "custom_intervenant", 
+                    "custom_commentaire", 
+                    "custom_type_de_commande", 
+                    "territory"
+                ], as_dict=True)
+                
+                if sales_order_data:
+                    # Récupérer les noms complets
+                    customer_name = ""
+                    if sales_order_data.customer:
+                        customer_name = frappe.db.get_value("Customer", sales_order_data.customer, "customer_name") or ""
+                    
+                    employee_name = ""
+                    if sales_order_data.custom_intervenant:
+                        employee_name = frappe.db.get_value("Employee", sales_order_data.custom_intervenant, "employee_name") or ""
+                    
+                    # NOUVEAU: Récupérer les données client supplémentaires
+                    customer_extra_data = {}
+                    if sales_order_data.customer:
+                        customer_extra_data = frappe.db.get_value("Customer", sales_order_data.customer, [
+                            "custom_appareil", 
+                            "custom_camion"
+                        ], as_dict=True) or {}
+                    
+                    event["sales_order_info"] = {
+                        "name": sales_order_data.name,
+                        "customer_name": customer_name,
+                        "employee_name": employee_name,
+                        "comments": sales_order_data.custom_commentaire or "",
+                        "type": sales_order_data.custom_type_de_commande or "",
+                        "territory": sales_order_data.territory or "",
+                        # NOUVEAUX CHAMPS CLIENT
+                        "customer_appareil": customer_extra_data.get("custom_appareil") or "",
+                        "customer_camion": customer_extra_data.get("custom_camion") or ""
+                    }
             except Exception as e:
                 # Si la commande n'existe plus ou erreur, continuer sans les infos
                 event["sales_order_info"] = None
@@ -635,15 +703,44 @@ def get_week_events(start_date, end_date, territory=None, employee=None, event_t
         
         if sales_order_ref:
             try:
-                sales_order = frappe.get_doc("Sales Order", sales_order_ref)
-                event["sales_order_info"] = {
-                    "name": sales_order.name,
-                    "customer_name": frappe.db.get_value("Customer", sales_order.customer, "customer_name") if sales_order.customer else "",
-                    "employee_name": frappe.db.get_value("Employee", sales_order.custom_intervenant, "employee_name") if sales_order.custom_intervenant else "",
-                    "comments": sales_order.custom_commentaire or "",
-                    "type": sales_order.custom_type_de_commande or "",
-                    "territory": sales_order.territory or ""
-                }
+                sales_order_data = frappe.db.get_value("Sales Order", sales_order_ref, [
+                    "name", 
+                    "customer", 
+                    "custom_intervenant", 
+                    "custom_commentaire", 
+                    "custom_type_de_commande", 
+                    "territory"
+                ], as_dict=True)
+                
+                if sales_order_data:
+                    # Récupérer les noms complets
+                    customer_name = ""
+                    if sales_order_data.customer:
+                        customer_name = frappe.db.get_value("Customer", sales_order_data.customer, "customer_name") or ""
+                    
+                    employee_name = ""
+                    if sales_order_data.custom_intervenant:
+                        employee_name = frappe.db.get_value("Employee", sales_order_data.custom_intervenant, "employee_name") or ""
+                    
+                    # NOUVEAU: Récupérer les données client supplémentaires
+                    customer_extra_data = {}
+                    if sales_order_data.customer:
+                        customer_extra_data = frappe.db.get_value("Customer", sales_order_data.customer, [
+                            "custom_appareil", 
+                            "custom_camion"
+                        ], as_dict=True) or {}
+                    
+                    event["sales_order_info"] = {
+                        "name": sales_order_data.name,
+                        "customer_name": customer_name,
+                        "employee_name": employee_name,
+                        "comments": sales_order_data.custom_commentaire or "",
+                        "type": sales_order_data.custom_type_de_commande or "",
+                        "territory": sales_order_data.territory or "",
+                        # NOUVEAUX CHAMPS CLIENT
+                        "customer_appareil": customer_extra_data.get("custom_appareil") or "",
+                        "customer_camion": customer_extra_data.get("custom_camion") or ""
+                    }
             except Exception as e:
                 # Si la commande n'existe plus ou erreur, continuer sans les infos
                 event["sales_order_info"] = None

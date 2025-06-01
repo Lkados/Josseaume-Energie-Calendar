@@ -17,6 +17,10 @@
 	--label-text-color: #333;
 	--label-bg-color: #f5f5f5;
 	--label-border-color: #999;
+
+	/* NOUVELLES COULEURS POUR LES CHAMPS CLIENT */
+	--color-appareil: #795548; /* Brun pour appareil */
+	--color-camion: #ff9800; /* Orange pour camion */
 }
 
 body.dark {
@@ -37,6 +41,10 @@ body.dark {
 	--label-text-color: #e0e0e0;
 	--label-bg-color: #3d3d3d;
 	--label-border-color: #777;
+
+	/* NOUVELLES COULEURS POUR LES CHAMPS CLIENT EN MODE SOMBRE */
+	--color-appareil: #bcaaa4; /* Brun clair pour appareil */
+	--color-camion: #ffb74d; /* Orange clair pour camion */
 }
 
 /* ========================================= */
@@ -421,6 +429,35 @@ body.dark .week-event:hover {
 	margin-right: 5px;
 }
 
+/* ========================================= */
+/* NOUVEAUX STYLES POUR LES CHAMPS CLIENT */
+/* ========================================= */
+
+/* Style des informations d'appareil et camion */
+.appareil-info,
+.camion-info {
+	display: flex;
+	align-items: center;
+	margin-top: 5px;
+	font-size: 12px;
+	transition: color 0.3s;
+}
+
+.appareil-info i,
+.camion-info i {
+	margin-right: 5px;
+}
+
+/* Couleurs pour les informations d'appareil */
+.appareil-info {
+	color: var(--color-appareil);
+}
+
+/* Couleurs pour les informations de camion */
+.camion-info {
+	color: var(--color-camion);
+}
+
 /* NOUVEAU - Style des commentaires */
 .event-comments {
 	display: flex;
@@ -555,6 +592,12 @@ body.dark .no-events {
 		padding: 6px 8px;
 		margin-bottom: 4px;
 	}
+
+	/* Styles spécifiques pour nouveaux champs sur ultra grand écran */
+	.employee-column .appareil-info,
+	.employee-column .camion-info {
+		font-size: 9px !important;
+	}
 }
 
 /* Très grand écran (1920px-2559px) : 6 employés par ligne */
@@ -657,6 +700,24 @@ body.dark .no-events {
 		grid-template-columns: 1fr;
 		gap: 10px;
 		padding: 10px;
+	}
+
+	/* Responsive pour les nouveaux champs sur mobile */
+	.appareil-info,
+	.camion-info {
+		font-size: 11px;
+		margin-top: 3px;
+	}
+
+	.employee-column .appareil-info,
+	.employee-column .camion-info {
+		font-size: 9px !important;
+		margin-top: 2px !important;
+	}
+
+	.week-event .appareil-info,
+	.week-event .camion-info {
+		font-size: 10px;
 	}
 }
 
@@ -824,7 +885,6 @@ body.dark .employee-section-title {
 	padding: 8px 10px;
 	border-radius: 4px;
 	border-left: 4px solid;
-	background-color: rgba(255, 255, 255, 0.8);
 	box-shadow: var(--shadow-sm);
 	cursor: pointer;
 	transition: all 0.2s;
@@ -839,7 +899,6 @@ body.dark .employee-section-title {
 .employee-column .event-depannage:hover {
 	transform: translateY(-2px);
 	box-shadow: var(--shadow-lg);
-	background-color: rgba(255, 255, 255, 1);
 }
 
 body.dark .employee-column .event-entretien,
@@ -858,6 +917,77 @@ body.dark .employee-column .event-installation:hover,
 body.dark .employee-column .event-livraison:hover,
 body.dark .employee-column .event-depannage:hover {
 	background-color: rgba(45, 45, 45, 1);
+}
+
+/* ========================================= */
+/* STYLES SPÉCIFIQUES POUR LES NOUVEAUX CHAMPS CLIENT */
+/* ========================================= */
+
+/* Appareil et camion dans la vue employé - plus compact */
+.employee-column .appareil-info,
+.employee-column .camion-info {
+	font-size: 10px !important;
+	margin-bottom: 2px !important;
+	display: flex !important;
+	align-items: center !important;
+}
+
+.employee-column .appareil-info {
+	color: var(--color-appareil) !important;
+}
+
+.employee-column .camion-info {
+	color: var(--color-camion) !important;
+}
+
+.employee-column .appareil-info i,
+.employee-column .camion-info i {
+	margin-right: 4px !important;
+	color: inherit !important;
+}
+
+/* Appareil et camion dans la vue semaine */
+.week-event .appareil-info,
+.week-event .camion-info {
+	font-size: 11px;
+	margin-top: 3px;
+	display: flex;
+	align-items: center;
+}
+
+.week-event .appareil-info {
+	color: var(--color-appareil);
+}
+
+.week-event .camion-info {
+	color: var(--color-camion);
+}
+
+.week-event .appareil-info i,
+.week-event .camion-info i {
+	margin-right: 4px;
+}
+
+/* Appareil et camion dans la vue jour (deux colonnes) */
+.two_column_calendar-container .appareil-info,
+.two_column_calendar-container .camion-info {
+	display: flex;
+	align-items: center;
+	margin-top: 5px;
+	font-size: 12px;
+}
+
+.two_column_calendar-container .appareil-info {
+	color: var(--color-appareil);
+}
+
+.two_column_calendar-container .camion-info {
+	color: var(--color-camion);
+}
+
+.two_column_calendar-container .appareil-info i,
+.two_column_calendar-container .camion-info i {
+	margin-right: 5px;
 }
 
 /* Messages "aucun événement" dans la vue employé */
@@ -929,6 +1059,145 @@ body.dark .employee-column div[style*="color: #6c757d"] {
 	font-size: 10px;
 	margin-bottom: 3px;
 	transition: color 0.3s;
+}
+
+/* ========================================= */
+/* ANIMATION ET EFFETS POUR LES NOUVEAUX CHAMPS */
+/* ========================================= */
+
+/* Animation pour les nouvelles informations */
+.appareil-info,
+.camion-info {
+	animation: fadeInNewField 0.3s ease-out;
+}
+
+@keyframes fadeInNewField {
+	from {
+		opacity: 0;
+		transform: translateX(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+/* Effet hover pour les informations */
+.appareil-info:hover,
+.camion-info:hover {
+	opacity: 0.8;
+	transform: scale(1.02);
+	transition: all 0.2s ease;
+}
+
+/* ========================================= */
+/* ICÔNES SPÉCIALISÉES POUR LES NOUVEAUX CHAMPS */
+/* ========================================= */
+
+/* Icône d'appareil - utiliser fa-cog */
+.appareil-info i::before {
+	content: "\f013"; /* fa-cog */
+}
+
+/* Icône de camion */
+.camion-info i::before {
+	content: "\f0d1"; /* fa-truck */
+}
+
+/* ========================================= */
+/* BADGES POUR LES TYPES DE CAMION */
+/* ========================================= */
+
+/* Style badge pour le type de camion */
+.camion-info.badge {
+	background-color: rgba(255, 152, 0, 0.1);
+	border-radius: 12px;
+	padding: 2px 8px;
+	font-weight: 500;
+	display: inline-flex;
+	align-items: center;
+	width: fit-content;
+}
+
+.camion-info.badge.petit-camion {
+	background-color: rgba(76, 175, 80, 0.1);
+	color: #4caf50;
+}
+
+.camion-info.badge.grand-camion {
+	background-color: rgba(244, 67, 54, 0.1);
+	color: #f44336;
+}
+
+/* Mode sombre pour les badges */
+body.dark .camion-info.badge {
+	background-color: rgba(255, 152, 0, 0.2);
+}
+
+body.dark .camion-info.badge.petit-camion {
+	background-color: rgba(76, 175, 80, 0.2);
+	color: #81c784;
+}
+
+body.dark .camion-info.badge.grand-camion {
+	background-color: rgba(244, 67, 54, 0.2);
+	color: #ef5350;
+}
+
+/* ========================================= */
+/* ACCESSIBILITÉ POUR LES NOUVEAUX CHAMPS */
+/* ========================================= */
+
+/* Focus pour l'accessibilité */
+.appareil-info:focus,
+.camion-info:focus {
+	outline: 2px solid #007bff;
+	outline-offset: 1px;
+	border-radius: 2px;
+}
+
+/* Contraste amélioré pour le mode sombre */
+@media (prefers-color-scheme: dark) {
+	.appareil-info {
+		color: #d7ccc8;
+	}
+
+	.camion-info {
+		color: #ffcc80;
+	}
+}
+
+/* ========================================= */
+/* ESPACEMENT ET ORGANISATION DES INFORMATIONS */
+/* ========================================= */
+
+/* S'assurer que les nouveaux champs ne cassent pas la mise en page */
+.event-card-content {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+/* Ordre d'affichage des informations */
+.client-info {
+	order: 1;
+}
+
+.appareil-info {
+	order: 2;
+}
+
+.camion-info {
+	order: 3;
+}
+
+.technician-info {
+	order: 4;
+}
+
+.event-comments {
+	order: 5;
+	margin-top: 5px;
 }
 
 /* Animations pour la vue employé */
@@ -1063,240 +1332,6 @@ body.dark .employee-events::-webkit-scrollbar-thumb {
 		font-size: 11px;
 		padding: 6px 8px;
 	}
-}
-
-/* ========================================= */
-/* AMÉLIORATION AFFICHAGE COMMENTAIRES VUE EMPLOYÉS */
-/* ========================================= */
-
-/* Commentaires dans la vue employé - style amélioré */
-.employee-column .event-comments,
-.employee-column div[style*="font-style: italic"] {
-	color: #6c757d !important;
-	font-size: 10px !important;
-	margin-top: 3px !important;
-	font-style: italic !important;
-	line-height: 1.3 !important;
-	word-wrap: break-word !important;
-	max-width: 100% !important;
-	overflow-wrap: break-word !important;
-	hyphens: auto !important;
-	transition: color 0.3s !important;
-}
-
-/* Mode sombre pour les commentaires */
-body.dark .employee-column .event-comments,
-body.dark .employee-column div[style*="font-style: italic"] {
-	color: #aaa !important;
-}
-
-/* Icône de commentaire dans la vue employé */
-.employee-column .event-comments i,
-.employee-column div[style*="font-style: italic"] i {
-	margin-right: 4px !important;
-	margin-top: 1px !important;
-	flex-shrink: 0 !important;
-	color: #6c757d !important;
-}
-
-body.dark .employee-column .event-comments i,
-body.dark .employee-column div[style*="font-style: italic"] i {
-	color: #aaa !important;
-}
-
-/* Conteneur de commentaires avec flexbox pour meilleur alignement */
-.employee-column .comment-container {
-	display: flex;
-	align-items: flex-start;
-	margin-top: 3px;
-	font-size: 10px;
-	color: #6c757d;
-	font-style: italic;
-	line-height: 1.3;
-	word-wrap: break-word;
-	transition: color 0.3s;
-}
-
-/* Espacement pour les informations client */
-.employee-column .client-info {
-	color: #2196f3 !important;
-	font-size: 11px !important;
-	margin-bottom: 2px !important;
-	display: flex !important;
-	align-items: center !important;
-}
-
-.employee-column .client-info i {
-	margin-right: 4px !important;
-	color: #2196f3 !important;
-}
-
-body.dark .employee-column .client-info {
-	color: #64b5f6 !important;
-}
-
-body.dark .employee-column .client-info i {
-	color: #64b5f6 !important;
-}
-
-/* Amélioration générale des cartes d'événement employé */
-.employee-column .event-card {
-	margin-bottom: 6px;
-	padding: 8px 10px;
-	border-radius: 4px;
-	border-left: 4px solid;
-	background-color: rgba(255, 255, 255, 0.8);
-	box-shadow: var(--shadow-sm);
-	cursor: pointer;
-	transition: all 0.2s;
-	font-size: 12px;
-}
-
-.employee-column .event-card:hover {
-	transform: translateY(-2px);
-	box-shadow: var(--shadow-lg);
-	background-color: rgba(255, 255, 255, 1);
-}
-
-body.dark .employee-column .event-card {
-	background-color: rgba(45, 45, 45, 0.8);
-}
-
-body.dark .employee-column .event-card:hover {
-	background-color: rgba(45, 45, 45, 1);
-}
-
-/* Titre d'événement dans la vue employé */
-.employee-column .event-title {
-	font-weight: 600;
-	margin-bottom: 3px;
-	color: #343a40;
-	transition: color 0.3s;
-	font-size: 12px;
-	line-height: 1.2;
-}
-
-body.dark .employee-column .event-title {
-	color: #f0f0f0;
-}
-
-/* Indicateur toute la journée dans la vue employé */
-.employee-column .event-all-day-indicator {
-	color: var(--color-allday);
-	font-size: 10px;
-	margin-bottom: 3px;
-	display: flex;
-	align-items: center;
-}
-
-.employee-column .event-all-day-indicator i {
-	margin-right: 4px;
-}
-
-/* Responsive pour les commentaires sur mobile */
-@media (max-width: 768px) {
-	.employee-column .event-comments,
-	.employee-column div[style*="font-style: italic"] {
-		font-size: 9px !important;
-		margin-top: 2px !important;
-		line-height: 1.2 !important;
-	}
-
-	.employee-column .client-info {
-		font-size: 10px !important;
-	}
-
-	.employee-column .event-title {
-		font-size: 11px !important;
-	}
-}
-
-/* Responsive pour écrans très larges */
-@media (min-width: 2560px) {
-	.employee-column .event-comments,
-	.employee-column div[style*="font-style: italic"] {
-		font-size: 9px !important;
-	}
-
-	.employee-column .client-info {
-		font-size: 10px !important;
-	}
-
-	.employee-column .event-title {
-		font-size: 11px !important;
-	}
-}
-
-/* Amélioration pour la lisibilité des commentaires longs */
-.employee-column .event-comments.long-comment {
-	max-height: 3em;
-	overflow: hidden;
-	position: relative;
-}
-
-.employee-column .event-comments.long-comment::after {
-	content: "...";
-	position: absolute;
-	bottom: 0;
-	right: 0;
-	background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.8) 50%);
-	padding-left: 10px;
-}
-
-body.dark .employee-column .event-comments.long-comment::after {
-	background: linear-gradient(to right, transparent, rgba(45, 45, 45, 0.8) 50%);
-}
-
-/* Tooltip pour les commentaires longs (optionnel) */
-.employee-column .event-comments[title] {
-	cursor: help;
-}
-
-/* Animation pour l'apparition des commentaires */
-.employee-column .event-comments {
-	animation: fadeInComment 0.3s ease-out;
-}
-
-@keyframes fadeInComment {
-	from {
-		opacity: 0;
-		margin-top: 0;
-	}
-	to {
-		opacity: 1;
-		margin-top: 3px;
-	}
-}
-
-/* Style pour les commentaires vides ou manquants (debug) */
-.employee-column .no-comment {
-	color: #ccc;
-	font-size: 9px;
-	font-style: italic;
-	margin-top: 2px;
-}
-
-body.dark .employee-column .no-comment {
-	color: #666;
-}
-
-/* Espacement amélioré entre les éléments de la carte */
-.employee-column .event-entretien > div,
-.employee-column .event-epgz > div,
-.employee-column .event-default > div,
-.employee-column .event-installation > div,
-.employee-column .event-livraison > div,
-.employee-column .event-depannage > div {
-	margin-bottom: 2px;
-}
-
-.employee-column .event-entretien > div:last-child,
-.employee-column .event-epgz > div:last-child,
-.employee-column .event-default > div:last-child,
-.employee-column .event-installation > div:last-child,
-.employee-column .event-livraison > div:last-child,
-.employee-column .event-depannage > div:last-child {
-	margin-bottom: 0;
 }
 
 /* ========================================= */
