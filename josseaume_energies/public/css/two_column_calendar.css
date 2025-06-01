@@ -165,7 +165,7 @@ body.dark .section-header-week[data-name="Après-midi"] {
 	background-color: var(--label-bg-color);
 }
 
-/* Style pour les événements dans la vue à deux colonnes */
+/* Style pour les événements dans la vue à deux colonnes - MODIFIÉ POUR TRANSPARENCE */
 .two_column_calendar-container
 	> div:not([data-name]):not(.no-events):not(.loading-message):not(.error-message):not(
 		.no-events-message
@@ -174,7 +174,7 @@ body.dark .section-header-week[data-name="Après-midi"] {
 	padding: 10px 15px;
 	border-radius: 6px;
 	border-left: 4px solid;
-	background-color: white;
+	background-color: transparent; /* TRANSPARENT */
 	box-shadow: var(--shadow-sm);
 	transition: transform 0.2s, box-shadow 0.2s, background-color 0.3s, color 0.3s;
 }
@@ -185,6 +185,7 @@ body.dark .section-header-week[data-name="Après-midi"] {
 	):hover {
 	transform: translateY(-2px);
 	box-shadow: var(--shadow-lg);
+	background-color: rgba(255, 255, 255, 0.1); /* LÉGÈRE TRANSPARENCE AU HOVER */
 }
 
 body.dark
@@ -192,7 +193,15 @@ body.dark
 	> div:not([data-name]):not(.no-events):not(.loading-message):not(.error-message):not(
 		.no-events-message
 	) {
-	background-color: #2d2d2d;
+	background-color: transparent; /* TRANSPARENT */
+}
+
+body.dark
+	.two_column_calendar-container
+	> div:not([data-name]):not(.no-events):not(.loading-message):not(.error-message):not(
+		.no-events-message
+	):hover {
+	background-color: rgba(255, 255, 255, 0.05); /* TRÈS LÉGÈRE TRANSPARENCE AU HOVER */
 }
 
 /* Vue hebdomadaire */
@@ -314,24 +323,30 @@ body.dark .week-day-column.today {
 	border-left: 4px solid var(--label-border-color);
 }
 
+/* Événements vue semaine - MODIFIÉ POUR TRANSPARENCE */
 .week-event {
 	margin-bottom: 8px;
 	padding: 8px 10px;
 	border-radius: 4px;
 	border-left: 4px solid;
-	background-color: white;
+	background-color: transparent; /* TRANSPARENT */
 	box-shadow: var(--shadow-sm);
 	cursor: pointer;
 	transition: all 0.2s;
 }
 
-body.dark .week-event {
-	background-color: #383838;
-}
-
 .week-event:hover {
 	transform: translateY(-2px);
 	box-shadow: var(--shadow-lg);
+	background-color: rgba(255, 255, 255, 0.1); /* LÉGÈRE TRANSPARENCE AU HOVER */
+}
+
+body.dark .week-event {
+	background-color: transparent; /* TRANSPARENT */
+}
+
+body.dark .week-event:hover {
+	background-color: rgba(255, 255, 255, 0.05); /* TRÈS LÉGÈRE TRANSPARENCE AU HOVER */
 }
 
 /* Style des types d'événements */
@@ -457,10 +472,10 @@ body.dark .no-events {
 }
 
 /* =============================================== */
-/* NOUVEAU CSS POUR LA VUE EMPLOYÉS AVEC RESPONSIVE AMÉLIORÉ */
+/* VUE EMPLOYÉS AVEC CONFIGURATION PERSONNALISÉE ET CARTES TRANSPARENTES */
 /* =============================================== */
 
-/* NOUVELLE CLASSE: Vue Employés avec responsive amélioré */
+/* CLASSE PRINCIPALE - Vue Employés avec responsive personnalisé */
 .employees-grid-responsive {
 	display: grid;
 	gap: 12px;
@@ -468,39 +483,40 @@ body.dark .no-events {
 	transition: all 0.3s;
 }
 
-/* Responsive breakpoints pour doubler le nombre de colonnes sur grand écran */
+/* BREAKPOINTS SELON VOS PRÉFÉRENCES */
 
-/* Ultra grand écran (2560px+) : 10 colonnes */
+/* Ultra grand écran (2560px+) : 8 employés par ligne */
 @media (min-width: 2560px) {
 	.employees-grid-responsive {
-		grid-template-columns: repeat(10, 1fr);
-		gap: 8px;
+		grid-template-columns: repeat(8, 1fr);
+		gap: 10px;
 		max-width: 95vw;
 		margin: 0 auto;
 	}
 
 	.employee-header h4 {
-		font-size: 14px;
+		font-size: 15px;
 	}
 
 	.employee-section-title {
-		font-size: 10px;
-		padding: 4px 6px;
+		font-size: 11px;
+		padding: 6px 8px;
 	}
 
 	.employee-column .event-entretien,
 	.employee-column .event-epgz,
 	.employee-column .event-default {
-		font-size: 10px;
-		padding: 4px 6px;
+		font-size: 11px;
+		padding: 6px 8px;
+		margin-bottom: 4px;
 	}
 }
 
-/* Très grand écran (1920px-2559px) : 8 colonnes */
+/* Très grand écran (1920px-2559px) : 6 employés par ligne */
 @media (min-width: 1920px) and (max-width: 2559px) {
 	.employees-grid-responsive {
-		grid-template-columns: repeat(8, 1fr);
-		gap: 10px;
+		grid-template-columns: repeat(6, 1fr);
+		gap: 12px;
 	}
 
 	.employee-column {
@@ -508,48 +524,59 @@ body.dark .no-events {
 	}
 
 	.employee-header {
-		padding: 12px;
+		padding: 14px;
 	}
 
 	.employee-header h4 {
-		font-size: 15px;
+		font-size: 16px;
 	}
 
 	.employee-events {
-		padding: 8px;
-		min-height: 180px;
+		padding: 10px;
+		min-height: 200px;
 	}
 
 	.employee-section-title {
-		font-size: 11px;
-		padding: 6px 8px;
-		margin-top: 8px;
-		margin-bottom: 4px;
+		font-size: 12px;
+		padding: 7px 10px;
+		margin-top: 10px;
+		margin-bottom: 5px;
 	}
 
 	.employee-column .event-entretien,
 	.employee-column .event-epgz,
 	.employee-column .event-default {
-		font-size: 11px;
-		padding: 6px 8px;
-		margin-bottom: 4px;
-	}
-
-	.client-info,
-	.event-comments {
-		font-size: 10px;
+		font-size: 12px;
+		padding: 8px 10px;
+		margin-bottom: 6px;
 	}
 }
 
-/* Grand écran (1600px-1919px) : 6 colonnes */
+/* Grand écran (1600px-1919px) : 4 employés par ligne */
 @media (min-width: 1600px) and (max-width: 1919px) {
 	.employees-grid-responsive {
-		grid-template-columns: repeat(6, 1fr);
-		gap: 12px;
+		grid-template-columns: repeat(4, 1fr);
+		gap: 15px;
+	}
+
+	.employee-header h4 {
+		font-size: 16px;
+	}
+
+	.employee-section-title {
+		font-size: 13px;
+		padding: 8px 12px;
+	}
+
+	.employee-column .event-entretien,
+	.employee-column .event-epgz,
+	.employee-column .event-default {
+		font-size: 12px;
+		padding: 8px 10px;
 	}
 }
 
-/* Écran large (1200px-1599px) : 4 colonnes */
+/* Écran large (1200px-1599px) : 4 employés par ligne */
 @media (min-width: 1200px) and (max-width: 1599px) {
 	.employees-grid-responsive {
 		grid-template-columns: repeat(4, 1fr);
@@ -557,7 +584,7 @@ body.dark .no-events {
 	}
 }
 
-/* Écran moyen (992px-1199px) : 3 colonnes */
+/* Écran moyen (992px-1199px) : 3 employés par ligne */
 @media (min-width: 992px) and (max-width: 1199px) {
 	.employees-grid-responsive {
 		grid-template-columns: repeat(3, 1fr);
@@ -565,7 +592,7 @@ body.dark .no-events {
 	}
 }
 
-/* Tablette (768px-991px) : 2 colonnes */
+/* Tablette (768px-991px) : 2 employés par ligne */
 @media (min-width: 768px) and (max-width: 991px) {
 	.employees-grid-responsive {
 		grid-template-columns: repeat(2, 1fr);
@@ -573,7 +600,7 @@ body.dark .no-events {
 	}
 }
 
-/* Mobile (moins de 768px) : 1 colonne */
+/* Mobile (moins de 768px) : 1 employé par ligne */
 @media (max-width: 767px) {
 	.employees-grid-responsive {
 		grid-template-columns: 1fr;
@@ -582,7 +609,7 @@ body.dark .no-events {
 	}
 }
 
-/* Ajustements pour les colonnes employé sur petits écrans */
+/* Ajustements pour les colonnes employé sur écrans moyens et petits */
 @media (max-width: 1199px) {
 	.employee-column {
 		min-height: auto;
@@ -736,7 +763,7 @@ body.dark .employee-section-title {
 	background-color: var(--label-bg-color);
 }
 
-/* Événements dans la vue employé */
+/* Événements dans la vue employé - MODIFIÉ POUR TRANSPARENCE */
 .employee-column .event-entretien,
 .employee-column .event-epgz,
 .employee-column .event-default {
@@ -744,16 +771,11 @@ body.dark .employee-section-title {
 	padding: 8px 10px;
 	border-radius: 4px;
 	border-left: 4px solid;
+	background-color: transparent; /* TRANSPARENT */
 	box-shadow: var(--shadow-sm);
 	cursor: pointer;
 	transition: all 0.2s;
 	font-size: 12px;
-}
-
-body.dark .employee-column .event-entretien,
-body.dark .employee-column .event-epgz,
-body.dark .employee-column .event-default {
-	background-color: #383838;
 }
 
 .employee-column .event-entretien:hover,
@@ -761,6 +783,19 @@ body.dark .employee-column .event-default {
 .employee-column .event-default:hover {
 	transform: translateY(-2px);
 	box-shadow: var(--shadow-lg);
+	background-color: rgba(255, 255, 255, 0.1); /* LÉGÈRE TRANSPARENCE AU HOVER */
+}
+
+body.dark .employee-column .event-entretien,
+body.dark .employee-column .event-epgz,
+body.dark .employee-column .event-default {
+	background-color: transparent; /* TRANSPARENT */
+}
+
+body.dark .employee-column .event-entretien:hover,
+body.dark .employee-column .event-epgz:hover,
+body.dark .employee-column .event-default:hover {
+	background-color: rgba(255, 255, 255, 0.05); /* TRÈS LÉGÈRE TRANSPARENCE AU HOVER */
 }
 
 /* Messages "aucun événement" dans la vue employé */
