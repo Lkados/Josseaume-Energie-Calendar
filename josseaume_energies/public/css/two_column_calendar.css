@@ -885,6 +885,7 @@ body.dark .employee-section-title {
 	padding: 8px 10px;
 	border-radius: 4px;
 	border-left: 4px solid;
+	background-color: rgba(255, 255, 255, 0.8);
 	box-shadow: var(--shadow-sm);
 	cursor: pointer;
 	transition: all 0.2s;
@@ -899,6 +900,7 @@ body.dark .employee-section-title {
 .employee-column .event-depannage:hover {
 	transform: translateY(-2px);
 	box-shadow: var(--shadow-lg);
+	background-color: rgba(255, 255, 255, 1);
 }
 
 body.dark .employee-column .event-entretien,
