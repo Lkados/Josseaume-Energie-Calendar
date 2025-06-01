@@ -673,7 +673,6 @@ body.dark .no-events {
 .employee-column {
 	border: 1px solid #dee2e6;
 	border-radius: 8px;
-	background-color: white;
 	overflow: hidden;
 	transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
 	box-shadow: var(--shadow-sm);
