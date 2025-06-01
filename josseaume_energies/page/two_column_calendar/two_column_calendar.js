@@ -1251,7 +1251,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					}
 					${
 						customerAppareil
-							? `<div style="color: #795548; font-size: 10px; margin-bottom: 2px;"><i class="fa fa-cog" style="margin-right: 4px;"></i> ${customerAppareil}</div>`
+							? `<div style="color:rgb(205, 203, 202); font-size: 10px; margin-bottom: 2px;"><i class="fa fa-cog" style="margin-right: 4px;"></i> ${customerAppareil}</div>`
 							: ""
 					}
 					${
