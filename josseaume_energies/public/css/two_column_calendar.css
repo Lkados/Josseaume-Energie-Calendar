@@ -2,13 +2,16 @@
 :root {
 	--color-morning: #0277bd;
 	--color-afternoon: #e65100;
-	--color-entretien: #43a047;
-	--color-epgz: #ffa000;
-	--color-default: #1e88e5;
+	--color-entretien: #43a047; /* Vert pour entretiens */
+	--color-epgz: #ffa000; /* Amber pour EPGZ */
+	--color-default: #1e88e5; /* Bleu par défaut */
+	--color-installation: #1e88e5; /* Bleu pour installations */
+	--color-livraison: #ff9800; /* Orange pour livraisons */
+	--color-depannage: #f44336; /* Rouge pour dépannages */
+	--color-allday: #6200ea; /* Violet pour événements toute la journée */
 	--shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
 	--shadow-md: 0 2px 4px rgba(0, 0, 0, 0.1);
 	--shadow-lg: 0 3px 6px rgba(0, 0, 0, 0.12);
-	--color-allday: #6200ea;
 
 	/* Nouvelles couleurs neutres pour les étiquettes */
 	--label-text-color: #333;
@@ -22,15 +25,78 @@ body.dark {
 	--color-entretien: #66bb6a;
 	--color-epgz: #ffb74d;
 	--color-default: #42a5f5;
+	--color-installation: #42a5f5;
+	--color-livraison: #ffb74d;
+	--color-depannage: #ef5350;
+	--color-allday: #b388ff;
 	--shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
 	--shadow-md: 0 2px 4px rgba(0, 0, 0, 0.25);
 	--shadow-lg: 0 3px 6px rgba(0, 0, 0, 0.3);
-	--color-allday: #b388ff;
 
 	/* Nouvelles couleurs neutres pour les étiquettes en mode sombre */
 	--label-text-color: #e0e0e0;
 	--label-bg-color: #3d3d3d;
 	--label-border-color: #777;
+}
+
+/* ========================================= */
+/* STYLES UNIFORMES POUR TOUS LES TYPES D'ÉVÉNEMENTS */
+/* ========================================= */
+
+/* Entretiens (EPG, ECG, RAMO, etc.) */
+.event-entretien,
+.week-event.event-entretien,
+.employee-column .event-entretien,
+.two_column_calendar-container .event-entretien {
+	border-left-color: var(--color-entretien) !important;
+}
+
+/* EPGZ spécifique */
+.event-epgz,
+.week-event.event-epgz,
+.employee-column .event-epgz,
+.two_column_calendar-container .event-epgz {
+	border-left-color: var(--color-epgz) !important;
+}
+
+/* Installations */
+.event-installation,
+.week-event.event-installation,
+.employee-column .event-installation,
+.two_column_calendar-container .event-installation {
+	border-left-color: var(--color-installation) !important;
+}
+
+/* Livraisons */
+.event-livraison,
+.week-event.event-livraison,
+.employee-column .event-livraison,
+.two_column_calendar-container .event-livraison {
+	border-left-color: var(--color-livraison) !important;
+}
+
+/* Dépannages */
+.event-depannage,
+.week-event.event-depannage,
+.employee-column .event-depannage,
+.two_column_calendar-container .event-depannage {
+	border-left-color: var(--color-depannage) !important;
+}
+
+/* Événements par défaut */
+.event-default,
+.week-event.event-default,
+.employee-column .event-default,
+.two_column_calendar-container .event-default {
+	border-left-color: var(--color-default) !important;
+}
+
+/* Événements toute la journée - priorité maximale */
+.event-all-day,
+.week-event.event-all-day,
+.employee-column .event-all-day,
+.two_column_calendar-container .event-all-day {
+	border-left-color: var(--color-allday) !important;
 }
 
 /* Style pour l'en-tête de section 'Journée complète' - MODIFIÉ */
@@ -52,11 +118,7 @@ body.dark .section-title[data-name="Journée complète"] {
 	background-color: var(--label-bg-color);
 }
 
-/* Pour marquer les événements toute la journée - LAISSÉ INCHANGÉ */
-.event-all-day {
-	border-left-color: var(--color-allday) !important;
-}
-
+/* Indicateur événement toute la journée */
 .event-all-day-indicator {
 	display: block;
 	color: var(--color-allday);
@@ -67,10 +129,6 @@ body.dark .section-title[data-name="Journée complète"] {
 
 .event-all-day-indicator i {
 	margin-right: 5px;
-}
-
-body.dark [data-name="Journée complète"] {
-	background-color: var(--label-bg-color);
 }
 
 /* Conteneur principal */
@@ -329,7 +387,7 @@ body.dark .week-day-column.today {
 	padding: 8px 10px;
 	border-radius: 4px;
 	border-left: 4px solid;
-	background-color: var(--shadow-lg);
+	background-color: rgba(255, 255, 255, 0.9);
 	box-shadow: var(--shadow-sm);
 	cursor: pointer;
 	transition: all 0.2s;
@@ -338,31 +396,15 @@ body.dark .week-day-column.today {
 .week-event:hover {
 	transform: translateY(-2px);
 	box-shadow: var(--shadow-lg);
-	background-color: rgba(255, 255, 255, 0.1); /* LÉGÈRE TRANSPARENCE AU HOVER */
+	background-color: rgba(255, 255, 255, 1);
 }
 
 body.dark .week-event {
-	background-color: transparent; /* TRANSPARENT */
+	background-color: rgba(45, 45, 45, 0.9);
 }
 
 body.dark .week-event:hover {
-	background-color: rgba(255, 255, 255, 0.05); /* TRÈS LÉGÈRE TRANSPARENCE AU HOVER */
-}
-
-/* Style des types d'événements */
-.event-entretien,
-.week-event.event-entretien {
-	border-left-color: var(--color-entretien);
-}
-
-.event-epgz,
-.week-event.event-epgz {
-	border-left-color: var(--color-epgz);
-}
-
-.event-default,
-.week-event.event-default {
-	border-left-color: var(--color-default);
+	background-color: rgba(45, 45, 45, 1);
 }
 
 /* Style des informations client et intervenant */
@@ -505,7 +547,10 @@ body.dark .no-events {
 
 	.employee-column .event-entretien,
 	.employee-column .event-epgz,
-	.employee-column .event-default {
+	.employee-column .event-default,
+	.employee-column .event-installation,
+	.employee-column .event-livraison,
+	.employee-column .event-depannage {
 		font-size: 11px;
 		padding: 6px 8px;
 		margin-bottom: 4px;
@@ -545,7 +590,10 @@ body.dark .no-events {
 
 	.employee-column .event-entretien,
 	.employee-column .event-epgz,
-	.employee-column .event-default {
+	.employee-column .event-default,
+	.employee-column .event-installation,
+	.employee-column .event-livraison,
+	.employee-column .event-depannage {
 		font-size: 12px;
 		padding: 8px 10px;
 		margin-bottom: 6px;
@@ -570,7 +618,10 @@ body.dark .no-events {
 
 	.employee-column .event-entretien,
 	.employee-column .event-epgz,
-	.employee-column .event-default {
+	.employee-column .event-default,
+	.employee-column .event-installation,
+	.employee-column .event-livraison,
+	.employee-column .event-depannage {
 		font-size: 12px;
 		padding: 8px 10px;
 	}
@@ -762,15 +813,18 @@ body.dark .employee-section-title {
 	background-color: var(--label-bg-color);
 }
 
-/* Événements dans la vue employé - MODIFIÉ POUR TRANSPARENCE */
+/* Événements dans la vue employé - MODIFIÉ POUR TRANSPARENCE ET COULEURS UNIFIÉES */
 .employee-column .event-entretien,
 .employee-column .event-epgz,
-.employee-column .event-default {
+.employee-column .event-default,
+.employee-column .event-installation,
+.employee-column .event-livraison,
+.employee-column .event-depannage {
 	margin-bottom: 6px;
 	padding: 8px 10px;
 	border-radius: 4px;
 	border-left: 4px solid;
-	background-color: var(--shadow-lg);
+	background-color: rgba(255, 255, 255, 0.8);
 	box-shadow: var(--shadow-sm);
 	cursor: pointer;
 	transition: all 0.2s;
@@ -779,22 +833,31 @@ body.dark .employee-section-title {
 
 .employee-column .event-entretien:hover,
 .employee-column .event-epgz:hover,
-.employee-column .event-default:hover {
+.employee-column .event-default:hover,
+.employee-column .event-installation:hover,
+.employee-column .event-livraison:hover,
+.employee-column .event-depannage:hover {
 	transform: translateY(-2px);
 	box-shadow: var(--shadow-lg);
-	background-color: rgba(255, 255, 255, 0.1); /* LÉGÈRE TRANSPARENCE AU HOVER */
+	background-color: rgba(255, 255, 255, 1);
 }
 
 body.dark .employee-column .event-entretien,
 body.dark .employee-column .event-epgz,
-body.dark .employee-column .event-default {
-	background-color: transparent; /* TRANSPARENT */
+body.dark .employee-column .event-default,
+body.dark .employee-column .event-installation,
+body.dark .employee-column .event-livraison,
+body.dark .employee-column .event-depannage {
+	background-color: rgba(45, 45, 45, 0.8);
 }
 
 body.dark .employee-column .event-entretien:hover,
 body.dark .employee-column .event-epgz:hover,
-body.dark .employee-column .event-default:hover {
-	background-color: rgba(255, 255, 255, 0.05); /* TRÈS LÉGÈRE TRANSPARENCE AU HOVER */
+body.dark .employee-column .event-default:hover,
+body.dark .employee-column .event-installation:hover,
+body.dark .employee-column .event-livraison:hover,
+body.dark .employee-column .event-depannage:hover {
+	background-color: rgba(45, 45, 45, 1);
 }
 
 /* Messages "aucun événement" dans la vue employé */
@@ -945,7 +1008,10 @@ body.dark .employee-events::-webkit-scrollbar-thumb {
 
 .employee-column .event-entretien:focus,
 .employee-column .event-epgz:focus,
-.employee-column .event-default:focus {
+.employee-column .event-default:focus,
+.employee-column .event-installation:focus,
+.employee-column .event-livraison:focus,
+.employee-column .event-depannage:focus {
 	outline: 2px solid #007bff;
 	outline-offset: 1px;
 }
@@ -990,8 +1056,80 @@ body.dark .employee-events::-webkit-scrollbar-thumb {
 
 	.employee-column .event-entretien,
 	.employee-column .event-epgz,
-	.employee-column .event-default {
+	.employee-column .event-default,
+	.employee-column .event-installation,
+	.employee-column .event-livraison,
+	.employee-column .event-depannage {
 		font-size: 11px;
 		padding: 6px 8px;
 	}
+}
+
+/* ========================================= */
+/* RÈGLES DE FALLBACK ROBUSTES */
+/* ========================================= */
+
+/* Fallback basé sur le contenu du titre */
+div[data-event-id]:contains("EPG"),
+div[data-event-id]:contains("ECG"),
+div[data-event-id]:contains("RAMO"),
+div[data-event-id*="entretien" i] {
+	border-left-color: var(--color-entretien) !important;
+}
+
+div[data-event-id]:contains("EPGZ") {
+	border-left-color: var(--color-epgz) !important;
+}
+
+div[data-event-id*="installation" i],
+div[data-event-id*="pose" i] {
+	border-left-color: var(--color-installation) !important;
+}
+
+div[data-event-id*="livraison" i],
+div[data-event-id*="granule" i],
+div[data-event-id*="fuel" i] {
+	border-left-color: var(--color-livraison) !important;
+}
+
+div[data-event-id*="depannage" i],
+div[data-event-id*="dépannage" i],
+div[data-event-id*="panne" i] {
+	border-left-color: var(--color-depannage) !important;
+}
+
+/* ========================================= */
+/* ANIMATION ET TRANSITIONS */
+/* ========================================= */
+
+/* Animation smooth pour les changements de couleur */
+[data-event-id],
+[class*="event-"] {
+	transition: border-left-color 0.3s ease, background-color 0.2s ease, transform 0.2s ease,
+		box-shadow 0.2s ease;
+}
+
+/* ========================================= */
+/* COMPATIBILITÉ ET PERFORMANCE */
+/* ========================================= */
+
+/* Optimisation GPU pour les animations */
+.employee-column div[data-event-id],
+.employee-column div[class*="event-"],
+.week-event[data-event-id],
+.week-event[class*="event-"],
+.two_column_calendar-container div[data-event-id],
+.two_column_calendar-container div[class*="event-"] {
+	will-change: transform, box-shadow;
+	backface-visibility: hidden;
+}
+
+/* Désactiver l'optimisation GPU quand pas en hover */
+.employee-column div[data-event-id]:not(:hover),
+.employee-column div[class*="event-"]:not(:hover),
+.week-event[data-event-id]:not(:hover),
+.week-event[class*="event-"]:not(:hover),
+.two_column_calendar-container div[data-event-id]:not(:hover),
+.two_column_calendar-container div[class*="event-"]:not(:hover) {
+	will-change: auto;
 }

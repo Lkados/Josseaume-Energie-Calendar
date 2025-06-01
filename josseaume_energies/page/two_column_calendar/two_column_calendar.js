@@ -707,6 +707,121 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			.trim();
 	}
 
+	// NOUVELLE FONCTION: Détermination plus robuste du type d'événement
+	function determineEventClass(event, cleanSubject) {
+		try {
+			// 1. Vérifier d'abord le type dans les informations de commande client
+			if (event.sales_order_info && event.sales_order_info.type) {
+				const orderType = event.sales_order_info.type.toLowerCase();
+
+				if (orderType.includes("entretien")) {
+					return "event-entretien";
+				}
+				if (orderType.includes("installation")) {
+					return "event-installation";
+				}
+				if (orderType.includes("livraison")) {
+					return "event-livraison";
+				}
+				if (orderType.includes("dépannage") || orderType.includes("depannage")) {
+					return "event-depannage";
+				}
+			}
+
+			// 2. Analyser le sujet de l'événement
+			const subject = cleanSubject.toLowerCase();
+
+			// Codes spécifiques pour les entretiens
+			const entretienCodes = ["epg", "ecg", "ecfbt", "ecfc", "ecgazbt", "ecgazc", "ramo"];
+			for (const code of entretienCodes) {
+				if (subject.includes(code.toLowerCase())) {
+					return "event-entretien";
+				}
+			}
+
+			// Mots-clés pour les entretiens
+			if (
+				subject.includes("entretien") ||
+				subject.includes("ramonage") ||
+				subject.includes("maintenance")
+			) {
+				return "event-entretien";
+			}
+
+			// Code spécifique EPGZ
+			if (subject.includes("epgz")) {
+				return "event-epgz";
+			}
+
+			// Mots-clés pour les installations
+			if (
+				subject.includes("install") ||
+				subject.includes("pose") ||
+				subject.includes("poêle") ||
+				subject.includes("poele") ||
+				subject.includes("chaudière") ||
+				subject.includes("chaudiere")
+			) {
+				return "event-installation";
+			}
+
+			// Mots-clés pour les livraisons
+			if (
+				subject.includes("livraison") ||
+				subject.includes("livr") ||
+				subject.includes("granule") ||
+				subject.includes("pellet") ||
+				subject.includes("fuel") ||
+				subject.includes("fioul")
+			) {
+				return "event-livraison";
+			}
+
+			// Mots-clés pour les dépannages
+			if (
+				subject.includes("dépannage") ||
+				subject.includes("depannage") ||
+				subject.includes("réparation") ||
+				subject.includes("reparation") ||
+				subject.includes("panne")
+			) {
+				return "event-depannage";
+			}
+
+			// 3. Analyser la description si disponible
+			if (event.description) {
+				const description = event.description.toLowerCase();
+
+				if (
+					description.includes("entretien") ||
+					description.includes("epg") ||
+					description.includes("ecg") ||
+					description.includes("ramo")
+				) {
+					return "event-entretien";
+				}
+				if (description.includes("epgz")) {
+					return "event-epgz";
+				}
+				if (description.includes("installation") || description.includes("pose")) {
+					return "event-installation";
+				}
+				if (description.includes("livraison")) {
+					return "event-livraison";
+				}
+				if (description.includes("dépannage") || description.includes("depannage")) {
+					return "event-depannage";
+				}
+			}
+
+			// 4. Fallback par défaut
+			return "event-default";
+		} catch (error) {
+			console.error("Erreur lors de la détermination du type d'événement:", error);
+			return "event-default";
+		}
+	}
+
 	// FONCTION CORRIGÉE: renderEmployeeDayView avec protection contre les appels multiples
 	function renderEmployeeDayView(date, territory, team_filter, event_type) {
 		try {
@@ -946,7 +1061,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		}
 	}
 
-	// FONCTION CORRIGÉE: renderEmployeeEventCard avec nettoyage des données
+	// FONCTION CORRIGÉE: renderEmployeeEventCard avec nettoyage des données et couleurs uniformes
 	function renderEmployeeEventCard(event, container) {
 		try {
 			if (!event || !container || !event.name) {
@@ -957,14 +1072,8 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			// Nettoyer et valider les données de l'événement
 			const cleanSubject = sanitizeText(event.subject) || "Événement sans titre";
 
-			// Déterminer la classe de couleur
-			let eventClass = "event-default";
-
-			if (cleanSubject.includes("Entretien")) {
-				eventClass = "event-entretien";
-			} else if (cleanSubject.includes("EPGZ")) {
-				eventClass = "event-epgz";
-			}
+			// AMÉLIORATION: Détection plus robuste du type d'événement
+			let eventClass = determineEventClass(event, cleanSubject);
 
 			// Ajouter une classe spécifique pour les événements toute la journée
 			if (isAllDayEvent(event)) {
@@ -981,7 +1090,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					padding: 8px 10px;
 					border-radius: 4px;
 					border-left: 4px solid;
-					background-color: white;
+					background-color: rgba(255, 255, 255, 0.8);
 					box-shadow: var(--shadow-sm);
 					cursor: pointer;
 					transition: all 0.2s;
@@ -1020,12 +1129,14 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				.on("mouseenter", function () {
 					$(this)
 						.css("transform", "translateY(-2px)")
-						.css("box-shadow", "var(--shadow-lg)");
+						.css("box-shadow", "var(--shadow-lg)")
+						.css("background-color", "rgba(255, 255, 255, 1)");
 				})
 				.on("mouseleave", function () {
 					$(this)
 						.css("transform", "translateY(0)")
-						.css("box-shadow", "var(--shadow-sm)");
+						.css("box-shadow", "var(--shadow-sm)")
+						.css("background-color", "rgba(255, 255, 255, 0.8)");
 				});
 		} catch (error) {
 			console.error("Erreur lors de la création de la carte événement:", error);
@@ -1230,17 +1341,11 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		});
 	}
 
-	// Fonction pour rendre une carte d'événement dans la vue à deux colonnes - MODIFIÉE POUR UTILISER LES DONNÉES DIRECTES
+	// FONCTION AMÉLIORÉE: renderTwoColumnEventCard pour cohérence des couleurs
 	function renderTwoColumnEventCard(event, container) {
-		// Déterminer la classe de couleur
-		let eventClass = "";
-		if (event.subject.includes("Entretien")) {
-			eventClass = "event-entretien";
-		} else if (event.subject.includes("EPGZ")) {
-			eventClass = "event-epgz";
-		} else {
-			eventClass = "event-default";
-		}
+		// Utiliser la même logique de détection que pour la vue employé
+		const cleanSubject = sanitizeText(event.subject) || "Événement sans titre";
+		let eventClass = determineEventClass(event, cleanSubject);
 
 		// Ajouter une classe spécifique pour les événements toute la journée
 		if (isAllDayEvent(event)) {
@@ -1254,7 +1359,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		const eventCard = $(`
 			<div class="${eventClass}" data-event-id="${event.name}">
 				<span class="event-id">${event.name}</span>
-				<span class="event-title">${event.subject}</span>
+				<span class="event-title">${cleanSubject}</span>
 				${
 					isAllDayEvent(event)
 						? '<span class="event-all-day-indicator"><i class="fa fa-calendar-day"></i> Toute la journée</span>'
@@ -1471,17 +1576,11 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		});
 	}
 
-	// Fonction pour rendre un événement dans la vue semaine - MODIFIÉE POUR UTILISER LES DONNÉES DIRECTES
+	// FONCTION AMÉLIORÉE: renderWeekEvent pour cohérence des couleurs
 	function renderWeekEvent(event, container) {
-		// Déterminer la classe de couleur
-		let eventClass = "";
-		if (event.subject.includes("Entretien")) {
-			eventClass = "event-entretien";
-		} else if (event.subject.includes("EPGZ")) {
-			eventClass = "event-epgz";
-		} else {
-			eventClass = "event-default";
-		}
+		// Utiliser la même logique de détection que pour les autres vues
+		const cleanSubject = sanitizeText(event.subject) || "Événement sans titre";
+		let eventClass = "week-event " + determineEventClass(event, cleanSubject);
 
 		// Ajouter une classe spécifique pour les événements toute la journée
 		if (isAllDayEvent(event)) {
@@ -1493,8 +1592,8 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 		// Créer l'élément d'événement avec les commentaires depuis la commande client
 		const eventElement = $(`
-			<div class="week-event ${eventClass}" data-event-id="${event.name}">
-				<div class="event-title">${event.subject}</div>
+			<div class="${eventClass}" data-event-id="${event.name}">
+				<div class="event-title">${cleanSubject}</div>
 				${
 					isAllDayEvent(event)
 						? '<span class="event-all-day-indicator"><i class="fa fa-calendar-day"></i> Toute la journée</span>'
