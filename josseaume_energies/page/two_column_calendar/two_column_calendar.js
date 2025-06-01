@@ -1128,14 +1128,12 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				.on("mouseenter", function () {
 					$(this)
 						.css("transform", "translateY(-2px)")
-						.css("box-shadow", "var(--shadow-lg)")
-						.css("background-color", "rgba(255, 255, 255, 1)");
+						.css("box-shadow", "var(--shadow-lg)");
 				})
 				.on("mouseleave", function () {
 					$(this)
 						.css("transform", "translateY(0)")
-						.css("box-shadow", "var(--shadow-sm)")
-						.css("background-color", "rgba(255, 255, 255, 0.8)");
+						.css("box-shadow", "var(--shadow-sm)");
 				});
 		} catch (error) {
 			console.error("Erreur lors de la création de la carte événement:", error);
