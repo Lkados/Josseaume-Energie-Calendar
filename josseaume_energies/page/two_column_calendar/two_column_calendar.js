@@ -1238,7 +1238,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					transition: all 0.2s;
 					font-size: 12px;
 				">
-					<div style="font-weight: 600; margin-bottom: 3px; color: #343a40;">${cleanSubject}</div>
+					<div style="font-weight: 600; margin-bottom: 3px; color:rgb(165, 165, 165);">${cleanSubject}</div>
 					${
 						isAllDayEvent(event)
 							? '<div style="color: var(--color-allday); font-size: 10px; margin-bottom: 3px;"><i class="fa fa-calendar-day"></i> Toute la journée</div>'
