@@ -694,17 +694,25 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		});
 	}
 
-	// NOUVELLE FONCTION: Nettoyer le texte
+	// FONCTION AMÉLIORÉE: Nettoyer le texte avec limitation de longueur pour les commentaires
 	function sanitizeText(text) {
 		if (!text || typeof text !== "string") {
 			return "";
 		}
 
 		// Supprimer les caractères de contrôle et les séquences suspectes
-		return text
+		let cleaned = text
 			.replace(/[\x00-\x1F\x7F]/g, "") // Caractères de contrôle
 			.replace(/git\s+reset.*$/gi, "") // Commandes git
+			.replace(/<[^>]*>/g, "") // Balises HTML simples
 			.trim();
+
+		// Limiter la longueur des commentaires pour l'affichage
+		if (cleaned.length > 100) {
+			cleaned = cleaned.substring(0, 97) + "...";
+		}
+
+		return cleaned;
 	}
 
 	// NOUVELLE FONCTION: Détermination plus robuste du type d'événement
@@ -820,6 +828,104 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			console.error("Erreur lors de la détermination du type d'événement:", error);
 			return "event-default";
 		}
+	}
+
+	// FONCTION AMÉLIORÉE: Récupération des informations d'événement avec commentaires
+	function getCleanEventInfo(event) {
+		let clientName = "";
+		let technicianName = "";
+		let comments = "";
+
+		try {
+			// DEBUG: Log des données reçues
+			console.log(
+				"getCleanEventInfo pour event:",
+				event.name,
+				"sales_order_info:",
+				event.sales_order_info
+			);
+
+			// Priorité 1: Utiliser les informations de la commande client si disponibles
+			if (event.sales_order_info) {
+				clientName = sanitizeText(event.sales_order_info.customer_name) || "";
+				technicianName = sanitizeText(event.sales_order_info.employee_name) || "";
+
+				// AMÉLIORATION: Récupération plus robuste des commentaires
+				const rawComments =
+					event.sales_order_info.comments ||
+					event.sales_order_info.custom_commentaire ||
+					"";
+				comments = sanitizeText(rawComments);
+
+				console.log("Comments extraits:", {
+					raw: rawComments,
+					sanitized: comments,
+				});
+			} else if (event.event_participants && Array.isArray(event.event_participants)) {
+				// Priorité 2: Fallback sur les participants de l'événement
+				for (const participant of event.event_participants) {
+					try {
+						if (participant.reference_doctype === "Customer") {
+							clientName =
+								sanitizeText(
+									participant.full_name || participant.reference_docname
+								) || "";
+						} else if (participant.reference_doctype === "Employee") {
+							technicianName =
+								sanitizeText(
+									participant.full_name || participant.reference_docname
+								) || "";
+						}
+					} catch (participantError) {
+						console.warn("Erreur participant:", participantError);
+					}
+				}
+			}
+
+			// AMÉLIORATION: Récupération alternative des commentaires depuis la description de l'événement
+			if (!comments && event.description) {
+				const descriptionMatch = event.description.match(
+					/<strong>Commentaires:<\/strong>\s*([^<]+)/i
+				);
+				if (descriptionMatch) {
+					comments = sanitizeText(descriptionMatch[1].trim());
+					console.log("Comments récupérés depuis description:", comments);
+				}
+			}
+
+			// Nettoyer les commentaires qui pourraient contenir des données corrompues
+			if (comments) {
+				const suspiciousPatterns = [/git\s+(reset|push|commit|pull)/i, /--hard|--force/i];
+
+				for (const pattern of suspiciousPatterns) {
+					if (pattern.test(comments)) {
+						console.warn("Commentaire suspect nettoyé:", comments);
+						comments = ""; // Vider complètement si suspect
+						break;
+					}
+				}
+			}
+
+			console.log("Résultat final getCleanEventInfo:", {
+				clientName,
+				technicianName,
+				comments,
+			});
+		} catch (error) {
+			console.warn("Erreur lors de l'extraction des infos événement:", error);
+		}
+
+		return { clientName, technicianName, comments };
+	}
+
+	// Fonction pour vérifier si un événement est toute la journée
+	function isAllDayEvent(event) {
+		return (
+			event.all_day === 1 ||
+			event.all_day === true ||
+			event.all_day === "1" ||
+			String(event.all_day).toLowerCase() === "true"
+		);
 	}
 
 	// FONCTION CORRIGÉE: renderEmployeeDayView avec protection contre les appels multiples
@@ -1061,7 +1167,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		}
 	}
 
-	// FONCTION CORRIGÉE: renderEmployeeEventCard avec nettoyage des données et couleurs uniformes
+	// FONCTION AMÉLIORÉE: renderEmployeeEventCard avec affichage des commentaires
 	function renderEmployeeEventCard(event, container) {
 		try {
 			if (!event || !container || !event.name) {
@@ -1080,8 +1186,15 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				eventClass += " event-all-day";
 			}
 
-			// Récupérer les informations nettoyées
+			// AMÉLIORATION: Récupération plus robuste des commentaires
 			const { clientName, technicianName, comments } = getCleanEventInfo(event);
+
+			// DEBUG: Log pour vérifier les données
+			console.log("Event data pour", event.name, ":", {
+				sales_order_info: event.sales_order_info,
+				extracted_comments: comments,
+				clientName: clientName,
+			});
 
 			// Créer la carte d'événement compacte pour la vue employé
 			const eventCard = $(`
@@ -1094,8 +1207,9 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					cursor: pointer;
 					transition: all 0.2s;
 					font-size: 12px;
+					background-color: rgba(255, 255, 255, 0.8);
 				">
-					<div style="font-weight: 600; margin-bottom: 3px;">${cleanSubject}</div>
+					<div style="font-weight: 600; margin-bottom: 3px; color: #343a40;">${cleanSubject}</div>
 					${
 						isAllDayEvent(event)
 							? '<div style="color: var(--color-allday); font-size: 10px; margin-bottom: 3px;"><i class="fa fa-calendar-day"></i> Toute la journée</div>'
@@ -1103,12 +1217,12 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					}
 					${
 						clientName
-							? `<div style="color: #2196f3; font-size: 11px;"><i class="fa fa-user"></i> ${clientName}</div>`
+							? `<div style="color: #2196f3; font-size: 11px; margin-bottom: 2px;"><i class="fa fa-user" style="margin-right: 4px;"></i> ${clientName}</div>`
 							: ""
 					}
 					${
-						comments
-							? `<div style="color: #6c757d; font-size: 10px; margin-top: 3px; font-style: italic;"><i class="fa fa-comment"></i> ${comments}</div>`
+						comments && comments.trim() !== ""
+							? `<div style="color: #6c757d; font-size: 10px; margin-top: 3px; font-style: italic; line-height: 1.3; word-wrap: break-word;"><i class="fa fa-comment" style="margin-right: 4px;"></i> ${comments}</div>`
 							: ""
 					}
 				</div>
@@ -1123,83 +1237,23 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				}
 			});
 
-			// Effet hover
+			// Effet hover amélioré
 			eventCard
 				.on("mouseenter", function () {
 					$(this)
 						.css("transform", "translateY(-2px)")
-						.css("box-shadow", "var(--shadow-lg)");
+						.css("box-shadow", "var(--shadow-lg)")
+						.css("background-color", "rgba(255, 255, 255, 1)");
 				})
 				.on("mouseleave", function () {
 					$(this)
 						.css("transform", "translateY(0)")
-						.css("box-shadow", "var(--shadow-sm)");
+						.css("box-shadow", "var(--shadow-sm)")
+						.css("background-color", "rgba(255, 255, 255, 0.8)");
 				});
 		} catch (error) {
 			console.error("Erreur lors de la création de la carte événement:", error);
 		}
-	}
-
-	// FONCTION CORRIGÉE: getEventInfo avec nettoyage des données
-	function getCleanEventInfo(event) {
-		let clientName = "";
-		let technicianName = "";
-		let comments = "";
-
-		try {
-			// Priorité 1: Utiliser les informations de la commande client si disponibles
-			if (event.sales_order_info) {
-				clientName = sanitizeText(event.sales_order_info.customer_name) || "";
-				technicianName = sanitizeText(event.sales_order_info.employee_name) || "";
-				comments = sanitizeText(event.sales_order_info.comments) || "";
-			} else if (event.event_participants && Array.isArray(event.event_participants)) {
-				// Priorité 2: Fallback sur les participants de l'événement
-				for (const participant of event.event_participants) {
-					try {
-						if (participant.reference_doctype === "Customer") {
-							clientName =
-								sanitizeText(
-									participant.full_name || participant.reference_docname
-								) || "";
-						} else if (participant.reference_doctype === "Employee") {
-							technicianName =
-								sanitizeText(
-									participant.full_name || participant.reference_docname
-								) || "";
-						}
-					} catch (participantError) {
-						console.warn("Erreur participant:", participantError);
-					}
-				}
-			}
-
-			// Nettoyer les commentaires qui pourraient contenir des données corrompues
-			if (comments) {
-				const suspiciousPatterns = [/git\s+(reset|push|commit|pull)/i, /--hard|--force/i];
-
-				for (const pattern of suspiciousPatterns) {
-					if (pattern.test(comments)) {
-						console.warn("Commentaire suspect nettoyé:", comments);
-						comments = ""; // Vider complètement si suspect
-						break;
-					}
-				}
-			}
-		} catch (error) {
-			console.warn("Erreur lors de l'extraction des infos événement:", error);
-		}
-
-		return { clientName, technicianName, comments };
-	}
-
-	// Fonction pour vérifier si un événement est toute la journée
-	function isAllDayEvent(event) {
-		return (
-			event.all_day === 1 ||
-			event.all_day === true ||
-			event.all_day === "1" ||
-			String(event.all_day).toLowerCase() === "true"
-		);
 	}
 
 	// Rendu de la vue journalière à deux colonnes (code existant conservé)

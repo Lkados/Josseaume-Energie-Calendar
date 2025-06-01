@@ -118,7 +118,7 @@ def create_event_from_sales_order(docname):
         customer_name = frappe.db.get_value("Customer", doc.customer, "customer_name") if doc.customer else ""
         tech_name = frappe.db.get_value("Employee", doc.custom_intervenant, "employee_name") if doc.custom_intervenant else ""
 
-        # Créer une description détaillée
+        # Créer une description détaillée avec commentaires
         description = "<p><strong>Client:</strong> " + (customer_name or doc.customer or "") + "</p>"
         description = description + "<p><strong>Référence:</strong> " + doc.name + "</p>"
         description = description + "<p><strong>Type:</strong> " + type_commande + "</p>"
@@ -160,6 +160,7 @@ def create_event_from_sales_order(docname):
             if tech_email:
                 description = description + "<p><strong>Email intervenant:</strong> " + tech_email + "</p>"
 
+        # AMÉLIORATION: Ajouter les commentaires dans la description
         if doc.custom_commentaire:
             description = description + "<p><strong>Commentaires:</strong> " + doc.custom_commentaire + "</p>"
 
@@ -245,6 +246,66 @@ def get_sales_order_info_from_event(event_description):
         return ref_match.group(1).strip()
     return None
 
+def enrich_event_with_comments(event):
+    """Enrichit un événement avec les commentaires de la commande client"""
+    try:
+        # Si l'événement a déjà des sales_order_info, vérifier les commentaires
+        if not event.get("sales_order_info") or not event["sales_order_info"].get("comments"):
+            
+            # Récupérer la commande client liée
+            sales_order_ref = frappe.db.get_value("Sales Order", {"custom_calendar_event": event["name"]}, "name")
+            
+            if not sales_order_ref:
+                # Fallback: essayer d'extraire depuis la description
+                sales_order_ref = get_sales_order_info_from_event(event.get("description"))
+            
+            if sales_order_ref:
+                try:
+                    # Récupérer TOUS les champs nécessaires de la commande client
+                    sales_order_data = frappe.db.get_value("Sales Order", sales_order_ref, [
+                        "name", 
+                        "customer", 
+                        "custom_intervenant", 
+                        "custom_commentaire", 
+                        "custom_type_de_commande", 
+                        "territory"
+                    ], as_dict=True)
+                    
+                    if sales_order_data:
+                        # Récupérer les noms complets
+                        customer_name = ""
+                        if sales_order_data.customer:
+                            customer_name = frappe.db.get_value("Customer", sales_order_data.customer, "customer_name") or ""
+                        
+                        employee_name = ""
+                        if sales_order_data.custom_intervenant:
+                            employee_name = frappe.db.get_value("Employee", sales_order_data.custom_intervenant, "employee_name") or ""
+                        
+                        # Mettre à jour ou créer sales_order_info
+                        event["sales_order_info"] = {
+                            "name": sales_order_data.name,
+                            "customer_name": customer_name,
+                            "employee_name": employee_name,
+                            "comments": sales_order_data.custom_commentaire or "",
+                            "custom_commentaire": sales_order_data.custom_commentaire or "",  # Champ supplémentaire pour debug
+                            "type": sales_order_data.custom_type_de_commande or "",
+                            "territory": sales_order_data.territory or ""
+                        }
+                        
+                        # Log pour debug
+                        frappe.log_error(f"Event {event['name']} enrichi avec commentaires: '{sales_order_data.custom_commentaire}'", 
+                                       "Event enrichment debug")
+                
+                except Exception as e:
+                    frappe.log_error(f"Erreur lors de l'enrichissement de l'événement {event['name']}: {str(e)}", 
+                                   "Event enrichment error")
+        
+        return event
+        
+    except Exception as e:
+        frappe.log_error(f"Erreur lors de l'enrichissement général: {str(e)}", "General enrichment error")
+        return event
+
 @frappe.whitelist()
 def get_day_events(date, territory=None, employee=None, event_type=None):
     """Récupère les événements pour une journée donnée, filtrés par territoire, employé et/ou type d'intervention"""
@@ -306,7 +367,7 @@ def get_day_events(date, territory=None, employee=None, event_type=None):
             fields=["reference_doctype", "reference_docname"]
         )
         
-        # Ajouter les noms complets (méthode simplifiée)
+        # Ajouter les noms complets
         for participant in event_participants:
             try:
                 if participant["reference_doctype"] == "Customer":
@@ -321,7 +382,7 @@ def get_day_events(date, territory=None, employee=None, event_type=None):
         
         event["event_participants"] = event_participants
         
-        # NOUVEAU: Récupérer les informations de la commande client directement
+        # AMÉLIORATION: Récupération enrichie des informations de la commande client
         # Utiliser la relation inverse : chercher la Sales Order qui référence cet événement
         sales_order_ref = frappe.db.get_value("Sales Order", {"custom_calendar_event": event.name}, "name")
         
@@ -331,17 +392,53 @@ def get_day_events(date, territory=None, employee=None, event_type=None):
         
         if sales_order_ref:
             try:
-                sales_order = frappe.get_doc("Sales Order", sales_order_ref)
-                event["sales_order_info"] = {
-                    "name": sales_order.name,
-                    "customer_name": frappe.db.get_value("Customer", sales_order.customer, "customer_name") if sales_order.customer else "",
-                    "employee_name": frappe.db.get_value("Employee", sales_order.custom_intervenant, "employee_name") if sales_order.custom_intervenant else "",
-                    "comments": sales_order.custom_commentaire or "",
-                    "type": sales_order.custom_type_de_commande or "",
-                    "territory": sales_order.territory or ""
-                }
+                # AMÉLIORATION: Récupérer plus de champs et gérer les erreurs
+                sales_order_data = frappe.db.get_value("Sales Order", sales_order_ref, [
+                    "name", 
+                    "customer", 
+                    "custom_intervenant", 
+                    "custom_commentaire", 
+                    "custom_type_de_commande", 
+                    "territory"
+                ], as_dict=True)
+                
+                if sales_order_data:
+                    # Récupérer les noms complets avec gestion d'erreur
+                    customer_name = ""
+                    try:
+                        if sales_order_data.customer:
+                            customer_name = frappe.db.get_value("Customer", sales_order_data.customer, "customer_name") or ""
+                    except Exception:
+                        pass
+                    
+                    employee_name = ""
+                    try:
+                        if sales_order_data.custom_intervenant:
+                            employee_name = frappe.db.get_value("Employee", sales_order_data.custom_intervenant, "employee_name") or ""
+                    except Exception:
+                        pass
+                    
+                    event["sales_order_info"] = {
+                        "name": sales_order_data.name,
+                        "customer_name": customer_name,
+                        "employee_name": employee_name,
+                        "comments": sales_order_data.custom_commentaire or "",
+                        "custom_commentaire": sales_order_data.custom_commentaire or "",  # Redondance pour debug
+                        "type": sales_order_data.custom_type_de_commande or "",
+                        "territory": sales_order_data.territory or ""
+                    }
+                    
+                    # Debug log pour les commentaires
+                    if sales_order_data.custom_commentaire:
+                        frappe.log_error(f"Commentaires trouvés pour event {event.name}: '{sales_order_data.custom_commentaire}'", 
+                                       "Comments debug")
+                else:
+                    event["sales_order_info"] = None
+                    
             except Exception as e:
                 # Si la commande n'existe plus ou erreur, continuer sans les infos
+                frappe.log_error(f"Erreur lors de la récupération des infos SO pour {sales_order_ref}: {str(e)}", 
+                               "Sales Order info error")
                 event["sales_order_info"] = None
         else:
             event["sales_order_info"] = None
@@ -1038,7 +1135,7 @@ def get_employees_with_team_filter(team_filter=None):
 
 @frappe.whitelist()
 def get_day_events_by_employees(date, team_filter=None, territory=None, event_type=None):
-    """Récupère les événements d'une journée organisés par employé"""
+    """Récupère les événements d'une journée organisés par employé avec commentaires améliorés"""
     try:
         # Récupérer les employés filtrés
         employees_result = get_employees_with_team_filter(team_filter)
@@ -1050,6 +1147,10 @@ def get_day_events_by_employees(date, team_filter=None, territory=None, event_ty
         
         # Récupérer tous les événements du jour
         events = get_day_events(date, territory, None, event_type)
+        
+        # AMÉLIORATION: Enrichir chaque événement avec les commentaires
+        for event in events:
+            event = enrich_event_with_comments(event)
         
         # Organiser les événements par employé
         events_by_employee = {}

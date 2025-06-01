@@ -1066,6 +1066,240 @@ body.dark .employee-events::-webkit-scrollbar-thumb {
 }
 
 /* ========================================= */
+/* AMÉLIORATION AFFICHAGE COMMENTAIRES VUE EMPLOYÉS */
+/* ========================================= */
+
+/* Commentaires dans la vue employé - style amélioré */
+.employee-column .event-comments,
+.employee-column div[style*="font-style: italic"] {
+	color: #6c757d !important;
+	font-size: 10px !important;
+	margin-top: 3px !important;
+	font-style: italic !important;
+	line-height: 1.3 !important;
+	word-wrap: break-word !important;
+	max-width: 100% !important;
+	overflow-wrap: break-word !important;
+	hyphens: auto !important;
+	transition: color 0.3s !important;
+}
+
+/* Mode sombre pour les commentaires */
+body.dark .employee-column .event-comments,
+body.dark .employee-column div[style*="font-style: italic"] {
+	color: #aaa !important;
+}
+
+/* Icône de commentaire dans la vue employé */
+.employee-column .event-comments i,
+.employee-column div[style*="font-style: italic"] i {
+	margin-right: 4px !important;
+	margin-top: 1px !important;
+	flex-shrink: 0 !important;
+	color: #6c757d !important;
+}
+
+body.dark .employee-column .event-comments i,
+body.dark .employee-column div[style*="font-style: italic"] i {
+	color: #aaa !important;
+}
+
+/* Conteneur de commentaires avec flexbox pour meilleur alignement */
+.employee-column .comment-container {
+	display: flex;
+	align-items: flex-start;
+	margin-top: 3px;
+	font-size: 10px;
+	color: #6c757d;
+	font-style: italic;
+	line-height: 1.3;
+	word-wrap: break-word;
+	transition: color 0.3s;
+}
+
+/* Espacement pour les informations client */
+.employee-column .client-info {
+	color: #2196f3 !important;
+	font-size: 11px !important;
+	margin-bottom: 2px !important;
+	display: flex !important;
+	align-items: center !important;
+}
+
+.employee-column .client-info i {
+	margin-right: 4px !important;
+	color: #2196f3 !important;
+}
+
+body.dark .employee-column .client-info {
+	color: #64b5f6 !important;
+}
+
+body.dark .employee-column .client-info i {
+	color: #64b5f6 !important;
+}
+
+/* Amélioration générale des cartes d'événement employé */
+.employee-column .event-card {
+	margin-bottom: 6px;
+	padding: 8px 10px;
+	border-radius: 4px;
+	border-left: 4px solid;
+	background-color: rgba(255, 255, 255, 0.8);
+	box-shadow: var(--shadow-sm);
+	cursor: pointer;
+	transition: all 0.2s;
+	font-size: 12px;
+}
+
+.employee-column .event-card:hover {
+	transform: translateY(-2px);
+	box-shadow: var(--shadow-lg);
+	background-color: rgba(255, 255, 255, 1);
+}
+
+body.dark .employee-column .event-card {
+	background-color: rgba(45, 45, 45, 0.8);
+}
+
+body.dark .employee-column .event-card:hover {
+	background-color: rgba(45, 45, 45, 1);
+}
+
+/* Titre d'événement dans la vue employé */
+.employee-column .event-title {
+	font-weight: 600;
+	margin-bottom: 3px;
+	color: #343a40;
+	transition: color 0.3s;
+	font-size: 12px;
+	line-height: 1.2;
+}
+
+body.dark .employee-column .event-title {
+	color: #f0f0f0;
+}
+
+/* Indicateur toute la journée dans la vue employé */
+.employee-column .event-all-day-indicator {
+	color: var(--color-allday);
+	font-size: 10px;
+	margin-bottom: 3px;
+	display: flex;
+	align-items: center;
+}
+
+.employee-column .event-all-day-indicator i {
+	margin-right: 4px;
+}
+
+/* Responsive pour les commentaires sur mobile */
+@media (max-width: 768px) {
+	.employee-column .event-comments,
+	.employee-column div[style*="font-style: italic"] {
+		font-size: 9px !important;
+		margin-top: 2px !important;
+		line-height: 1.2 !important;
+	}
+
+	.employee-column .client-info {
+		font-size: 10px !important;
+	}
+
+	.employee-column .event-title {
+		font-size: 11px !important;
+	}
+}
+
+/* Responsive pour écrans très larges */
+@media (min-width: 2560px) {
+	.employee-column .event-comments,
+	.employee-column div[style*="font-style: italic"] {
+		font-size: 9px !important;
+	}
+
+	.employee-column .client-info {
+		font-size: 10px !important;
+	}
+
+	.employee-column .event-title {
+		font-size: 11px !important;
+	}
+}
+
+/* Amélioration pour la lisibilité des commentaires longs */
+.employee-column .event-comments.long-comment {
+	max-height: 3em;
+	overflow: hidden;
+	position: relative;
+}
+
+.employee-column .event-comments.long-comment::after {
+	content: "...";
+	position: absolute;
+	bottom: 0;
+	right: 0;
+	background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.8) 50%);
+	padding-left: 10px;
+}
+
+body.dark .employee-column .event-comments.long-comment::after {
+	background: linear-gradient(to right, transparent, rgba(45, 45, 45, 0.8) 50%);
+}
+
+/* Tooltip pour les commentaires longs (optionnel) */
+.employee-column .event-comments[title] {
+	cursor: help;
+}
+
+/* Animation pour l'apparition des commentaires */
+.employee-column .event-comments {
+	animation: fadeInComment 0.3s ease-out;
+}
+
+@keyframes fadeInComment {
+	from {
+		opacity: 0;
+		margin-top: 0;
+	}
+	to {
+		opacity: 1;
+		margin-top: 3px;
+	}
+}
+
+/* Style pour les commentaires vides ou manquants (debug) */
+.employee-column .no-comment {
+	color: #ccc;
+	font-size: 9px;
+	font-style: italic;
+	margin-top: 2px;
+}
+
+body.dark .employee-column .no-comment {
+	color: #666;
+}
+
+/* Espacement amélioré entre les éléments de la carte */
+.employee-column .event-entretien > div,
+.employee-column .event-epgz > div,
+.employee-column .event-default > div,
+.employee-column .event-installation > div,
+.employee-column .event-livraison > div,
+.employee-column .event-depannage > div {
+	margin-bottom: 2px;
+}
+
+.employee-column .event-entretien > div:last-child,
+.employee-column .event-epgz > div:last-child,
+.employee-column .event-default > div:last-child,
+.employee-column .event-installation > div:last-child,
+.employee-column .event-livraison > div:last-child,
+.employee-column .event-depannage > div:last-child {
+	margin-bottom: 0;
+}
+
+/* ========================================= */
 /* RÈGLES DE FALLBACK ROBUSTES */
 /* ========================================= */
 
