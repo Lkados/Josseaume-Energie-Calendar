@@ -1090,7 +1090,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					padding: 8px 10px;
 					border-radius: 4px;
 					border-left: 4px solid;
-					background-color: rgba(255, 255, 255, 0.8);
 					box-shadow: var(--shadow-sm);
 					cursor: pointer;
 					transition: all 0.2s;
