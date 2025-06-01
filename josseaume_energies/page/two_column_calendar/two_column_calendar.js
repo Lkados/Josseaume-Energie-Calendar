@@ -77,7 +77,34 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	// Créer une version debouncée de refreshCalendar
 	const debouncedRefresh = debounce(() => refreshCalendar(), 300);
 
-	// Ajouter des contrôles - MODIFIÉ pour mettre Employés par défaut
+	// NOUVELLE FONCTION : Réinitialiser les filtres lors du changement de vue
+	function resetFiltersOnViewChange(newViewType) {
+		try {
+			console.log("Réinitialisation des filtres pour la vue:", newViewType);
+
+			if (newViewType === "Employés") {
+				// En passant à la vue Employés, vider les autres filtres
+				if (page.fields_dict.territory) {
+					page.fields_dict.territory.set_value("");
+				}
+				if (page.fields_dict.employee) {
+					page.fields_dict.employee.set_value("");
+				}
+				if (page.fields_dict.event_type) {
+					page.fields_dict.event_type.set_value("");
+				}
+			} else {
+				// En quittant la vue Employés, vider le filtre équipe
+				if (page.fields_dict.team_filter) {
+					page.fields_dict.team_filter.set_value("");
+				}
+			}
+		} catch (error) {
+			console.error("Erreur lors de la réinitialisation des filtres:", error);
+		}
+	}
+
+	// Ajouter des contrôles - MODIFIÉ pour mettre Employés par défaut et gérer les filtres
 	page.add_field({
 		fieldtype: "Select",
 		label: "Vue",
@@ -85,7 +112,13 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		options: "Employés\nJour\nSemaine\nMois", // Employés en premier
 		default: "Employés", // Employés par défaut
 		change: function () {
-			console.log("Changement vue:", this.get_value());
+			const newViewType = this.get_value();
+			console.log("Changement vue:", newViewType);
+
+			// Réinitialiser les filtres appropriés
+			resetFiltersOnViewChange(newViewType);
+
+			// Actualiser l'affichage avec debounce
 			debouncedRefresh();
 		},
 	});
@@ -383,27 +416,119 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		}
 	}
 
-	// Fonction pour gérer la visibilité des champs selon la vue sélectionnée
+	// FONCTION MISE À JOUR: Gérer la visibilité des champs selon la vue sélectionnée
 	function updateFieldVisibility() {
 		try {
 			const viewType = page.fields_dict.view_type.get_value();
+			console.log("Mise à jour visibilité des champs pour la vue:", viewType);
 
-			// Vérifier que les champs existent avant de les manipuler
-			if (page.fields_dict.team_filter && page.fields_dict.team_filter.wrapper) {
-				if (viewType === "Employés") {
-					page.fields_dict.team_filter.wrapper.show();
-				} else {
-					page.fields_dict.team_filter.wrapper.hide();
+			// Supprimer les anciens messages d'information
+			$(".view-info-message").remove();
+
+			if (viewType === "Employés") {
+				// VUE EMPLOYÉS : Afficher seulement le filtre Équipe
+
+				// Masquer Zone
+				if (page.fields_dict.territory && page.fields_dict.territory.wrapper) {
+					page.fields_dict.territory.wrapper.hide();
 				}
-			}
 
-			if (page.fields_dict.employee && page.fields_dict.employee.wrapper) {
-				if (viewType === "Employés") {
+				// Masquer Intervenant
+				if (page.fields_dict.employee && page.fields_dict.employee.wrapper) {
 					page.fields_dict.employee.wrapper.hide();
-				} else {
+				}
+
+				// Masquer Type d'intervention
+				if (page.fields_dict.event_type && page.fields_dict.event_type.wrapper) {
+					page.fields_dict.event_type.wrapper.hide();
+				}
+
+				// Afficher Équipe
+				if (page.fields_dict.team_filter && page.fields_dict.team_filter.wrapper) {
+					page.fields_dict.team_filter.wrapper.show();
+				}
+
+				// Ajouter un message informatif
+				if (page.fields_dict.team_filter && page.fields_dict.team_filter.wrapper) {
+					page.fields_dict.team_filter.wrapper.after(`
+						<div class="view-info-message" style="
+							font-size: 12px; 
+							color: #666; 
+							margin-top: 5px; 
+							padding: 8px; 
+							background-color: #f8f9fa; 
+							border-radius: 4px;
+							border-left: 3px solid #007bff;
+						">
+							<i class="fa fa-info-circle"></i> Vue Employés : Filtrez par équipe pour voir les employés correspondants
+						</div>
+					`);
+				}
+
+				console.log("Vue Employés : seul le filtre Équipe est visible");
+			} else {
+				// AUTRES VUES : Afficher tous les filtres sauf Équipe
+
+				// Afficher Zone
+				if (page.fields_dict.territory && page.fields_dict.territory.wrapper) {
+					page.fields_dict.territory.wrapper.show();
+				}
+
+				// Afficher Intervenant
+				if (page.fields_dict.employee && page.fields_dict.employee.wrapper) {
 					page.fields_dict.employee.wrapper.show();
 				}
+
+				// Afficher Type d'intervention
+				if (page.fields_dict.event_type && page.fields_dict.event_type.wrapper) {
+					page.fields_dict.event_type.wrapper.show();
+				}
+
+				// Masquer Équipe
+				if (page.fields_dict.team_filter && page.fields_dict.team_filter.wrapper) {
+					page.fields_dict.team_filter.wrapper.hide();
+				}
+
+				// Ajouter un message informatif selon la vue
+				let infoMessage = "";
+				if (viewType === "Jour") {
+					infoMessage =
+						'<i class="fa fa-calendar-day"></i> Vue Jour : Filtrez par zone, intervenant ou type d\'intervention';
+				} else if (viewType === "Semaine") {
+					infoMessage =
+						'<i class="fa fa-calendar-week"></i> Vue Semaine : Utilisez les filtres pour affiner l\'affichage';
+				} else if (viewType === "Mois") {
+					infoMessage =
+						'<i class="fa fa-calendar"></i> Vue Mois : Vue mensuelle avec filtres disponibles';
+				}
+
+				if (
+					infoMessage &&
+					page.fields_dict.event_type &&
+					page.fields_dict.event_type.wrapper
+				) {
+					page.fields_dict.event_type.wrapper.after(`
+						<div class="view-info-message" style="
+							font-size: 12px; 
+							color: #666; 
+							margin-top: 5px; 
+							padding: 8px; 
+							background-color: #f8f9fa; 
+							border-radius: 4px;
+							border-left: 3px solid #28a745;
+						">
+							${infoMessage}
+						</div>
+					`);
+				}
+
+				console.log("Vue", viewType, ": tous les filtres sont visibles sauf Équipe");
 			}
+
+			// Ajouter un effet de transition pour rendre le changement plus fluide
+			$(".form-control").each(function () {
+				$(this).closest(".frappe-control").css("transition", "opacity 0.3s ease");
+			});
 		} catch (error) {
 			console.error("Erreur lors de la mise à jour de la visibilité des champs:", error);
 		}
