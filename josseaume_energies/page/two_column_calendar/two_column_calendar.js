@@ -10,6 +10,10 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	let currentYear = currentDate.getFullYear();
 	let currentMonth = currentDate.getMonth(); // 0-11
 
+	// Variables pour éviter les appels multiples
+	let isRefreshing = false;
+	let refreshTimeout = null;
+
 	// Détection et gestion du thème pour ERPNext v15
 	function applyTheme() {
 		// Méthodes de détection pour ERPNext v15
@@ -57,6 +61,22 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	// Vérifier le thème périodiquement pour s'assurer qu'il reste synchronisé
 	setInterval(applyTheme, 2000);
 
+	// Fonction utilitaire pour ajouter un debounce
+	function debounce(func, wait) {
+		let timeout;
+		return function executedFunction(...args) {
+			const later = () => {
+				clearTimeout(timeout);
+				func(...args);
+			};
+			clearTimeout(timeout);
+			timeout = setTimeout(later, wait);
+		};
+	}
+
+	// Créer une version debouncée de refreshCalendar
+	const debouncedRefresh = debounce(() => refreshCalendar(), 300);
+
 	// Ajouter des contrôles - MODIFIÉ pour mettre Employés par défaut
 	page.add_field({
 		fieldtype: "Select",
@@ -65,7 +85,8 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		options: "Employés\nJour\nSemaine\nMois", // Employés en premier
 		default: "Employés", // Employés par défaut
 		change: function () {
-			refreshCalendar();
+			console.log("Changement vue:", this.get_value());
+			debouncedRefresh();
 		},
 	});
 
@@ -75,7 +96,8 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		fieldname: "territory",
 		options: "Territory",
 		change: function () {
-			refreshCalendar();
+			console.log("Changement zone:", this.get_value());
+			debouncedRefresh();
 		},
 	});
 
@@ -87,7 +109,8 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		options:
 			"\nLivraisons\nInstallations\nEntretiens/Ramonages\nDépannages Poêles\nDépannages Chauffage\nÉlectricité\nPhotovoltaïque\nBureau\nCommercial\nRénovation",
 		change: function () {
-			refreshCalendar();
+			console.log("Changement équipe:", this.get_value());
+			debouncedRefresh();
 		},
 	});
 
@@ -97,7 +120,8 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		fieldname: "employee",
 		options: "Employee",
 		change: function () {
-			refreshCalendar();
+			console.log("Changement employé:", this.get_value());
+			debouncedRefresh();
 		},
 	});
 
@@ -108,7 +132,8 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		fieldname: "event_type",
 		options: "\nEntretien\nInstallation\nLivraison Granule\nLivraison Fuel",
 		change: function () {
-			refreshCalendar();
+			console.log("Changement type intervention:", this.get_value());
+			debouncedRefresh();
 		},
 	});
 
@@ -119,7 +144,8 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		fieldname: "select_date",
 		default: frappe.datetime.get_today(),
 		change: function () {
-			const selectedDate = page.fields_dict.select_date.get_value();
+			const selectedDate = this.get_value();
+			console.log("Changement date:", selectedDate);
 
 			if (!selectedDate) return;
 
@@ -135,7 +161,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			currentMonth = month;
 
 			// Rafraîchir le calendrier
-			refreshCalendar();
+			debouncedRefresh();
 		},
 	});
 
@@ -383,37 +409,109 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		}
 	}
 
-	// FONCTION CORRIGÉE: refreshCalendar avec nettoyage complet
+	// NOUVELLE FONCTION: Nettoyage forcé du conteneur
+	function forceCleanContainer() {
+		try {
+			console.log("Nettoyage forcé du conteneur");
+
+			// Supprimer tous les écouteurs d'événements liés au calendrier
+			$(document).off("dblclick.calendar");
+			$(document).off("click.calendar");
+
+			// Vider complètement le conteneur
+			calendarContainer.empty();
+
+			// Forcer la suppression des éléments cachés ou en cours de rendu
+			calendarContainer.html("");
+
+			// Supprimer les styles dynamiques précédents
+			$("#calendar-doubleclick-styles").remove();
+
+			// Attendre un tick pour s'assurer que le DOM est nettoyé
+			setTimeout(() => {
+				calendarContainer.removeClass().addClass("custom-calendar-container");
+			}, 10);
+		} catch (error) {
+			console.error("Erreur lors du nettoyage:", error);
+		}
+	}
+
+	// FONCTION CORRIGÉE: refreshCalendar avec protection contre les appels multiples
 	function refreshCalendar() {
 		try {
+			// Annuler le timeout précédent s'il existe
+			if (refreshTimeout) {
+				clearTimeout(refreshTimeout);
+			}
+
+			// Empêcher les appels multiples simultanés
+			if (isRefreshing) {
+				console.log("Refresh en cours, appel ignoré");
+				return;
+			}
+
+			// Débounce : attendre un court délai pour éviter les appels rapides
+			refreshTimeout = setTimeout(() => {
+				performRefresh();
+			}, 100);
+		} catch (error) {
+			console.error("Erreur lors de l'initialisation du refresh:", error);
+			isRefreshing = false;
+		}
+	}
+
+	// NOUVELLE FONCTION: Effectuer le refresh réel
+	function performRefresh() {
+		try {
+			isRefreshing = true;
+			console.log("=== DÉBUT REFRESH CALENDRIER ===");
+
 			const viewType = page.fields_dict.view_type.get_value();
 			const territory = page.fields_dict.territory.get_value();
 			const employee = page.fields_dict.employee.get_value();
 			const event_type = page.fields_dict.event_type.get_value();
 			const team_filter = page.fields_dict.team_filter.get_value();
 
+			console.log("Paramètres refresh:", {
+				viewType,
+				territory,
+				employee,
+				event_type,
+				team_filter,
+			});
+
 			// Mettre à jour la visibilité des champs
 			updateFieldVisibility();
 
-			// IMPORTANT: Nettoyage complet avant le rendu
-			calendarContainer.empty();
-			$(document).off("dblclick.calendar"); // Supprimer les anciens écouteurs
+			// NETTOYAGE COMPLET ET FORCÉ
+			forceCleanContainer();
 
 			if (viewType === "Employés") {
+				console.log("Rendu vue Employés");
 				renderEmployeeDayView(currentDate, territory, team_filter, event_type);
 			} else if (viewType === "Jour") {
+				console.log("Rendu vue Jour");
 				renderTwoColumnDayView(currentDate, territory, employee, event_type);
 			} else if (viewType === "Semaine") {
+				console.log("Rendu vue Semaine");
 				renderWeekViewWithSections(currentDate, territory, employee, event_type);
 			} else {
+				console.log("Rendu vue Mois");
 				renderMonthView(currentYear, currentMonth, territory, employee, event_type);
 			}
+
+			console.log("=== FIN REFRESH CALENDRIER ===");
 		} catch (error) {
 			console.error("Erreur lors du rafraîchissement du calendrier:", error);
 			calendarContainer.empty();
 			$('<div class="error-message">Erreur lors du chargement du calendrier</div>').appendTo(
 				calendarContainer
 			);
+		} finally {
+			// Libérer le verrou après un délai pour s'assurer que tout est terminé
+			setTimeout(() => {
+				isRefreshing = false;
+			}, 500);
 		}
 	}
 
@@ -484,14 +582,27 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			.trim();
 	}
 
-	// NOUVELLE FONCTION CORRIGÉE: Vue journalière par employés
+	// FONCTION CORRIGÉE: renderEmployeeDayView avec protection contre les appels multiples
 	function renderEmployeeDayView(date, territory, team_filter, event_type) {
 		try {
+			console.log("=== DÉBUT renderEmployeeDayView ===", {
+				date,
+				territory,
+				team_filter,
+				event_type,
+			});
+
 			const formatDate = (d) => {
 				return `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1)
 					.toString()
 					.padStart(2, "0")}/${d.getFullYear()}`;
 			};
+
+			// Vérifier que le conteneur est bien vide
+			if (calendarContainer.children().length > 0) {
+				console.warn("Le conteneur n'était pas vide, nettoyage forcé");
+				forceCleanContainer();
+			}
 
 			// Créer l'en-tête
 			const dayHeader = $(`
@@ -521,6 +632,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				},
 				callback: function (r) {
 					try {
+						console.log("=== CALLBACK API ===");
 						loadingMessage.remove();
 
 						if (r.message && r.message.status === "success") {
@@ -542,7 +654,13 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 								return;
 							}
 
-							// Créer le conteneur en grille pour les employés avec la nouvelle classe responsive
+							// Vérifier si le conteneur a déjà une grille (protection contre double rendu)
+							if (calendarContainer.find(".employees-grid-responsive").length > 0) {
+								console.warn("Grille d'employés déjà présente, abandon du rendu");
+								return;
+							}
+
+							// Créer le conteneur en grille pour les employés
 							const employeesGrid = $(
 								'<div class="employees-grid-responsive"></div>'
 							).appendTo(calendarContainer);
@@ -551,7 +669,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 							const processedEmployees = new Set();
 
 							// Créer une colonne pour chaque employé
-							employees.forEach((employee) => {
+							employees.forEach((employee, index) => {
 								try {
 									// Éviter les doublons
 									if (processedEmployees.has(employee.name)) {
@@ -560,6 +678,12 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 									}
 									processedEmployees.add(employee.name);
 
+									console.log(
+										`Création colonne employé ${index + 1}/${
+											employees.length
+										}:`,
+										employee.employee_name
+									);
 									createEmployeeColumn(
 										employee,
 										eventsByEmployee,
@@ -577,6 +701,11 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 								"Employés effectivement affichés:",
 								processedEmployees.size
 							);
+
+							// Ajouter les écouteurs APRÈS le rendu complet
+							setTimeout(() => {
+								addDoubleClickListeners();
+							}, 100);
 						} else {
 							const errorMessage = r.message ? r.message.message : "Erreur inconnue";
 							$(
@@ -584,8 +713,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 							).appendTo(calendarContainer);
 						}
 
-						// Ajouter les écouteurs après le rendu
-						addDoubleClickListeners();
+						console.log("=== FIN CALLBACK API ===");
 					} catch (callbackError) {
 						console.error("Erreur dans le callback:", callbackError);
 						loadingMessage.remove();
@@ -602,6 +730,8 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					);
 				},
 			});
+
+			console.log("=== FIN renderEmployeeDayView (appel API lancé) ===");
 		} catch (error) {
 			console.error("Erreur générale dans renderEmployeeDayView:", error);
 			calendarContainer.empty();
