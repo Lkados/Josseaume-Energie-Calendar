@@ -1,10 +1,11 @@
 /* ========================================= */
-/* STYLES DARK MODE FORCÉ POUR TOUS LES ÉLÉMENTS DE MARGE */
-/* Force le mode sombre sur tous les dialogues de calcul de marge */
+/* STYLES DARK MODE SÉCURISÉS - VERSION ALTERNATIVE */
+/* Cible UNIQUEMENT les éléments de marge sans affecter ERPNext */
+/* GARANTIT la préservation de tous les boutons standards */
 /* ========================================= */
 
-/* Conteneur principal d'analyse des marges - DARK MODE FORCÉ */
-.margin-analysis {
+/* Conteneur principal d'analyse des marges - CIBLAGE PRÉCIS */
+div.margin-analysis {
 	padding: 20px;
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue",
 		sans-serif;
@@ -15,8 +16,8 @@
 	margin: 10px 0;
 }
 
-/* Cartes de marge - DARK MODE FORCÉ */
-.margin-card {
+/* Cartes de marge - SPÉCIFIQUE */
+div.margin-card {
 	padding: 20px;
 	border-radius: 6px;
 	border: 1px solid #333 !important;
@@ -25,11 +26,11 @@
 	transition: border-color 0.2s ease;
 }
 
-.margin-card:hover {
+div.margin-card:hover {
 	border-color: #444 !important;
 }
 
-.margin-card h4 {
+div.margin-card h4 {
 	margin: 0 0 16px 0;
 	color: #f8f9fa !important;
 	font-size: 18px;
@@ -41,14 +42,14 @@
 	padding-bottom: 12px;
 }
 
-.margin-card h5 {
+div.margin-card h5 {
 	color: #f8f9fa !important;
 	margin-bottom: 12px;
 	font-size: 16px;
 	font-weight: 600;
 }
 
-.margin-card p {
+div.margin-card p {
 	margin-bottom: 8px;
 	font-size: 14px;
 	color: #d1d5db !important;
@@ -58,38 +59,38 @@
 	padding: 6px 0;
 }
 
-.margin-card p strong {
+div.margin-card p strong {
 	color: #f8f9fa !important;
 	font-weight: 500;
 }
 
-/* États de marge avec couleurs forcées */
-.margin-card.excellent {
+/* États de marge avec couleurs */
+div.margin-card.excellent {
 	border-left: 4px solid #28a745 !important;
 }
 
-.margin-card.good {
+div.margin-card.good {
 	border-left: 4px solid #007bff !important;
 }
 
-.margin-card.acceptable {
+div.margin-card.acceptable {
 	border-left: 4px solid #ffc107 !important;
 }
 
-.margin-card.low {
+div.margin-card.low {
 	border-left: 4px solid #fd7e14 !important;
 }
 
-.margin-card.negative {
+div.margin-card.negative {
 	border-left: 4px solid #dc3545 !important;
 }
 
-.margin-card.bundle-info {
+div.margin-card.bundle-info {
 	border-left: 4px solid #6f42c1 !important;
 }
 
-/* Pourcentages de marge - DARK MODE FORCÉ */
-.margin-percentage {
+/* Pourcentages de marge */
+span.margin-percentage {
 	font-weight: 700;
 	font-size: 16px;
 	padding: 4px 8px;
@@ -99,8 +100,8 @@
 	border: 1px solid #444 !important;
 }
 
-/* Badges de statut - DARK MODE FORCÉ */
-.status-badge {
+/* Badges de statut */
+span.status-badge {
 	display: inline-flex;
 	align-items: center;
 	gap: 4px;
@@ -112,33 +113,33 @@
 	letter-spacing: 0.5px;
 }
 
-.status-badge.excellent {
+span.status-badge.excellent {
 	background: #28a745 !important;
 	color: white !important;
 }
 
-.status-badge.good {
+span.status-badge.good {
 	background: #007bff !important;
 	color: white !important;
 }
 
-.status-badge.acceptable {
+span.status-badge.acceptable {
 	background: #ffc107 !important;
 	color: #000 !important;
 }
 
-.status-badge.low {
+span.status-badge.low {
 	background: #fd7e14 !important;
 	color: white !important;
 }
 
-.status-badge.negative {
+span.status-badge.negative {
 	background: #dc3545 !important;
 	color: white !important;
 }
 
-/* Tableau des articles - DARK MODE FORCÉ */
-.items-margin-table {
+/* Tableau des articles - TRÈS SPÉCIFIQUE */
+div.items-margin-table {
 	overflow: hidden;
 	margin-top: 20px;
 	border-radius: 6px;
@@ -146,7 +147,7 @@
 	background: #262626 !important;
 }
 
-.items-margin-table table {
+div.items-margin-table table {
 	font-size: 13px;
 	margin: 0;
 	border-collapse: collapse;
@@ -154,7 +155,7 @@
 	background: transparent !important;
 }
 
-.items-margin-table th {
+div.items-margin-table thead th {
 	background: #1a1a1a !important;
 	color: #f8f9fa !important;
 	border: none;
@@ -167,36 +168,36 @@
 	border-bottom: 1px solid #333 !important;
 }
 
-.items-margin-table td {
+div.items-margin-table tbody td {
 	padding: 12px 8px;
 	vertical-align: middle;
 	border-bottom: 1px solid #333 !important;
 	color: #d1d5db !important;
 }
 
-.items-margin-table tbody tr:last-child td {
+div.items-margin-table tbody tr:last-child td {
 	border-bottom: none;
 }
 
-.items-margin-table tfoot tr {
+div.items-margin-table tfoot tr {
 	font-weight: bold;
 	background-color: #1a1a1a !important;
 }
 
-.items-margin-table tfoot td {
+div.items-margin-table tfoot td {
 	background-color: #1a1a1a !important;
 	color: #f8f9fa !important;
 	border-bottom: none !important;
 }
 
-/* Lignes d'articles - DARK MODE FORCÉ */
-.item-row {
+/* Lignes d'articles */
+tr.item-row {
 	transition: background-color 0.2s ease;
 	position: relative;
 	background: transparent !important;
 }
 
-.item-row::before {
+tr.item-row::before {
 	content: "";
 	position: absolute;
 	left: 0;
@@ -207,45 +208,45 @@
 	transition: background 0.2s ease;
 }
 
-.item-row.excellent::before {
+tr.item-row.excellent::before {
 	background: #28a745 !important;
 }
 
-.item-row.good::before {
+tr.item-row.good::before {
 	background: #007bff !important;
 }
 
-.item-row.acceptable::before {
+tr.item-row.acceptable::before {
 	background: #ffc107 !important;
 }
 
-.item-row.low::before {
+tr.item-row.low::before {
 	background: #fd7e14 !important;
 }
 
-.item-row.negative::before {
+tr.item-row.negative::before {
 	background: #dc3545 !important;
 }
 
-.item-row:hover {
+tr.item-row:hover {
 	background: #333 !important;
 }
 
-/* Cellules spéciales - DARK MODE FORCÉ */
-.item-row td:first-child {
+/* Cellules spéciales */
+tr.item-row td:first-child {
 	font-weight: 600;
 	color: #f8f9fa !important;
 }
 
-.item-row td:first-child small {
+tr.item-row td:first-child small {
 	color: #9ca3af !important;
 	font-weight: 400;
 	display: block;
 	margin-top: 2px;
 }
 
-/* Conseils et recommandations - DARK MODE FORCÉ */
-.margin-tips {
+/* Conseils et recommandations */
+div.margin-tips {
 	padding: 20px;
 	background: #262626 !important;
 	border-radius: 6px;
@@ -253,7 +254,7 @@
 	margin-top: 16px;
 }
 
-.margin-tips h5 {
+div.margin-tips h5 {
 	color: #f8f9fa !important;
 	margin-bottom: 12px;
 	font-size: 16px;
@@ -263,7 +264,7 @@
 	gap: 8px;
 }
 
-.margin-tips p {
+div.margin-tips p {
 	margin-bottom: 8px;
 	font-size: 14px;
 	line-height: 1.5;
@@ -273,32 +274,32 @@
 	border-left: 3px solid transparent;
 }
 
-.margin-tips p.text-success {
+div.margin-tips p.text-success {
 	background: rgba(40, 167, 69, 0.1) !important;
 	border-left-color: #28a745 !important;
 	color: #4ade80 !important;
 }
 
-.margin-tips p.text-info {
+div.margin-tips p.text-info {
 	background: rgba(0, 123, 255, 0.1) !important;
 	border-left-color: #007bff !important;
 	color: #60a5fa !important;
 }
 
-.margin-tips p.text-warning {
+div.margin-tips p.text-warning {
 	background: rgba(255, 193, 7, 0.1) !important;
 	border-left-color: #ffc107 !important;
 	color: #fbbf24 !important;
 }
 
-.margin-tips p.text-danger {
+div.margin-tips p.text-danger {
 	background: rgba(220, 53, 69, 0.1) !important;
 	border-left-color: #dc3545 !important;
 	color: #f87171 !important;
 }
 
-/* Actions de marge - DARK MODE FORCÉ */
-.margin-actions {
+/* Actions de marge */
+div.margin-actions {
 	text-align: center;
 	padding: 20px;
 	background: #262626 !important;
@@ -307,12 +308,12 @@
 	margin: 16px 0;
 }
 
-.margin-actions p {
+div.margin-actions p {
 	color: #d1d5db !important;
 	margin-bottom: 15px;
 }
 
-.margin-actions button {
+div.margin-actions button {
 	margin: 4px 8px;
 	min-width: 140px;
 	padding: 8px 16px;
@@ -325,113 +326,48 @@
 	color: #f8f9fa !important;
 }
 
-.margin-actions button:hover {
+div.margin-actions button:hover {
 	background: #444 !important;
 	border-color: #555 !important;
 	transform: translateY(-1px);
 }
 
-.margin-actions button.btn-primary {
+div.margin-actions button.btn-primary {
 	background: #007bff !important;
 	border-color: #007bff !important;
 	color: white !important;
 }
 
-.margin-actions button.btn-primary:hover {
+div.margin-actions button.btn-primary:hover {
 	background: #0056b3 !important;
 	border-color: #0056b3 !important;
 }
 
-.margin-actions button.btn-info {
+div.margin-actions button.btn-info {
 	background: #17a2b8 !important;
 	border-color: #17a2b8 !important;
 	color: white !important;
 }
 
-.margin-actions button.btn-info:hover {
+div.margin-actions button.btn-info:hover {
 	background: #138496 !important;
 	border-color: #138496 !important;
 }
 
-.margin-actions button.btn-warning {
+div.margin-actions button.btn-warning {
 	background: #ffc107 !important;
 	border-color: #ffc107 !important;
 	color: #000 !important;
 }
 
-.margin-actions button.btn-warning:hover {
+div.margin-actions button.btn-warning:hover {
 	background: #e0a800 !important;
 	border-color: #e0a800 !important;
 }
 
-/* Indicateurs dans les lignes d'articles - DARK MODE FORCÉ */
-.margin-indicator {
-	display: inline-block;
-	padding: 2px 6px;
-	border-radius: 3px;
-	font-size: 11px;
-	font-weight: 600;
-	margin-left: 8px;
-	color: white !important;
-}
-
-.margin-indicator.excellent {
-	background: #28a745 !important;
-}
-
-.margin-indicator.good {
-	background: #007bff !important;
-}
-
-.margin-indicator.acceptable {
-	background: #ffc107 !important;
-	color: #000 !important;
-}
-
-.margin-indicator.low {
-	background: #fd7e14 !important;
-}
-
-.margin-indicator.negative {
-	background: #dc3545 !important;
-}
-
-/* Alertes - DARK MODE FORCÉ */
-.margin-alert {
-	padding: 12px 16px;
-	border-radius: 4px;
-	margin: 12px 0;
-	border-left: 4px solid;
-	font-size: 14px;
-}
-
-.margin-alert.success {
-	background: rgba(40, 167, 69, 0.1) !important;
-	border-left-color: #28a745 !important;
-	color: #4ade80 !important;
-}
-
-.margin-alert.warning {
-	background: rgba(255, 193, 7, 0.1) !important;
-	border-left-color: #ffc107 !important;
-	color: #fbbf24 !important;
-}
-
-.margin-alert.danger {
-	background: rgba(220, 53, 69, 0.1) !important;
-	border-left-color: #dc3545 !important;
-	color: #f87171 !important;
-}
-
-.margin-alert.info {
-	background: rgba(0, 123, 255, 0.1) !important;
-	border-left-color: #007bff !important;
-	color: #60a5fa !important;
-}
-
-/* Gestionnaire de prix de valorisation - DARK MODE FORCÉ */
-.cost-price-manager,
-.valuation-manager {
+/* Gestionnaire de prix de valorisation */
+div.cost-price-manager,
+div.valuation-manager {
 	max-height: 400px;
 	overflow-y: auto;
 	background: #262626 !important;
@@ -440,28 +376,28 @@
 	padding: 16px;
 }
 
-.cost-price-manager h4,
-.valuation-manager h4 {
+div.cost-price-manager h4,
+div.valuation-manager h4 {
 	color: #f8f9fa !important;
 	margin-bottom: 15px;
 }
 
-.cost-price-manager p,
-.valuation-manager p {
+div.cost-price-manager p,
+div.valuation-manager p {
 	color: #d1d5db !important;
 	margin-bottom: 15px;
 }
 
-.cost-price-manager table,
-.valuation-manager table {
+div.cost-price-manager table,
+div.valuation-manager table {
 	font-size: 13px;
 	border-collapse: collapse;
 	width: 100%;
 	background: transparent !important;
 }
 
-.cost-price-manager th,
-.valuation-manager th {
+div.cost-price-manager th,
+div.valuation-manager th {
 	background: #1a1a1a !important;
 	color: #f8f9fa !important;
 	padding: 10px 8px;
@@ -469,15 +405,15 @@
 	font-weight: 600;
 }
 
-.cost-price-manager td,
-.valuation-manager td {
+div.cost-price-manager td,
+div.valuation-manager td {
 	padding: 8px;
 	border-bottom: 1px solid #333 !important;
 	color: #d1d5db !important;
 }
 
-.cost-price-manager .cost-input,
-.valuation-manager .valuation-input {
+input.cost-input,
+input.valuation-input {
 	width: 100px;
 	padding: 6px 8px;
 	font-size: 12px;
@@ -488,160 +424,190 @@
 	transition: border-color 0.2s ease;
 }
 
-.cost-price-manager .cost-input:focus,
-.valuation-manager .valuation-input:focus {
+input.cost-input:focus,
+input.valuation-input:focus {
 	border-color: #007bff !important;
 	outline: none;
 	background: #2a2a2a !important;
 }
 
-/* Icônes d'état - DARK MODE FORCÉ */
-.margin-status-icon {
+/* Indicateurs dans les lignes d'articles */
+span.margin-indicator {
 	display: inline-block;
-	width: 12px;
-	height: 12px;
-	border-radius: 50%;
-	margin-right: 6px;
-	vertical-align: middle;
+	padding: 2px 6px;
+	border-radius: 3px;
+	font-size: 11px;
+	font-weight: 600;
+	margin-left: 8px;
+	color: white !important;
 }
 
-.margin-status-icon.excellent {
+span.margin-indicator.excellent {
 	background: #28a745 !important;
 }
 
-.margin-status-icon.good {
+span.margin-indicator.good {
 	background: #007bff !important;
 }
 
-.margin-status-icon.acceptable {
+span.margin-indicator.acceptable {
 	background: #ffc107 !important;
+	color: #000 !important;
 }
 
-.margin-status-icon.low {
+span.margin-indicator.low {
 	background: #fd7e14 !important;
 }
 
-.margin-status-icon.negative {
+span.margin-indicator.negative {
 	background: #dc3545 !important;
 }
 
-/* Barres de progression - DARK MODE FORCÉ */
-.margin-progress {
-	width: 100%;
-	height: 8px;
-	background: #333 !important;
+/* Alertes */
+div.margin-alert {
+	padding: 12px 16px;
 	border-radius: 4px;
-	overflow: hidden;
-	margin: 8px 0;
+	margin: 12px 0;
+	border-left: 4px solid;
+	font-size: 14px;
 }
 
-.margin-progress-bar {
-	height: 100%;
-	transition: width 0.5s ease;
-	border-radius: inherit;
+div.margin-alert.success {
+	background: rgba(40, 167, 69, 0.1) !important;
+	border-left-color: #28a745 !important;
+	color: #4ade80 !important;
 }
 
-/* Tooltips - DARK MODE FORCÉ */
-.margin-tooltip {
-	position: relative;
-	cursor: help;
+div.margin-alert.warning {
+	background: rgba(255, 193, 7, 0.1) !important;
+	border-left-color: #ffc107 !important;
+	color: #fbbf24 !important;
 }
 
-.margin-tooltip::after {
-	content: attr(data-tooltip);
-	position: absolute;
-	bottom: 125%;
-	left: 50%;
-	transform: translateX(-50%);
+div.margin-alert.danger {
+	background: rgba(220, 53, 69, 0.1) !important;
+	border-left-color: #dc3545 !important;
+	color: #f87171 !important;
+}
+
+div.margin-alert.info {
+	background: rgba(0, 123, 255, 0.1) !important;
+	border-left-color: #007bff !important;
+	color: #60a5fa !important;
+}
+
+/* IMPORTANT: Ciblage UNIQUEMENT des dialogues contenant des éléments de marge */
+/* Utilise :has() pour cibler seulement les modales avec contenu de marge */
+
+/* Dialogue Frappe avec contenu de marge */
+.frappe-dialog:has(div.margin-analysis) .modal-content {
 	background: #1a1a1a !important;
-	color: #f8f9fa !important;
-	padding: 6px 8px;
-	border-radius: 4px;
-	font-size: 12px;
-	white-space: nowrap;
-	opacity: 0;
-	pointer-events: none;
-	transition: opacity 0.2s;
-	z-index: 1000;
+	color: #e8e8e8 !important;
 	border: 1px solid #333 !important;
 }
 
-.margin-tooltip:hover::after {
+.frappe-dialog:has(div.margin-analysis) .modal-header {
+	background: #262626 !important;
+	border-bottom: 1px solid #333 !important;
+}
+
+.frappe-dialog:has(div.margin-analysis) .modal-title {
+	color: #f8f9fa !important;
+}
+
+.frappe-dialog:has(div.margin-analysis) .modal-body {
+	background: #1a1a1a !important;
+	color: #e8e8e8 !important;
+}
+
+/* Dialogue avec tableau de marge */
+.frappe-dialog:has(div.items-margin-table) .modal-content {
+	background: #1a1a1a !important;
+	color: #e8e8e8 !important;
+	border: 1px solid #333 !important;
+}
+
+.frappe-dialog:has(div.items-margin-table) .modal-header {
+	background: #262626 !important;
+	border-bottom: 1px solid #333 !important;
+}
+
+.frappe-dialog:has(div.items-margin-table) .modal-title {
+	color: #f8f9fa !important;
+}
+
+/* Dialogue avec gestionnaire valorisation */
+.frappe-dialog:has(div.valuation-manager) .modal-content {
+	background: #1a1a1a !important;
+	color: #e8e8e8 !important;
+	border: 1px solid #333 !important;
+}
+
+.frappe-dialog:has(div.valuation-manager) .modal-header {
+	background: #262626 !important;
+	border-bottom: 1px solid #333 !important;
+}
+
+.frappe-dialog:has(div.valuation-manager) .modal-title {
+	color: #f8f9fa !important;
+}
+
+/* Boutons de fermeture UNIQUEMENT dans les dialogues de marge */
+.frappe-dialog:has(div.margin-analysis) .btn-modal-close,
+.frappe-dialog:has(div.items-margin-table) .btn-modal-close,
+.frappe-dialog:has(div.valuation-manager) .btn-modal-close {
+	color: #f8f9fa !important;
+	opacity: 0.8;
+}
+
+.frappe-dialog:has(div.margin-analysis) .btn-modal-close:hover,
+.frappe-dialog:has(div.items-margin-table) .btn-modal-close:hover,
+.frappe-dialog:has(div.valuation-manager) .btn-modal-close:hover {
+	color: #fff !important;
 	opacity: 1;
 }
 
-/* Force dark mode sur tous les dialogues ERPNext contenant des marges */
-.modal-dialog:has(.margin-analysis),
-.frappe-dialog:has(.margin-analysis),
-.dialog:has(.margin-analysis) {
-	background: #1a1a1a !important;
-	color: #e8e8e8 !important;
-}
-
-.modal-content:has(.margin-analysis),
-.frappe-dialog .modal-content:has(.margin-analysis) {
-	background: #1a1a1a !important;
-	border: 1px solid #333 !important;
-	color: #e8e8e8 !important;
-}
-
-.modal-header:has(.margin-analysis ~ *),
-.frappe-dialog .modal-header {
-	background: #262626 !important;
-	border-bottom: 1px solid #333 !important;
-	color: #f8f9fa !important;
-}
-
-.modal-title {
-	color: #f8f9fa !important;
-}
-
-.modal-body:has(.margin-analysis) {
-	background: #1a1a1a !important;
-	color: #e8e8e8 !important;
-}
-
-/* Responsive pour mobile - DARK MODE FORCÉ */
+/* Responsive pour mobile */
 @media (max-width: 768px) {
-	.margin-analysis {
+	div.margin-analysis {
 		padding: 12px;
 		margin: 5px;
 		background: #1a1a1a !important;
 	}
 
-	.margin-card {
+	div.margin-card {
 		margin-bottom: 12px;
 		padding: 16px;
 		background: #262626 !important;
 	}
 
-	.margin-card h4 {
+	div.margin-card h4 {
 		font-size: 16px;
 		color: #f8f9fa !important;
 	}
 
-	.items-margin-table {
+	div.items-margin-table {
 		font-size: 12px;
 		background: #262626 !important;
 	}
 
-	.items-margin-table th,
-	.items-margin-table td {
+	div.items-margin-table th,
+	div.items-margin-table td {
 		padding: 8px 4px;
 		color: #d1d5db !important;
 	}
 
-	.items-margin-table th {
+	div.items-margin-table th {
 		background: #1a1a1a !important;
 		color: #f8f9fa !important;
 	}
 
-	.margin-actions {
+	div.margin-actions {
 		padding: 16px 8px;
 		background: #262626 !important;
 	}
 
-	.margin-actions button {
+	div.margin-actions button {
 		min-width: auto;
 		width: 100%;
 		margin: 4px 0;
@@ -650,66 +616,21 @@
 		color: #f8f9fa !important;
 	}
 
-	.margin-percentage {
+	span.margin-percentage {
 		font-size: 14px;
 		padding: 3px 6px;
 		background: #333 !important;
 		color: #fff !important;
 	}
 
-	.status-badge {
+	span.status-badge {
 		padding: 3px 6px;
 		font-size: 11px;
 	}
 }
 
-/* Force dark sur TOUS les éléments de dialogue Frappe qui contiennent du contenu de marge */
-.frappe-dialog[data-title*="marge" i] .modal-content,
-.frappe-dialog[data-title*="margin" i] .modal-content,
-.frappe-dialog[data-title*="valorisation" i] .modal-content,
-.frappe-dialog[data-title*="Bundle" i] .modal-content {
-	background: #1a1a1a !important;
-	color: #e8e8e8 !important;
-}
-
-.frappe-dialog[data-title*="marge" i] .modal-header,
-.frappe-dialog[data-title*="margin" i] .modal-header,
-.frappe-dialog[data-title*="valorisation" i] .modal-header,
-.frappe-dialog[data-title*="Bundle" i] .modal-header {
-	background: #262626 !important;
-	border-bottom: 1px solid #333 !important;
-}
-
-.frappe-dialog[data-title*="marge" i] .modal-title,
-.frappe-dialog[data-title*="margin" i] .modal-title,
-.frappe-dialog[data-title*="valorisation" i] .modal-title,
-.frappe-dialog[data-title*="Bundle" i] .modal-title {
-	color: #f8f9fa !important;
-}
-
-/* Override pour s'assurer que le dark mode s'applique même en mode clair */
-.margin-analysis,
-.margin-card,
-.items-margin-table,
-.margin-actions,
-.cost-price-manager,
-.valuation-manager {
-	background: #1a1a1a !important;
-	border-color: #333 !important;
-	color: #e8e8e8 !important;
-}
-
-/* Override forcé pour les boutons de fermeture et actions de dialogue */
-.frappe-dialog .btn-modal-close,
-.modal-header .btn-close,
-.modal-header button[data-dismiss="modal"] {
-	color: #f8f9fa !important;
-	opacity: 0.8;
-}
-
-.frappe-dialog .btn-modal-close:hover,
-.modal-header .btn-close:hover,
-.modal-header button[data-dismiss="modal"]:hover {
-	color: #fff !important;
-	opacity: 1;
-}
+/* ========================================= */
+/* GARANTIE DE COMPATIBILITÉ */
+/* Ces styles NE S'APPLIQUENT QU'AUX ÉLÉMENTS DE MARGE */
+/* Tous les autres boutons ERPNext restent intacts */
+/* ========================================= */
