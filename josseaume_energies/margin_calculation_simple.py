@@ -1,11 +1,11 @@
-# josseaume_energies/margin_calculation_simple.py
+# josseaume_energies/margin_calculation_simple.py - VERSION CORRIGÉE BUNDLE
 
 import frappe
 from frappe import _
 from frappe.utils import flt, cstr
 
 # ========================================
-# FONCTIONS POUR LE CALCUL DES MARGES SIMPLIFIÉ AVEC SUPPORT BUNDLE
+# FONCTIONS POUR LE CALCUL DES MARGES SIMPLIFIÉ AVEC SUPPORT BUNDLE CORRIGÉ
 # ========================================
 
 @frappe.whitelist()
@@ -79,7 +79,9 @@ def get_item_cost_price(item_code):
     try:
         # NOUVEAU: Vérifier si c'est un bundle item
         if is_bundle_item(item_code):
-            return get_bundle_cost_price(item_code)
+            bundle_cost = get_bundle_cost_price(item_code)
+            frappe.log_error(f"Bundle {item_code} - Coût calculé: {bundle_cost}", "Bundle Cost Debug")
+            return bundle_cost
         
         # Méthode 1: Champ custom_standard_cost si il existe
         try:
@@ -141,44 +143,51 @@ def is_bundle_item(item_code):
 def get_bundle_cost_price(item_code):
     """
     Calcule le prix de revient d'un bundle en additionnant les coûts de ses composants
+    VERSION CORRIGÉE
     """
     try:
         total_cost = 0
         
+        # CORRECTION: Récupérer d'abord le nom du Product Bundle
+        bundle_name = frappe.db.get_value("Product Bundle", {"new_item_code": item_code}, "name")
+        
+        if not bundle_name:
+            frappe.log_error(f"Aucun Product Bundle trouvé pour {item_code}", "Bundle Debug")
+            return 0
+        
         # Récupérer tous les composants du bundle
         bundle_items = frappe.get_all("Product Bundle Item", 
-            filters={"parent": item_code},
-            fields=["item_code", "qty", "rate"]
+            filters={"parent": bundle_name},
+            fields=["item_code", "qty", "rate", "description"]
         )
         
-        if not bundle_items:
-            # Fallback: chercher avec new_item_code
-            bundle_parent = frappe.db.get_value("Product Bundle", 
-                {"new_item_code": item_code}, "name")
-            
-            if bundle_parent:
-                bundle_items = frappe.get_all("Product Bundle Item",
-                    filters={"parent": bundle_parent},
-                    fields=["item_code", "qty", "rate"]
-                )
+        frappe.log_error(f"Bundle {item_code} - Trouvé {len(bundle_items)} composants", "Bundle Debug")
         
         for bundle_item in bundle_items:
             component_item_code = bundle_item.get("item_code")
             component_qty = flt(bundle_item.get("qty", 1))
             
-            # Récupérer le coût du composant (récursif pour les bundles imbriqués)
+            # CORRECTION: NE PAS utiliser le champ "rate" du Product Bundle Item
+            # car il peut contenir le prix de vente. Utiliser notre fonction de calcul de coût
             component_cost = get_item_cost_price(component_item_code)
             
-            # Ajouter au coût total
-            total_cost += component_cost * component_qty
+            # Si pas de coût trouvé, essayer d'utiliser le prix standard de l'item
+            if not component_cost:
+                item_standard_rate = frappe.db.get_value("Item", component_item_code, "standard_rate")
+                if item_standard_rate:
+                    component_cost = flt(item_standard_rate)
+            
+            # Calculer le sous-total
+            component_total = component_cost * component_qty
+            total_cost += component_total
             
             # Log pour debug
             frappe.log_error(f"Bundle {item_code} - Composant {component_item_code}: "
-                           f"coût={component_cost}, qté={component_qty}, sous-total={component_cost * component_qty}",
-                           "Bundle cost calculation")
+                           f"coût={component_cost}, qté={component_qty}, sous-total={component_total}",
+                           "Bundle Component Debug")
         
-        frappe.log_error(f"Bundle {item_code} - Coût total calculé: {total_cost}", 
-                       "Bundle cost calculation")
+        frappe.log_error(f"Bundle {item_code} - Coût total final: {total_cost}", 
+                       "Bundle Total Cost Debug")
         
         return total_cost
         
@@ -189,27 +198,23 @@ def get_bundle_cost_price(item_code):
 def get_bundle_details(item_code):
     """
     Récupère les détails des composants d'un bundle pour l'affichage
+    VERSION CORRIGÉE
     """
     try:
         if not is_bundle_item(item_code):
             return None
         
+        # CORRECTION: Récupérer d'abord le nom du Product Bundle
+        bundle_name = frappe.db.get_value("Product Bundle", {"new_item_code": item_code}, "name")
+        
+        if not bundle_name:
+            return None
+        
         # Récupérer tous les composants du bundle
         bundle_items = frappe.get_all("Product Bundle Item", 
-            filters={"parent": item_code},
+            filters={"parent": bundle_name},
             fields=["item_code", "qty", "rate", "description"]
         )
-        
-        if not bundle_items:
-            # Fallback: chercher avec new_item_code
-            bundle_parent = frappe.db.get_value("Product Bundle", 
-                {"new_item_code": item_code}, "name")
-            
-            if bundle_parent:
-                bundle_items = frappe.get_all("Product Bundle Item",
-                    filters={"parent": bundle_parent},
-                    fields=["item_code", "qty", "rate", "description"]
-                )
         
         components = []
         total_cost = 0
@@ -220,7 +225,16 @@ def get_bundle_details(item_code):
             
             # Récupérer le nom et le coût du composant
             item_name = frappe.db.get_value("Item", component_item_code, "item_name") or component_item_code
+            
+            # CORRECTION: Utiliser notre fonction de calcul de coût au lieu du rate
             component_cost = get_item_cost_price(component_item_code)
+            
+            # Si pas de coût trouvé, essayer le prix standard
+            if not component_cost:
+                item_standard_rate = frappe.db.get_value("Item", component_item_code, "standard_rate")
+                if item_standard_rate:
+                    component_cost = flt(item_standard_rate)
+            
             component_total = component_cost * component_qty
             
             components.append({
@@ -713,4 +727,72 @@ def get_all_bundles_analysis():
         return {
             "status": "error",
             "message": str(e)
+        }
+
+# ========================================
+# FONCTION DEBUG POUR TESTER UN BUNDLE SPÉCIFIQUE
+# ========================================
+
+@frappe.whitelist()
+def debug_bundle_calculation(item_code):
+    """
+    Fonction de debug pour analyser un bundle spécifique
+    """
+    try:
+        result = {
+            "item_code": item_code,
+            "is_bundle": is_bundle_item(item_code),
+            "bundle_exists": bool(frappe.db.exists("Product Bundle", {"new_item_code": item_code})),
+            "steps": []
+        }
+        
+        if result["is_bundle"]:
+            # Étape 1: Trouver le Product Bundle
+            bundle_name = frappe.db.get_value("Product Bundle", {"new_item_code": item_code}, "name")
+            result["bundle_name"] = bundle_name
+            result["steps"].append(f"Product Bundle trouvé: {bundle_name}")
+            
+            # Étape 2: Récupérer les composants
+            if bundle_name:
+                bundle_items = frappe.get_all("Product Bundle Item", 
+                    filters={"parent": bundle_name},
+                    fields=["item_code", "qty", "rate", "description"]
+                )
+                result["components_count"] = len(bundle_items)
+                result["steps"].append(f"Composants trouvés: {len(bundle_items)}")
+                
+                # Étape 3: Calculer le coût de chaque composant
+                total_cost = 0
+                components_detail = []
+                
+                for bundle_item in bundle_items:
+                    component_item_code = bundle_item.get("item_code")
+                    component_qty = flt(bundle_item.get("qty", 1))
+                    
+                    # Récupérer le coût du composant
+                    component_cost = get_item_cost_price(component_item_code)
+                    component_total = component_cost * component_qty
+                    total_cost += component_total
+                    
+                    components_detail.append({
+                        "item_code": component_item_code,
+                        "qty": component_qty,
+                        "rate_in_bundle": bundle_item.get("rate", 0),  # Prix dans le bundle
+                        "calculated_cost": component_cost,  # Coût calculé
+                        "total_cost": component_total
+                    })
+                    
+                    result["steps"].append(f"Composant {component_item_code}: qté={component_qty}, coût={component_cost}, total={component_total}")
+                
+                result["total_calculated_cost"] = total_cost
+                result["components_detail"] = components_detail
+                result["steps"].append(f"Coût total calculé: {total_cost}")
+            
+        return result
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e),
+            "item_code": item_code
         }
