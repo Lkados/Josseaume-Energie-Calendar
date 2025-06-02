@@ -237,7 +237,7 @@ function show_margin_analysis(frm) {
 function show_margin_summary_dialog(data) {
 	const dialog = new frappe.ui.Dialog({
 		title: __("Analyse des marges - ") + data.quotation_name,
-		size: "large",
+		size: "extra-large",
 		fields: [
 			{
 				fieldtype: "HTML",
@@ -280,21 +280,28 @@ function show_margin_summary_dialog(data) {
 					<thead>
 						<tr>
 							<th>Article</th>
+							<th>Type</th>
 							<th>Qté</th>
 							<th>Prix vente</th>
 							<th>Prix valorisation</th>
 							<th>Marge</th>
 							<th>Taux</th>
 							<th>Statut</th>
+							<th>Actions</th>
 						</tr>
 					</thead>
 					<tbody>
 	`;
 
 	data.items_analysis.forEach((item) => {
+		const isBundle = item.is_bundle || false;
+		const bundleIcon = isBundle ? "📦" : "📄";
+		const bundleLabel = isBundle ? "Bundle" : "Article";
+
 		html += `
 			<tr class="item-row ${item.margin_status}">
 				<td><strong>${item.item_code}</strong><br><small>${item.item_name || ""}</small></td>
+				<td><span style="font-size: 12px;">${bundleIcon} ${bundleLabel}</span></td>
 				<td>${item.qty}</td>
 				<td>${format_currency(item.rate)}</td>
 				<td>${format_currency(item.cost_price)}</td>
@@ -303,6 +310,17 @@ function show_margin_summary_dialog(data) {
 				<td><span class="status-badge ${item.margin_status}">${get_status_label(
 			item.margin_status
 		)}</span></td>
+				<td>
+					${
+						isBundle
+							? `<button class="btn btn-xs btn-info" onclick="analyze_bundle_item('${item.item_code}')">
+							<i class="fa fa-search"></i> Analyser Bundle
+						</button>`
+							: `<button class="btn btn-xs btn-secondary" onclick="view_item_details('${item.item_code}')">
+							<i class="fa fa-eye"></i> Détails
+						</button>`
+					}
+				</td>
 			</tr>
 		`;
 	});
@@ -316,6 +334,125 @@ function show_margin_summary_dialog(data) {
 
 	dialog.fields_dict.margin_summary.$wrapper.html(html);
 	dialog.show();
+}
+
+// NOUVELLE FONCTION: Analyser un bundle item en détail
+function analyze_bundle_item(item_code) {
+	frappe.call({
+		method: "josseaume_energies.margin_calculation_simple.analyze_bundle_item",
+		args: {
+			item_code: item_code,
+		},
+		callback: function (r) {
+			if (r.message && r.message.status === "success") {
+				show_bundle_analysis_dialog(r.message);
+			} else {
+				frappe.msgprint({
+					title: __("Erreur"),
+					indicator: "red",
+					message: r.message
+						? r.message.message
+						: __("Erreur lors de l'analyse du bundle"),
+				});
+			}
+		},
+	});
+}
+
+// NOUVELLE FONCTION: Afficher le dialogue d'analyse de bundle
+function show_bundle_analysis_dialog(data) {
+	const dialog = new frappe.ui.Dialog({
+		title: __("Analyse Bundle - ") + data.item_code,
+		size: "large",
+		fields: [
+			{
+				fieldtype: "HTML",
+				fieldname: "bundle_analysis",
+			},
+		],
+	});
+
+	let html = `
+		<div class="margin-analysis">
+			<div class="margin-card bundle-info">
+				<h4>📦 Informations Bundle</h4>
+				<p><strong>Code article:</strong> ${data.item_code}</p>
+				<p><strong>Nom:</strong> ${data.item_name}</p>
+				<p><strong>Prix de vente standard:</strong> ${format_currency(data.standard_selling_price)}</p>
+				<p><strong>Coût total calculé:</strong> ${format_currency(data.total_cost)}</p>
+				<p><strong>Nombre de composants:</strong> ${data.components_count}</p>
+			</div>
+	`;
+
+	if (data.margin_info) {
+		html += `
+			<div class="margin-card ${data.margin_info.margin_status}">
+				<h4>💰 Analyse de Marge</h4>
+				<p><strong>Marge en montant:</strong> ${format_currency(data.margin_info.margin_amount)}</p>
+				<p><strong>Taux de marge:</strong> <span class="margin-percentage">${data.margin_info.margin_percentage.toFixed(
+					2
+				)}%</span></p>
+				<p><strong>Statut:</strong> <span class="status-badge ${
+					data.margin_info.margin_status
+				}">${get_status_label(data.margin_info.margin_status)}</span></p>
+			</div>
+		`;
+	}
+
+	html += `
+			<h5>🔧 Composants du Bundle</h5>
+			<div class="items-margin-table">
+				<table class="table table-bordered">
+					<thead>
+						<tr>
+							<th>Code Composant</th>
+							<th>Nom</th>
+							<th>Quantité</th>
+							<th>Coût Unitaire</th>
+							<th>Coût Total</th>
+							<th>% du Total</th>
+						</tr>
+					</thead>
+					<tbody>
+	`;
+
+	data.bundle_details.components.forEach((component) => {
+		const percentage =
+			data.total_cost > 0 ? (component.total_cost / data.total_cost) * 100 : 0;
+
+		html += `
+			<tr>
+				<td><strong>${component.item_code}</strong></td>
+				<td>${component.item_name}</td>
+				<td>${component.qty}</td>
+				<td>${format_currency(component.cost_price)}</td>
+				<td>${format_currency(component.total_cost)}</td>
+				<td>${percentage.toFixed(1)}%</td>
+			</tr>
+		`;
+	});
+
+	html += `
+					</tbody>
+					<tfoot>
+						<tr style="font-weight: bold; background-color: #f8f9fa;">
+							<td colspan="4">TOTAL</td>
+							<td>${format_currency(data.total_cost)}</td>
+							<td>100%</td>
+						</tr>
+					</tfoot>
+				</table>
+			</div>
+		</div>
+	`;
+
+	dialog.fields_dict.bundle_analysis.$wrapper.html(html);
+	dialog.show();
+}
+
+// FONCTION MISE À JOUR: Afficher les détails d'un article normal
+function view_item_details(item_code) {
+	frappe.set_route("Form", "Item", item_code);
 }
 
 function show_valuation_manager(frm) {
@@ -468,9 +605,143 @@ function check_setup_status(frm) {
 				} else if (setup.items_with_valuation === 0) {
 					show_valuation_warning();
 				}
+
+				// NOUVEAU: Afficher les informations sur les bundles
+				if (setup.total_bundles > 0) {
+					console.log(
+						`Bundles détectés: ${setup.total_bundles} total, ${setup.bundles_with_cost} avec coût`
+					);
+
+					// Ajouter un bouton pour analyser tous les bundles
+					if (frm && !frm.custom_bundle_button_added) {
+						frm.add_custom_button(
+							__("📦 Analyser Bundles"),
+							function () {
+								show_all_bundles_analysis();
+							},
+							__("Actions")
+						);
+						frm.custom_bundle_button_added = true;
+					}
+				}
 			}
 		},
 	});
+}
+
+// NOUVELLE FONCTION: Afficher l'analyse de tous les bundles
+function show_all_bundles_analysis() {
+	frappe.call({
+		method: "josseaume_energies.margin_calculation_simple.get_all_bundles_analysis",
+		callback: function (r) {
+			if (r.message && r.message.status === "success") {
+				show_bundles_overview_dialog(r.message);
+			} else {
+				frappe.msgprint({
+					title: __("Erreur"),
+					indicator: "red",
+					message: r.message
+						? r.message.message
+						: __("Erreur lors de l'analyse des bundles"),
+				});
+			}
+		},
+	});
+}
+
+// NOUVELLE FONCTION: Dialogue d'aperçu de tous les bundles
+function show_bundles_overview_dialog(data) {
+	const dialog = new frappe.ui.Dialog({
+		title: __("Vue d'ensemble des Bundles"),
+		size: "extra-large",
+		fields: [
+			{
+				fieldtype: "HTML",
+				fieldname: "bundles_overview",
+			},
+		],
+	});
+
+	let html = `
+		<div class="margin-analysis">
+			<div class="row">
+				<div class="col-md-4">
+					<div class="margin-card excellent">
+						<h4>📦 Bundles Total</h4>
+						<p style="font-size: 24px; font-weight: bold; text-align: center;">${data.total_bundles}</p>
+					</div>
+				</div>
+				<div class="col-md-4">
+					<div class="margin-card good">
+						<h4>💰 Avec Prix</h4>
+						<p style="font-size: 24px; font-weight: bold; text-align: center;">${data.bundles_with_price}</p>
+					</div>
+				</div>
+				<div class="col-md-4">
+					<div class="margin-card acceptable">
+						<h4>🔧 Avec Coût</h4>
+						<p style="font-size: 24px; font-weight: bold; text-align: center;">${data.bundles_with_cost}</p>
+					</div>
+				</div>
+			</div>
+			
+			<h5>📋 Liste des Bundles</h5>
+			<div class="items-margin-table">
+				<table class="table table-bordered">
+					<thead>
+						<tr>
+							<th>Code Bundle</th>
+							<th>Nom</th>
+							<th>Composants</th>
+							<th>Coût Total</th>
+							<th>Prix Vente</th>
+							<th>Marge %</th>
+							<th>Statut</th>
+							<th>Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+	`;
+
+	data.bundles_analysis.forEach((bundle) => {
+		const hasPrice = bundle.has_selling_price;
+		const priceDisplay = hasPrice
+			? format_currency(bundle.standard_selling_price)
+			: "Non défini";
+		const marginDisplay = hasPrice ? `${bundle.margin_percentage.toFixed(1)}%` : "-";
+		const statusClass = hasPrice ? bundle.margin_status : "unknown";
+		const statusLabel = hasPrice ? get_status_label(bundle.margin_status) : "Pas de prix";
+
+		html += `
+			<tr class="item-row ${statusClass}">
+				<td><strong>${bundle.item_code}</strong></td>
+				<td>${bundle.item_name}</td>
+				<td style="text-align: center;">${bundle.components_count}</td>
+				<td>${format_currency(bundle.total_cost)}</td>
+				<td>${priceDisplay}</td>
+				<td>${marginDisplay}</td>
+				<td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
+				<td>
+					<button class="btn btn-xs btn-info" onclick="analyze_bundle_item('${bundle.item_code}')">
+						<i class="fa fa-search"></i> Analyser
+					</button>
+					<button class="btn btn-xs btn-secondary" onclick="view_item_details('${bundle.item_code}')">
+						<i class="fa fa-external-link"></i> Ouvrir
+					</button>
+				</td>
+			</tr>
+		`;
+	});
+
+	html += `
+					</tbody>
+				</table>
+			</div>
+		</div>
+	`;
+
+	dialog.fields_dict.bundles_overview.$wrapper.html(html);
+	dialog.show();
 }
 
 function show_setup_warning(setup) {
@@ -598,10 +869,33 @@ function show_valuation_analysis() {
 				const setup = r.message;
 				frappe.msgprint({
 					title: __("Analyse des valorisations"),
+					size: "large",
 					message: `
-						<p><strong>Articles totaux:</strong> ${setup.total_items}</p>
-						<p><strong>Articles avec valorisation:</strong> ${setup.items_with_valuation}</p>
-						<p><strong>Couverture:</strong> ${setup.valuation_coverage}</p>
+						<div style="padding: 20px;">
+							<h4>📊 Statistiques Articles</h4>
+							<p><strong>Articles totaux:</strong> ${setup.total_items}</p>
+							<p><strong>Articles avec valorisation:</strong> ${setup.items_with_valuation}</p>
+							<p><strong>Couverture:</strong> ${setup.valuation_coverage}</p>
+							
+							<hr>
+							
+							<h4>📦 Statistiques Bundles</h4>
+							<p><strong>Bundles totaux:</strong> ${setup.total_bundles || 0}</p>
+							<p><strong>Bundles avec coût calculable:</strong> ${setup.bundles_with_cost || 0}</p>
+							<p><strong>Couverture bundles:</strong> ${setup.bundle_coverage || "0%"}</p>
+							
+							${
+								setup.total_bundles > 0
+									? `
+								<div style="margin-top: 15px;">
+									<button class="btn btn-primary" onclick="show_all_bundles_analysis()">
+										<i class="fa fa-search"></i> Analyser tous les bundles
+									</button>
+								</div>
+							`
+									: ""
+							}
+						</div>
 					`,
 				});
 			}

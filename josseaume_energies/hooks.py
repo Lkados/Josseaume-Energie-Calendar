@@ -1,12 +1,12 @@
-# josseaume_energies/hooks.py - VERSION CORRIGÉE
+# josseaume_energies/hooks.py - VERSION CORRIGÉE AVEC SUPPORT BUNDLE
 
 app_name = "josseaume_energies"
 app_title = "Josseaume Energies"
 app_publisher = "Mohamed Kachtit"
-app_description = "Personnalisation du calendrier Event et calcul de marges (version simplifiée)"
+app_description = "Personnalisation du calendrier Event et calcul de marges avec support Bundle (version simplifiée)"
 app_icon = "octicon octicon-calendar"
 app_color = "grey"
-app_version = "0.2.1"
+app_version = "0.3.0"
 
 # Définir la page du calendrier
 page_js = {
@@ -28,7 +28,7 @@ website_route_rules = [
     {"from_route": "/two-column-calendar", "to_route": "page/two_column_calendar"},
 ]
 
-# Whitelist pour l'API - VERSION SIMPLIFIÉE
+# Whitelist pour l'API - VERSION SIMPLIFIÉE AVEC SUPPORT BUNDLE
 whitelist_methods = {
     # API Calendrier existantes
     "josseaume_energies.api.create_event_from_sales_order": True,
@@ -45,7 +45,7 @@ whitelist_methods = {
     "josseaume_energies.api.get_day_events_by_employees": True,
     "josseaume_energies.api.get_team_options": True,
     
-    # NOUVELLES API pour le calcul de marges SIMPLIFIÉ
+    # API pour le calcul de marges SIMPLIFIÉ AVEC SUPPORT BUNDLE
     "josseaume_energies.margin_calculation_simple.calculate_item_margin": True,
     "josseaume_energies.margin_calculation_simple.calculate_quotation_margin": True,
     "josseaume_energies.margin_calculation_simple.update_item_valuation_rate": True,
@@ -53,13 +53,17 @@ whitelist_methods = {
     "josseaume_energies.margin_calculation_simple.export_items_for_valuation_update": True,
     "josseaume_energies.margin_calculation_simple.sync_valuation_from_last_purchase": True,
     "josseaume_energies.margin_calculation_simple.check_margin_setup": True,
+    
+    # NOUVELLES API pour les Bundle Items
+    "josseaume_energies.margin_calculation_simple.analyze_bundle_item": True,
+    "josseaume_energies.margin_calculation_simple.get_all_bundles_analysis": True,
 }
 
 # Client scripts
 doctype_js = {
     "Sales Order": "public/js/sales_order.js",
     "Event": "public/js/event.js",
-    # NOUVEAU: Script simplifié pour les devis
+    # NOUVEAU: Script simplifié pour les devis avec support Bundle
     "Quotation": "public/js/quotation_margin_simple.js"
 }
 
@@ -73,7 +77,7 @@ doc_events = {
         "on_update": "josseaume_energies.event.on_update",
         "on_trash": "josseaume_energies.event.on_trash"
     },
-    # NOUVEAU: Hook simplifié pour le calcul automatique des marges
+    # NOUVEAU: Hook simplifié pour le calcul automatique des marges avec Bundle
     "Quotation": {
         "validate": "josseaume_energies.margin_calculation_simple.quotation_on_save",
         "on_update": "josseaume_energies.margin_calculation_simple.quotation_on_save"
@@ -93,6 +97,6 @@ fixtures = [
 # Configuration minimale pour les permissions
 has_permission = {
     "create_event_from_sales_order": "all",
-    "calculate_quotation_margin": "all"
+    "calculate_quotation_margin": "all",
+    "analyze_bundle_item": "all"
 }
-

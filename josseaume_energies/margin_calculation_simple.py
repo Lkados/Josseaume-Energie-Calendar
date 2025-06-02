@@ -5,26 +5,35 @@ from frappe import _
 from frappe.utils import flt, cstr
 
 # ========================================
-# FONCTIONS POUR LE CALCUL DES MARGES SIMPLIFIÉ
+# FONCTIONS POUR LE CALCUL DES MARGES SIMPLIFIÉ AVEC SUPPORT BUNDLE
 # ========================================
 
 @frappe.whitelist()
 def calculate_item_margin(item_code, selling_price, qty=1):
     """
-    Calcule la marge pour un article donné (utilise valuation_rate)
+    Calcule la marge pour un article donné (inclut le support des bundle items)
     """
     try:
-        # Récupérer le prix de revient de l'article
+        # Récupérer le prix de revient de l'article (bundle ou normal)
         cost_price = get_item_cost_price(item_code)
+        
+        # Vérifier si c'est un bundle pour fournir des détails supplémentaires
+        is_bundle = is_bundle_item(item_code)
+        bundle_details = None
+        
+        if is_bundle:
+            bundle_details = get_bundle_details(item_code)
         
         if not cost_price:
             return {
                 "status": "warning",
-                "message": f"Prix de revient non défini pour {item_code}",
+                "message": f"Prix de revient non défini pour {item_code}" + (" (Bundle)" if is_bundle else ""),
                 "cost_price": 0,
                 "selling_price": flt(selling_price),
                 "margin_amount": 0,
-                "margin_percentage": 0
+                "margin_percentage": 0,
+                "is_bundle": is_bundle,
+                "bundle_details": bundle_details
             }
         
         # Calculer la marge
@@ -50,7 +59,9 @@ def calculate_item_margin(item_code, selling_price, qty=1):
             "margin_amount": margin_amount,
             "margin_percentage": margin_percentage,
             "margin_status": status,
-            "qty": qty
+            "qty": qty,
+            "is_bundle": is_bundle,
+            "bundle_details": bundle_details
         }
         
     except Exception as e:
@@ -63,9 +74,13 @@ def calculate_item_margin(item_code, selling_price, qty=1):
 def get_item_cost_price(item_code):
     """
     Récupère le prix de revient d'un article selon plusieurs méthodes
-    UTILISE valuation_rate comme source principale
+    INCLUT le support des bundle items (articles en kit)
     """
     try:
+        # NOUVEAU: Vérifier si c'est un bundle item
+        if is_bundle_item(item_code):
+            return get_bundle_cost_price(item_code)
+        
         # Méthode 1: Champ custom_standard_cost si il existe
         try:
             custom_cost = frappe.db.get_value("Item", item_code, "custom_standard_cost")
@@ -110,6 +125,124 @@ def get_item_cost_price(item_code):
     except Exception as e:
         frappe.log_error(f"Erreur récupération prix de revient {item_code}: {str(e)}")
         return 0
+
+def is_bundle_item(item_code):
+    """
+    Vérifie si un article est un bundle (contient d'autres articles)
+    """
+    try:
+        # Vérifier s'il existe des entrées dans Product Bundle pour cet item
+        bundle_exists = frappe.db.exists("Product Bundle", {"new_item_code": item_code})
+        return bool(bundle_exists)
+    except Exception as e:
+        frappe.log_error(f"Erreur vérification bundle {item_code}: {str(e)}")
+        return False
+
+def get_bundle_cost_price(item_code):
+    """
+    Calcule le prix de revient d'un bundle en additionnant les coûts de ses composants
+    """
+    try:
+        total_cost = 0
+        
+        # Récupérer tous les composants du bundle
+        bundle_items = frappe.get_all("Product Bundle Item", 
+            filters={"parent": item_code},
+            fields=["item_code", "qty", "rate"]
+        )
+        
+        if not bundle_items:
+            # Fallback: chercher avec new_item_code
+            bundle_parent = frappe.db.get_value("Product Bundle", 
+                {"new_item_code": item_code}, "name")
+            
+            if bundle_parent:
+                bundle_items = frappe.get_all("Product Bundle Item",
+                    filters={"parent": bundle_parent},
+                    fields=["item_code", "qty", "rate"]
+                )
+        
+        for bundle_item in bundle_items:
+            component_item_code = bundle_item.get("item_code")
+            component_qty = flt(bundle_item.get("qty", 1))
+            
+            # Récupérer le coût du composant (récursif pour les bundles imbriqués)
+            component_cost = get_item_cost_price(component_item_code)
+            
+            # Ajouter au coût total
+            total_cost += component_cost * component_qty
+            
+            # Log pour debug
+            frappe.log_error(f"Bundle {item_code} - Composant {component_item_code}: "
+                           f"coût={component_cost}, qté={component_qty}, sous-total={component_cost * component_qty}",
+                           "Bundle cost calculation")
+        
+        frappe.log_error(f"Bundle {item_code} - Coût total calculé: {total_cost}", 
+                       "Bundle cost calculation")
+        
+        return total_cost
+        
+    except Exception as e:
+        frappe.log_error(f"Erreur calcul coût bundle {item_code}: {str(e)}")
+        return 0
+
+def get_bundle_details(item_code):
+    """
+    Récupère les détails des composants d'un bundle pour l'affichage
+    """
+    try:
+        if not is_bundle_item(item_code):
+            return None
+        
+        # Récupérer tous les composants du bundle
+        bundle_items = frappe.get_all("Product Bundle Item", 
+            filters={"parent": item_code},
+            fields=["item_code", "qty", "rate", "description"]
+        )
+        
+        if not bundle_items:
+            # Fallback: chercher avec new_item_code
+            bundle_parent = frappe.db.get_value("Product Bundle", 
+                {"new_item_code": item_code}, "name")
+            
+            if bundle_parent:
+                bundle_items = frappe.get_all("Product Bundle Item",
+                    filters={"parent": bundle_parent},
+                    fields=["item_code", "qty", "rate", "description"]
+                )
+        
+        components = []
+        total_cost = 0
+        
+        for bundle_item in bundle_items:
+            component_item_code = bundle_item.get("item_code")
+            component_qty = flt(bundle_item.get("qty", 1))
+            
+            # Récupérer le nom et le coût du composant
+            item_name = frappe.db.get_value("Item", component_item_code, "item_name") or component_item_code
+            component_cost = get_item_cost_price(component_item_code)
+            component_total = component_cost * component_qty
+            
+            components.append({
+                "item_code": component_item_code,
+                "item_name": item_name,
+                "qty": component_qty,
+                "cost_price": component_cost,
+                "total_cost": component_total,
+                "description": bundle_item.get("description") or ""
+            })
+            
+            total_cost += component_total
+        
+        return {
+            "components": components,
+            "total_components": len(components),
+            "total_cost": total_cost
+        }
+        
+    except Exception as e:
+        frappe.log_error(f"Erreur récupération détails bundle {item_code}: {str(e)}")
+        return None
 
 def get_margin_status(margin_percentage):
     """
@@ -165,7 +298,9 @@ def calculate_quotation_margin(quotation_name):
                     "total_cost": item_cost,
                     "margin_amount": item_selling - item_cost,
                     "margin_percentage": item_margin["margin_percentage"],
-                    "margin_status": item_margin["margin_status"]
+                    "margin_status": item_margin["margin_status"],
+                    "is_bundle": item_margin.get("is_bundle", False),
+                    "bundle_details": item_margin.get("bundle_details")
                 })
         
         # Calculer la marge globale
@@ -398,13 +533,14 @@ def sync_valuation_from_last_purchase():
         }
 
 # ========================================
-# API pour vérifier la configuration
+# API pour vérifier la configuration avec support Bundle
 # ========================================
 
 @frappe.whitelist()
 def check_margin_setup():
     """
     Vérifie que tous les champs nécessaires existent
+    INCLUT la vérification des bundles
     """
     try:
         # Vérifier les champs Quotation
@@ -441,6 +577,17 @@ def check_margin_setup():
         
         total_items = frappe.db.count("Item", {"disabled": 0})
         
+        # NOUVEAU: Statistiques sur les bundles
+        total_bundles = frappe.db.count("Product Bundle")
+        bundles_with_cost = 0
+        
+        # Compter les bundles qui ont un coût calculable
+        if total_bundles > 0:
+            all_bundles = frappe.get_all("Product Bundle", fields=["new_item_code"])
+            for bundle in all_bundles:
+                if get_bundle_cost_price(bundle.new_item_code) > 0:
+                    bundles_with_cost += 1
+        
         return {
             "status": "success",
             "quotation_fields_missing": missing_quotation_fields,
@@ -448,11 +595,122 @@ def check_margin_setup():
             "items_with_valuation": items_with_valuation,
             "total_items": total_items,
             "valuation_coverage": f"{(items_with_valuation/total_items)*100:.1f}%" if total_items > 0 else "0%",
+            "total_bundles": total_bundles,
+            "bundles_with_cost": bundles_with_cost,
+            "bundle_coverage": f"{(bundles_with_cost/total_bundles)*100:.1f}%" if total_bundles > 0 else "0%",
             "ready_for_use": len(missing_quotation_fields) == 0 and len(missing_item_fields) == 0
         }
         
     except Exception as e:
         return {
             "status": "error", 
+            "message": str(e)
+        }
+
+@frappe.whitelist()
+def analyze_bundle_item(item_code):
+    """
+    Analyse détaillée d'un bundle item avec tous ses composants
+    """
+    try:
+        if not is_bundle_item(item_code):
+            return {
+                "status": "error",
+                "message": f"{item_code} n'est pas un bundle item"
+            }
+        
+        # Récupérer les détails du bundle
+        bundle_details = get_bundle_details(item_code)
+        
+        if not bundle_details:
+            return {
+                "status": "error",
+                "message": f"Impossible de récupérer les détails du bundle {item_code}"
+            }
+        
+        # Récupérer le nom de l'article bundle
+        item_name = frappe.db.get_value("Item", item_code, "item_name") or item_code
+        
+        # Récupérer le prix de vente du bundle s'il existe
+        standard_selling_price = frappe.db.get_value("Item Price", {
+            "item_code": item_code,
+            "price_list": "Standard Selling",
+            "selling": 1
+        }, "price_list_rate") or 0
+        
+        # Calculer la marge si on a un prix de vente
+        margin_info = None
+        if standard_selling_price > 0:
+            margin_result = calculate_item_margin(item_code, standard_selling_price, 1)
+            if margin_result["status"] == "success":
+                margin_info = margin_result
+        
+        return {
+            "status": "success",
+            "item_code": item_code,
+            "item_name": item_name,
+            "standard_selling_price": standard_selling_price,
+            "bundle_details": bundle_details,
+            "margin_info": margin_info,
+            "components_count": len(bundle_details["components"]),
+            "total_cost": bundle_details["total_cost"]
+        }
+        
+    except Exception as e:
+        frappe.log_error(f"Erreur analyse bundle {item_code}: {str(e)}")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+@frappe.whitelist()
+def get_all_bundles_analysis():
+    """
+    Analyse de tous les bundles du système
+    """
+    try:
+        # Récupérer tous les bundles
+        all_bundles = frappe.get_all("Product Bundle", 
+            fields=["new_item_code", "name"],
+            order_by="new_item_code"
+        )
+        
+        bundles_analysis = []
+        
+        for bundle in all_bundles:
+            item_code = bundle.new_item_code
+            
+            # Analyser chaque bundle
+            analysis = analyze_bundle_item(item_code)
+            
+            if analysis["status"] == "success":
+                bundles_analysis.append({
+                    "item_code": item_code,
+                    "item_name": analysis["item_name"],
+                    "components_count": analysis["components_count"],
+                    "total_cost": analysis["total_cost"],
+                    "standard_selling_price": analysis["standard_selling_price"],
+                    "margin_percentage": analysis["margin_info"]["margin_percentage"] if analysis["margin_info"] else 0,
+                    "margin_status": analysis["margin_info"]["margin_status"] if analysis["margin_info"] else "unknown",
+                    "has_selling_price": analysis["standard_selling_price"] > 0
+                })
+        
+        # Statistiques globales
+        total_bundles = len(bundles_analysis)
+        bundles_with_price = len([b for b in bundles_analysis if b["has_selling_price"]])
+        bundles_with_cost = len([b for b in bundles_analysis if b["total_cost"] > 0])
+        
+        return {
+            "status": "success",
+            "total_bundles": total_bundles,
+            "bundles_with_price": bundles_with_price,
+            "bundles_with_cost": bundles_with_cost,
+            "bundles_analysis": bundles_analysis
+        }
+        
+    except Exception as e:
+        frappe.log_error(f"Erreur analyse globale bundles: {str(e)}")
+        return {
+            "status": "error",
             "message": str(e)
         }
