@@ -1,4 +1,4 @@
-# josseaume_energies/hooks.py - VERSION SIMPLIFIÉE
+# josseaume_energies/hooks.py - VERSION CORRIGÉE
 
 app_name = "josseaume_energies"
 app_title = "Josseaume Energies"
@@ -90,10 +90,14 @@ fixtures = [
     }
 ]
 
-# Configuration optionnelle pour le développement
-if frappe.conf.get("developer_mode"):
-    # En mode développeur, ajouter des logs supplémentaires
-    doc_events["Quotation"]["before_save"] = "josseaume_energies.margin_calculation_simple.debug_quotation"
+# Configuration minimale pour les permissions
+has_permission = {
+    "create_event_from_sales_order": "all",
+    "calculate_quotation_margin": "all"
+}
+
+# SUPPRESSION DU CODE PROBLÉMATIQUE avec frappe.conf.get("developer_mode")
+# Les hooks en mode développeur sont ajoutés dynamiquement si nécessaire
 
 # Scheduler Events (optionnel)
 scheduler_events = {
@@ -106,25 +110,13 @@ scheduler_events = {
 # Boot session - pour charger les paramètres de base
 boot_session = "josseaume_energies.boot.boot_session"
 
-# Configuration minimale pour les permissions
-has_permission = {
-    "create_event_from_sales_order": "all",
-    "calculate_quotation_margin": "all"
-}
-
-# Fonctions utilitaires pour le débogage
-def debug_quotation(doc, method):
-    """
-    Fonction de debug pour tracer les calculs de marge
-    """
-    if frappe.conf.get("developer_mode"):
-        frappe.log_error(f"Debug: Quotation {doc.name} - Total: {doc.grand_total}", "Margin Debug")
-
+# Fonctions utilitaires définies ici (pas de frappe dans le scope global)
 def daily_cleanup():
     """
     Nettoyage quotidien des données temporaires
     """
     try:
+        import frappe  # Import ici quand la fonction est appelée
         # Nettoyer les anciens logs de calcul de marge
         frappe.db.sql("""
             DELETE FROM `tabError Log` 
@@ -133,20 +125,26 @@ def daily_cleanup():
         """)
         frappe.db.commit()
     except Exception as e:
+        import frappe
         frappe.log_error(f"Erreur nettoyage quotidien: {str(e)}")
 
-# Configuration pour les tests
-if frappe.conf.get("testing"):
-    # Configuration spéciale pour les tests
-    doc_events = {
-        # Désactiver certains hooks pendant les tests
+def debug_quotation(doc, method):
+    """
+    Fonction de debug pour tracer les calculs de marge
+    """
+    try:
+        import frappe
+        if frappe.conf.get("developer_mode"):
+            frappe.log_error(f"Debug: Quotation {doc.name} - Total: {doc.grand_total}", "Margin Debug")
+    except:
+        pass
+
+# Configuration pour les tests - pas de frappe dans le scope global
+def get_test_config():
+    """Retourne la configuration pour les tests"""
+    return {
         "Quotation": {}
     }
-
-# Configuration des erreurs personnalisées
-# override_whitelisted_methods = {
-#     "josseaume_energies.margin_calculation_simple.calculate_quotation_margin": "josseaume_energies.custom_handlers.safe_calculate_margin"
-# }
 
 # Points d'extension pour d'autres apps
 # extend_bootinfo = ["josseaume_energies.boot.extend_bootinfo"]
