@@ -1,0 +1,466 @@
+/* josseaume_energies/public/css/margin_styles.css */
+
+/* ========================================= */
+/* STYLES POUR LES INDICATEURS DE MARGE */
+/* ========================================= */
+
+/* Conteneur principal d'analyse des marges */
+.margin-analysis {
+	padding: 15px;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
+}
+
+/* Cartes de marge */
+.margin-card {
+	padding: 20px;
+	border-radius: 8px;
+	border-left: 4px solid #ddd;
+	background: #f8f9fa;
+	margin-bottom: 15px;
+	transition: all 0.3s ease;
+}
+
+.margin-card h4 {
+	margin-top: 0;
+	color: #495057;
+}
+
+.margin-card p {
+	margin-bottom: 8px;
+	font-size: 14px;
+}
+
+.margin-card.excellent {
+	border-left-color: #28a745;
+	background: linear-gradient(135deg, #d4edda 0%, #f8f9fa 100%);
+}
+
+.margin-card.good {
+	border-left-color: #007bff;
+	background: linear-gradient(135deg, #d1ecf1 0%, #f8f9fa 100%);
+}
+
+.margin-card.acceptable {
+	border-left-color: #ffc107;
+	background: linear-gradient(135deg, #fff3cd 0%, #f8f9fa 100%);
+}
+
+.margin-card.low {
+	border-left-color: #fd7e14;
+	background: linear-gradient(135deg, #ffe8d1 0%, #f8f9fa 100%);
+}
+
+.margin-card.negative {
+	border-left-color: #dc3545;
+	background: linear-gradient(135deg, #f8d7da 0%, #f8f9fa 100%);
+}
+
+/* Pourcentages de marge */
+.margin-percentage {
+	font-weight: bold;
+	font-size: 16px;
+	padding: 4px 8px;
+	border-radius: 4px;
+	background: rgba(255, 255, 255, 0.8);
+}
+
+/* Badges de statut */
+.status-badge {
+	display: inline-block;
+	padding: 4px 8px;
+	border-radius: 12px;
+	font-size: 12px;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.status-badge.excellent {
+	background: #28a745;
+	color: white;
+}
+
+.status-badge.good {
+	background: #007bff;
+	color: white;
+}
+
+.status-badge.acceptable {
+	background: #ffc107;
+	color: #212529;
+}
+
+.status-badge.low {
+	background: #fd7e14;
+	color: white;
+}
+
+.status-badge.negative {
+	background: #dc3545;
+	color: white;
+}
+
+/* Tableau des articles */
+.items-margin-table {
+	overflow-x: auto;
+	margin-top: 15px;
+}
+
+.items-margin-table table {
+	font-size: 13px;
+}
+
+.items-margin-table th {
+	background: #f8f9fa;
+	border-color: #dee2e6;
+	font-weight: 600;
+	text-align: center;
+	padding: 12px 8px;
+}
+
+.items-margin-table td {
+	padding: 10px 8px;
+	vertical-align: middle;
+}
+
+/* Lignes d'articles avec couleurs */
+.item-row.excellent {
+	background: rgba(40, 167, 69, 0.05);
+}
+
+.item-row.good {
+	background: rgba(0, 123, 255, 0.05);
+}
+
+.item-row.acceptable {
+	background: rgba(255, 193, 7, 0.05);
+}
+
+.item-row.low {
+	background: rgba(253, 126, 20, 0.05);
+}
+
+.item-row.negative {
+	background: rgba(220, 53, 69, 0.05);
+}
+
+.item-row:hover {
+	background: rgba(0, 123, 255, 0.1) !important;
+}
+
+/* Conseils et recommandations */
+.margin-tips {
+	padding: 15px;
+	background: #f8f9fa;
+	border-radius: 6px;
+	border: 1px solid #e9ecef;
+}
+
+.margin-tips h5 {
+	color: #495057;
+	margin-bottom: 10px;
+}
+
+.margin-tips p {
+	margin-bottom: 8px;
+	font-size: 14px;
+}
+
+/* Actions de marge */
+.margin-actions {
+	text-align: center;
+	padding: 20px;
+}
+
+.margin-actions button {
+	margin: 5px;
+	min-width: 160px;
+}
+
+/* Gestionnaire de prix de revient */
+.cost-price-manager {
+	max-height: 400px;
+	overflow-y: auto;
+}
+
+.cost-price-manager table {
+	font-size: 13px;
+}
+
+.cost-price-manager .cost-input {
+	width: 100px;
+	padding: 4px 8px;
+	font-size: 12px;
+}
+
+/* Indicateurs dans les lignes d'articles (grille ERPNext) */
+.margin-indicator {
+	display: inline-block;
+	padding: 2px 6px;
+	border-radius: 10px;
+	font-size: 10px;
+	font-weight: bold;
+	margin-left: 8px;
+	color: white;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.margin-indicator.excellent {
+	background: linear-gradient(45deg, #28a745, #34ce57);
+}
+
+.margin-indicator.good {
+	background: linear-gradient(45deg, #007bff, #0d6efd);
+}
+
+.margin-indicator.acceptable {
+	background: linear-gradient(45deg, #ffc107, #ffcd39);
+	color: #212529;
+	text-shadow: none;
+}
+
+.margin-indicator.low {
+	background: linear-gradient(45deg, #fd7e14, #ff8c42);
+}
+
+.margin-indicator.negative {
+	background: linear-gradient(45deg, #dc3545, #e55563);
+}
+
+/* Animation pour les indicateurs */
+.margin-indicator {
+	animation: fadeInScale 0.3s ease-out;
+}
+
+@keyframes fadeInScale {
+	from {
+		opacity: 0;
+		transform: scale(0.8);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+/* Responsive pour mobile */
+@media (max-width: 768px) {
+	.margin-analysis .row {
+		margin: 0;
+	}
+
+	.margin-card {
+		margin-bottom: 10px;
+		padding: 15px;
+	}
+
+	.items-margin-table {
+		font-size: 11px;
+	}
+
+	.items-margin-table th,
+	.items-margin-table td {
+		padding: 6px 4px;
+	}
+
+	.margin-actions button {
+		min-width: auto;
+		width: 100%;
+		margin: 3px 0;
+	}
+}
+
+/* Mode sombre */
+body.dark .margin-card {
+	background: #2d3748;
+	border-left-color: #4a5568;
+	color: #e2e8f0;
+}
+
+body.dark .margin-card h4 {
+	color: #f7fafc;
+}
+
+body.dark .margin-tips {
+	background: #2d3748;
+	border-color: #4a5568;
+	color: #e2e8f0;
+}
+
+body.dark .margin-tips h5 {
+	color: #f7fafc;
+}
+
+body.dark .items-margin-table th {
+	background: #2d3748;
+	border-color: #4a5568;
+	color: #f7fafc;
+}
+
+body.dark .items-margin-table td {
+	border-color: #4a5568;
+	color: #e2e8f0;
+}
+
+body.dark .cost-price-manager {
+	background: #2d3748;
+}
+
+body.dark .cost-input {
+	background: #4a5568;
+	border-color: #718096;
+	color: #f7fafc;
+}
+
+/* États hover en mode sombre */
+body.dark .item-row:hover {
+	background: rgba(66, 153, 225, 0.1) !important;
+}
+
+/* Alertes personnalisées */
+.margin-alert {
+	padding: 12px 16px;
+	border-radius: 6px;
+	margin: 10px 0;
+	border-left: 4px solid;
+	font-size: 14px;
+}
+
+.margin-alert.success {
+	background: #d4edda;
+	border-left-color: #28a745;
+	color: #155724;
+}
+
+.margin-alert.warning {
+	background: #fff3cd;
+	border-left-color: #ffc107;
+	color: #856404;
+}
+
+.margin-alert.danger {
+	background: #f8d7da;
+	border-left-color: #dc3545;
+	color: #721c24;
+}
+
+.margin-alert.info {
+	background: #d1ecf1;
+	border-left-color: #007bff;
+	color: #0c5460;
+}
+
+/* Icônes d'état */
+.margin-status-icon {
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	margin-right: 8px;
+	vertical-align: middle;
+}
+
+.margin-status-icon.excellent {
+	background: #28a745;
+}
+
+.margin-status-icon.good {
+	background: #007bff;
+}
+
+.margin-status-icon.acceptable {
+	background: #ffc107;
+}
+
+.margin-status-icon.low {
+	background: #fd7e14;
+}
+
+.margin-status-icon.negative {
+	background: #dc3545;
+}
+
+/* Animations pour les mises à jour */
+.margin-updating {
+	opacity: 0.6;
+	transition: opacity 0.3s ease;
+}
+
+.margin-updated {
+	animation: highlightUpdate 1s ease-out;
+}
+
+@keyframes highlightUpdate {
+	0% {
+		background: rgba(40, 167, 69, 0.3);
+	}
+	100% {
+		background: transparent;
+	}
+}
+
+/* Tooltips personnalisés */
+.margin-tooltip {
+	position: relative;
+	cursor: help;
+}
+
+.margin-tooltip::after {
+	content: attr(data-tooltip);
+	position: absolute;
+	bottom: 125%;
+	left: 50%;
+	transform: translateX(-50%);
+	background: rgba(0, 0, 0, 0.9);
+	color: white;
+	padding: 6px 8px;
+	border-radius: 4px;
+	font-size: 11px;
+	white-space: nowrap;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.3s;
+	z-index: 1000;
+}
+
+.margin-tooltip:hover::after {
+	opacity: 1;
+}
+
+/* Barres de progression pour les marges */
+.margin-progress {
+	width: 100%;
+	height: 8px;
+	background: #e9ecef;
+	border-radius: 4px;
+	overflow: hidden;
+	margin: 5px 0;
+}
+
+.margin-progress-bar {
+	height: 100%;
+	background: linear-gradient(90deg, #dc3545 0%, #ffc107 25%, #007bff 50%, #28a745 75%);
+	transition: width 0.5s ease;
+}
+
+/* Styles pour les rapports imprimables */
+@media print {
+	.margin-analysis {
+		background: white !important;
+		color: black !important;
+	}
+
+	.margin-card {
+		border: 1px solid #000 !important;
+		background: white !important;
+		page-break-inside: avoid;
+	}
+
+	.margin-actions {
+		display: none;
+	}
+
+	.status-badge {
+		border: 1px solid #000;
+	}
+}
