@@ -3,9 +3,10 @@
 frappe.ui.form.on("Quotation", {
 	refresh: function (frm) {
 		// CORRECTION 1: Attendre que les boutons standards soient chargés AVANT d'ajouter les nôtres
+		// Mais avec un délai plus court pour éviter les retards
 		setTimeout(function () {
 			try {
-				// Ajouter les boutons de calcul de marge APRÈS un délai
+				// Ajouter les boutons de calcul de marge APRÈS un délai court
 				add_margin_buttons(frm);
 
 				// Afficher les indicateurs de marge si calculés
@@ -14,12 +15,12 @@ frappe.ui.form.on("Quotation", {
 				// Vérifier la configuration au chargement (de manière non-bloquante)
 				setTimeout(function () {
 					check_setup_status(frm);
-				}, 1000);
+				}, 800);
 			} catch (error) {
 				console.error("Erreur dans les fonctions de marge (non-critique):", error);
 				// Ne pas bloquer le reste de l'interface en cas d'erreur
 			}
-		}, 500); // Délai pour laisser ERPNext charger ses boutons d'abord
+		}, 200); // Délai réduit de 500ms à 200ms
 	},
 
 	validate: function (frm) {
@@ -71,60 +72,86 @@ frappe.ui.form.on("Quotation Item", {
 
 function add_margin_buttons(frm) {
 	try {
-		// CORRECTION 4: Vérifier que le formulaire est bien chargé
-		if (!frm || !frm.doc || frm.doc.__islocal) {
-			return; // Ne pas ajouter de boutons si le formulaire n'est pas encore sauvegardé
+		// CORRECTION 4: Vérifier que le formulaire est bien chargé (mais plus permissif)
+		if (!frm || !frm.doc) {
+			return;
 		}
 
-		// CORRECTION 5: Vérifier que les boutons standards existent avant d'ajouter les nôtres
-		// Attendre que la toolbar soit présente
-		if (!frm.toolbar || !frm.page.btn_group) {
-			console.log("Toolbar pas encore prête, report de l'ajout des boutons marge");
+		// Pour les nouveaux devis non sauvegardés, afficher quand même certains boutons
+		const isNewDoc = frm.doc.__islocal;
+
+		// CORRECTION 5: Vérifications moins restrictives
+		if (!frm.page) {
+			console.log("Page pas encore prête, report de l'ajout des boutons marge");
+			setTimeout(function () {
+				add_margin_buttons(frm);
+			}, 200);
 			return;
 		}
 
 		// CORRECTION 6: Ajouter les boutons de marge dans un groupe séparé pour éviter les conflits
 		const marginGroup = __("📊 Marges");
 
-		// Bouton principal DANS le groupe pour éviter les conflits avec les boutons principaux
-		frm.add_custom_button(
-			__("Calculer Marges"),
-			function () {
-				show_margin_analysis(frm);
-			},
-			marginGroup // IMPORTANT: Dans un groupe séparé
-		);
+		// Pour les documents non sauvegardés, afficher seulement les boutons qui ne nécessitent pas la sauvegarde
+		if (isNewDoc) {
+			// Boutons qui fonctionnent même sur un nouveau document
+			frm.add_custom_button(
+				__("Gérer valorisations"),
+				function () {
+					show_valuation_manager(frm);
+				},
+				marginGroup
+			);
 
-		// Autres boutons dans le groupe Marges
-		frm.add_custom_button(
-			__("Analyse détaillée"),
-			function () {
-				show_detailed_margin_dialog(frm);
-			},
-			marginGroup
-		);
+			frm.add_custom_button(
+				__("Synchroniser valorisations"),
+				function () {
+					sync_valuations_from_purchases();
+				},
+				marginGroup
+			);
+		} else {
+			// Pour les documents sauvegardés, afficher tous les boutons
+			frm.add_custom_button(
+				__("Calculer Marges"),
+				function () {
+					show_margin_analysis(frm);
+				},
+				marginGroup
+			);
 
-		frm.add_custom_button(
-			__("Gérer valorisations"),
-			function () {
-				show_valuation_manager(frm);
-			},
-			marginGroup
-		);
+			frm.add_custom_button(
+				__("Analyse détaillée"),
+				function () {
+					show_detailed_margin_dialog(frm);
+				},
+				marginGroup
+			);
 
-		frm.add_custom_button(
-			__("Synchroniser valorisations"),
-			function () {
-				sync_valuations_from_purchases();
-			},
-			marginGroup
-		);
+			frm.add_custom_button(
+				__("Gérer valorisations"),
+				function () {
+					show_valuation_manager(frm);
+				},
+				marginGroup
+			);
+
+			frm.add_custom_button(
+				__("Synchroniser valorisations"),
+				function () {
+					sync_valuations_from_purchases();
+				},
+				marginGroup
+			);
+		}
 
 		// CORRECTION 7: Analyse des bundles dans le groupe Marges aussi
-		// Vérifier s'il y a des bundles avant d'ajouter le bouton
-		setTimeout(function () {
-			check_and_add_bundle_button(frm, marginGroup);
-		}, 500);
+		// Vérifier s'il y a des bundles avant d'ajouter le bouton (seulement pour les docs sauvegardés)
+		if (!isNewDoc) {
+			setTimeout(function () {
+				check_and_add_bundle_button(frm, marginGroup);
+			}, 500);
+		}
 	} catch (error) {
 		console.error("Erreur lors de l'ajout des boutons de marge:", error);
 		// Continuer sans bloquer l'interface
@@ -163,8 +190,18 @@ function check_and_add_bundle_button(frm, marginGroup) {
 }
 
 function calculate_quotation_margins(frm) {
-	// CORRECTION 8: Protection supplémentaire
-	if (!frm || !frm.doc || !frm.doc.name || frm.doc.__islocal) {
+	// CORRECTION 8: Protection moins restrictive
+	if (!frm || !frm.doc) {
+		return;
+	}
+
+	// Pour les nouveaux documents, ne pas calculer automatiquement
+	if (frm.doc.__islocal) {
+		console.log("Document non sauvegardé, calcul de marge reporté");
+		return;
+	}
+
+	if (!frm.doc.name) {
 		return;
 	}
 
@@ -335,8 +372,18 @@ function display_margin_indicators(frm) {
 
 function show_margin_analysis(frm) {
 	try {
-		if (!frm.doc.name || frm.doc.__islocal) {
+		if (!frm || !frm.doc) {
+			frappe.msgprint(__("Erreur : formulaire non disponible"));
+			return;
+		}
+
+		if (frm.doc.__islocal) {
 			frappe.msgprint(__("Veuillez d'abord sauvegarder le devis"));
+			return;
+		}
+
+		if (!frm.doc.name) {
+			frappe.msgprint(__("Erreur : document sans nom"));
 			return;
 		}
 
