@@ -64,8 +64,10 @@ doctype_js = {
     "Sales Order": "public/js/sales_order.js",
     "Event": "public/js/event.js",
     # NOUVEAU: Script simplifié pour les devis avec support Bundle
-    "Quotation": "public/js/quotation_margin_simple.js",
-    "Quotation": "public/js/quotation_columns.js",
+    "Quotation": [
+        "public/js/quotation_margin_simple.js",
+        "public/js/quotation_columns.js"  # ← Vérifier cette ligne
+    ]
 }
 
 # Événements de documents - VERSION SIMPLIFIÉE
