@@ -1,4 +1,55 @@
-// josseaume_energies/public/js/quotation_margin_simple.js - VERSION CORRIGÉE
+// NOUVELLE FONCTION globale pour analyze_bundle_item utilisée dans les dialogues
+window.analyze_bundle_item = function (item_code) {
+	try {
+		frappe.call({
+			method: "josseaume_energies.margin_calculation_simple.analyze_bundle_item",
+			args: {
+				item_code: item_code,
+			},
+			callback: function (r) {
+				try {
+					if (r.message && r.message.status === "success") {
+						show_bundle_analysis_dialog(r.message);
+					} else {
+						frappe.msgprint({
+							title: __("Erreur"),
+							indicator: "red",
+							message: r.message
+								? r.message.message
+								: __("Erreur lors de l'analyse du bundle"),
+						});
+					}
+				} catch (error) {
+					console.error("Erreur callback bundle analysis global:", error);
+				}
+			},
+			error: function (err) {
+				console.error("Erreur API bundle analysis global:", err);
+				frappe.msgprint({
+					title: __("Erreur"),
+					indicator: "red",
+					message: __("Erreur de connexion lors de l'analyse du bundle"),
+				});
+			},
+		});
+	} catch (error) {
+		console.error("Erreur analyze_bundle_item global:", error);
+	}
+};
+
+// NOUVELLE FONCTION globale pour view_item_details utilisée dans les dialogues
+window.view_item_details = function (item_code) {
+	try {
+		frappe.set_route("Form", "Item", item_code);
+	} catch (error) {
+		console.error("Erreur ouverture article global:", error);
+		frappe.msgprint({
+			title: __("Erreur"),
+			indicator: "red",
+			message: __("Impossible d'ouvrir l'article"),
+		});
+	}
+}; // josseaume_energies/public/js/quotation_margin_simple.js - VERSION CORRIGÉE
 
 frappe.ui.form.on("Quotation", {
 	refresh: function (frm) {
@@ -121,6 +172,14 @@ function add_margin_buttons(frm) {
 			);
 
 			frm.add_custom_button(
+				__("Analyser Bundles"),
+				function () {
+					show_all_bundles_analysis();
+				},
+				marginGroup
+			);
+
+			frm.add_custom_button(
 				__("Gérer valorisations"),
 				function () {
 					show_valuation_manager(frm);
@@ -137,13 +196,8 @@ function add_margin_buttons(frm) {
 			);
 		}
 
-		// CORRECTION 7: Analyse des bundles dans le groupe Marges aussi
-		// Vérifier s'il y a des bundles avant d'ajouter le bouton (seulement pour les docs sauvegardés)
-		if (!isNewDoc) {
-			setTimeout(function () {
-				check_and_add_bundle_button(frm, marginGroup);
-			}, 500);
-		}
+		// CORRECTION 7: Le bouton bundles est maintenant ajouté directement dans le menu principal
+		// Plus besoin de vérification supplémentaire
 	} catch (error) {
 		console.error("Erreur lors de l'ajout des boutons de marge:", error);
 		// Continuer sans bloquer l'interface
@@ -156,19 +210,19 @@ function check_and_add_bundle_button(frm, marginGroup) {
 		frappe.call({
 			method: "josseaume_energies.margin_calculation_simple.check_margin_setup",
 			callback: function (r) {
-				if (r.message && r.message.status === "success") {
-					const setup = r.message;
+				try {
+					if (r.message && r.message.status === "success") {
+						const setup = r.message;
 
-					if (setup.total_bundles > 0 && !frm.custom_bundle_button_added) {
-						frm.add_custom_button(
-							__("Analyser Bundles"),
-							function () {
-								show_all_bundles_analysis();
-							},
-							marginGroup // Dans le groupe Marges
-						);
-						frm.custom_bundle_button_added = true;
+						// Si il y a des bundles et que le bouton n'a pas encore été ajouté
+						if (setup.total_bundles > 0 && !frm.custom_bundle_button_added) {
+							console.log(
+								`${setup.total_bundles} bundles détectés, ajout du bouton d'analyse`
+							);
+						}
 					}
+				} catch (error) {
+					console.error("Erreur callback check bundle:", error);
 				}
 			},
 			error: function (err) {
@@ -682,6 +736,11 @@ function view_item_details(item_code) {
 		frappe.set_route("Form", "Item", item_code);
 	} catch (error) {
 		console.error("Erreur ouverture article:", error);
+		frappe.msgprint({
+			title: __("Erreur"),
+			indicator: "red",
+			message: __("Impossible d'ouvrir l'article"),
+		});
 	}
 }
 
@@ -845,15 +904,33 @@ window.show_all_bundles_analysis_advanced = function () {
 		frappe.call({
 			method: "josseaume_energies.margin_calculation_simple.get_all_bundles_analysis",
 			callback: function (r) {
-				if (r.message && r.message.status === "success") {
-					show_bundles_overview_dialog(r.message);
-				} else {
-					frappe.msgprint(__("Erreur lors de l'analyse des bundles"));
+				try {
+					if (r.message && r.message.status === "success") {
+						show_bundles_overview_dialog(r.message);
+					} else {
+						frappe.msgprint({
+							title: __("Erreur"),
+							indicator: "red",
+							message: r.message
+								? r.message.message
+								: __("Erreur lors de l'analyse des bundles"),
+						});
+					}
+				} catch (error) {
+					console.error("Erreur callback bundles advanced:", error);
 				}
+			},
+			error: function (err) {
+				console.error("Erreur API bundles advanced:", err);
+				frappe.msgprint({
+					title: __("Erreur"),
+					indicator: "red",
+					message: __("Erreur de connexion lors de l'analyse des bundles"),
+				});
 			},
 		});
 	} catch (error) {
-		console.error("Erreur bundles analysis:", error);
+		console.error("Erreur bundles analysis advanced:", error);
 	}
 };
 
@@ -1065,11 +1142,298 @@ function sync_valuations_from_purchases() {
 
 function show_all_bundles_analysis() {
 	try {
-		frappe.msgprint({
-			title: __("Analyse des Bundles"),
-			message: __("Fonctionnalité d'analyse globale des bundles en cours de développement."),
+		frappe.call({
+			method: "josseaume_energies.margin_calculation_simple.get_all_bundles_analysis",
+			callback: function (r) {
+				try {
+					if (r.message && r.message.status === "success") {
+						show_bundles_overview_dialog(r.message);
+					} else {
+						frappe.msgprint({
+							title: __("Erreur"),
+							indicator: "red",
+							message: r.message
+								? r.message.message
+								: __("Erreur lors de l'analyse des bundles"),
+						});
+					}
+				} catch (error) {
+					console.error("Erreur callback bundles:", error);
+				}
+			},
+			error: function (err) {
+				console.error("Erreur API bundles:", err);
+				frappe.msgprint({
+					title: __("Erreur"),
+					indicator: "red",
+					message: __("Erreur de connexion lors de l'analyse des bundles"),
+				});
+			},
 		});
 	} catch (error) {
-		console.error("Erreur analyse bundles:", error);
+		console.error("Erreur show_all_bundles_analysis:", error);
+	}
+}
+
+function show_bundles_overview_dialog(data) {
+	try {
+		const dialog = new frappe.ui.Dialog({
+			title: __("Vue d'ensemble des Bundles"),
+			size: "extra-large",
+			fields: [
+				{
+					fieldtype: "HTML",
+					fieldname: "bundles_overview",
+				},
+			],
+		});
+
+		let html = `
+			<div class="margin-analysis">
+				<div class="row">
+					<div class="col-md-4">
+						<div class="margin-card excellent">
+							<h4>📦 Bundles Total</h4>
+							<p style="font-size: 24px; font-weight: bold; text-align: center;">${data.total_bundles}</p>
+						</div>
+					</div>
+					<div class="col-md-4">
+						<div class="margin-card good">
+							<h4>💰 Avec Prix</h4>
+							<p style="font-size: 24px; font-weight: bold; text-align: center;">${data.bundles_with_price}</p>
+						</div>
+					</div>
+					<div class="col-md-4">
+						<div class="margin-card acceptable">
+							<h4>🔧 Avec Coût</h4>
+							<p style="font-size: 24px; font-weight: bold; text-align: center;">${data.bundles_with_cost}</p>
+						</div>
+					</div>
+				</div>
+				
+				<h5>📋 Liste des Bundles</h5>
+				<div class="items-margin-table">
+					<table class="table table-bordered">
+						<thead>
+							<tr>
+								<th>Code Bundle</th>
+								<th>Nom</th>
+								<th>Composants</th>
+								<th>Coût Total</th>
+								<th>Prix Vente</th>
+								<th>Marge %</th>
+								<th>Statut</th>
+								<th>Actions</th>
+							</tr>
+						</thead>
+						<tbody>
+		`;
+
+		data.bundles_analysis.forEach((bundle) => {
+			const hasPrice = bundle.has_selling_price;
+			const priceDisplay = hasPrice
+				? format_currency(bundle.standard_selling_price)
+				: "Non défini";
+			const marginDisplay = hasPrice ? `${bundle.margin_percentage.toFixed(1)}%` : "-";
+			const statusClass = hasPrice ? bundle.margin_status : "unknown";
+			const statusLabel = hasPrice ? get_status_label(bundle.margin_status) : "Pas de prix";
+
+			html += `
+				<tr class="item-row ${statusClass}">
+					<td><strong>${bundle.item_code}</strong></td>
+					<td>${bundle.item_name}</td>
+					<td style="text-align: center;">${bundle.components_count}</td>
+					<td>${format_currency(bundle.total_cost)}</td>
+					<td>${priceDisplay}</td>
+					<td>${marginDisplay}</td>
+					<td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
+					<td>
+						<button class="btn btn-xs btn-info" onclick="analyze_bundle_item('${bundle.item_code}')">
+							<i class="fa fa-search"></i> Analyser
+						</button>
+						<button class="btn btn-xs btn-secondary" onclick="view_item_details('${bundle.item_code}')">
+							<i class="fa fa-external-link"></i> Ouvrir
+						</button>
+					</td>
+				</tr>
+			`;
+		});
+
+		html += `
+					</tbody>
+				</table>
+			</div>
+		</div>
+		`;
+
+		dialog.fields_dict.bundles_overview.$wrapper.html(html);
+		dialog.show();
+	} catch (error) {
+		console.error("Erreur dialogue bundles overview:", error);
+		frappe.msgprint({
+			title: __("Erreur"),
+			indicator: "red",
+			message: __("Erreur lors de l'affichage du dialogue"),
+		});
+	}
+}
+
+function analyze_bundle_item(item_code) {
+	try {
+		frappe.call({
+			method: "josseaume_energies.margin_calculation_simple.analyze_bundle_item",
+			args: {
+				item_code: item_code,
+			},
+			callback: function (r) {
+				try {
+					if (r.message && r.message.status === "success") {
+						show_bundle_analysis_dialog(r.message);
+					} else {
+						frappe.msgprint({
+							title: __("Erreur"),
+							indicator: "red",
+							message: r.message
+								? r.message.message
+								: __("Erreur lors de l'analyse du bundle"),
+						});
+					}
+				} catch (error) {
+					console.error("Erreur callback bundle analysis:", error);
+				}
+			},
+			error: function (err) {
+				console.error("Erreur API bundle analysis:", err);
+				frappe.msgprint({
+					title: __("Erreur"),
+					indicator: "red",
+					message: __("Erreur de connexion lors de l'analyse du bundle"),
+				});
+			},
+		});
+	} catch (error) {
+		console.error("Erreur analyze_bundle_item:", error);
+	}
+}
+
+function show_bundle_analysis_dialog(data) {
+	try {
+		const dialog = new frappe.ui.Dialog({
+			title: __("Analyse Bundle - ") + data.item_code,
+			size: "large",
+			fields: [
+				{
+					fieldtype: "HTML",
+					fieldname: "bundle_analysis",
+				},
+			],
+		});
+
+		let html = `
+			<div class="margin-analysis">
+				<div class="margin-card bundle-info">
+					<h4>📦 Informations Bundle</h4>
+					<p><strong>Code article:</strong> ${data.item_code}</p>
+					<p><strong>Nom:</strong> ${data.item_name}</p>
+					<p><strong>Prix de vente standard:</strong> ${format_currency(
+						data.standard_selling_price || 0
+					)}</p>
+					<p><strong>Coût total calculé:</strong> ${format_currency(data.total_cost || 0)}</p>
+					<p><strong>Nombre de composants:</strong> ${data.components_count || 0}</p>
+				</div>
+		`;
+
+		if (data.margin_info) {
+			html += `
+				<div class="margin-card ${data.margin_info.margin_status}">
+					<h4>💰 Analyse de Marge</h4>
+					<p><strong>Marge en montant:</strong> ${format_currency(data.margin_info.margin_amount)}</p>
+					<p><strong>Taux de marge:</strong> <span class="margin-percentage">${data.margin_info.margin_percentage.toFixed(
+						2
+					)}%</span></p>
+					<p><strong>Statut:</strong> <span class="status-badge ${
+						data.margin_info.margin_status
+					}">${get_status_label(data.margin_info.margin_status)}</span></p>
+				</div>
+			`;
+		}
+
+		// CORRECTION IMPORTANTE : Vérifier que bundle_details existe
+		if (
+			data.bundle_details &&
+			data.bundle_details.components &&
+			data.bundle_details.components.length > 0
+		) {
+			html += `
+				<h5>🔧 Composants du Bundle</h5>
+				<div class="items-margin-table">
+					<table class="table table-bordered">
+						<thead>
+							<tr>
+								<th>Code Composant</th>
+								<th>Nom</th>
+								<th>Quantité</th>
+								<th>Coût Unitaire</th>
+								<th>Coût Total</th>
+								<th>% du Total</th>
+							</tr>
+						</thead>
+						<tbody>
+			`;
+
+			data.bundle_details.components.forEach((component) => {
+				const percentage =
+					data.total_cost > 0 ? (component.total_cost / data.total_cost) * 100 : 0;
+
+				html += `
+					<tr>
+						<td><strong>${component.item_code || "N/A"}</strong></td>
+						<td>${component.item_name || "Nom non disponible"}</td>
+						<td>${component.qty || 0}</td>
+						<td>${format_currency(component.cost_price || 0)}</td>
+						<td>${format_currency(component.total_cost || 0)}</td>
+						<td>${percentage.toFixed(1)}%</td>
+					</tr>
+				`;
+			});
+
+			html += `
+					</tbody>
+					<tfoot>
+						<tr style="font-weight: bold; background-color: #f8f9fa;">
+							<td colspan="4">TOTAL</td>
+							<td>${format_currency(data.total_cost || 0)}</td>
+							<td>100%</td>
+						</tr>
+					</tfoot>
+				</table>
+			</div>
+			`;
+		} else {
+			html += `
+				<div class="margin-card">
+					<h5>⚠️ Composants non disponibles</h5>
+					<p>Les détails des composants de ce bundle ne sont pas disponibles.</p>
+					<p>Cela peut être dû à :</p>
+					<ul>
+						<li>Bundle non configuré correctement</li>
+						<li>Composants sans prix de valorisation</li>
+						<li>Problème de configuration des Product Bundle</li>
+					</ul>
+				</div>
+			`;
+		}
+
+		html += `</div>`;
+
+		dialog.fields_dict.bundle_analysis.$wrapper.html(html);
+		dialog.show();
+	} catch (error) {
+		console.error("Erreur dialogue bundle analysis:", error);
+		frappe.msgprint({
+			title: __("Erreur"),
+			indicator: "red",
+			message: __("Erreur lors de l'affichage de l'analyse du bundle"),
+		});
 	}
 }
