@@ -147,7 +147,7 @@ function add_margin_buttons(frm) {
 		if (isNewDoc) {
 			// Boutons qui fonctionnent même sur un nouveau document
 			frm.add_custom_button(
-				__("Gérer valorisations"),
+				__("Gérer prix d'achat"),
 				function () {
 					show_valuation_manager(frm);
 				},
@@ -155,7 +155,7 @@ function add_margin_buttons(frm) {
 			);
 
 			frm.add_custom_button(
-				__("Synchroniser valorisations"),
+				__("Synchroniser prix d'achat"),
 				function () {
 					sync_valuations_from_purchases();
 				},
@@ -172,7 +172,7 @@ function add_margin_buttons(frm) {
 			);
 
 			frm.add_custom_button(
-				__("Analyser Bundles"),
+				__("Analyser Kits"),
 				function () {
 					show_all_bundles_analysis();
 				},
@@ -180,7 +180,7 @@ function add_margin_buttons(frm) {
 			);
 
 			frm.add_custom_button(
-				__("Gérer valorisations"),
+				__("Gérer prix d'achat"),
 				function () {
 					show_valuation_manager(frm);
 				},
@@ -188,7 +188,7 @@ function add_margin_buttons(frm) {
 			);
 
 			frm.add_custom_button(
-				__("Synchroniser valorisations"),
+				__("Synchroniser prix d'achat"),
 				function () {
 					sync_valuations_from_purchases();
 				},
@@ -559,10 +559,10 @@ function show_margin_summary_dialog(data) {
 					<td>
 						${
 							isBundle
-								? `<button class="btn btn-xs btn-info" onclick="analyze_bundle_item('${item.item_code}')">
+								? `<button class="btn btn-xs btn-info" onclick="window.analyze_bundle_item('${item.item_code}')">
 								<i class="fa fa-search"></i> Analyser Bundle
 							</button>`
-								: `<button class="btn btn-xs btn-secondary" onclick="view_item_details('${item.item_code}')">
+								: `<button class="btn btn-xs btn-secondary" onclick="window.view_item_details('${item.item_code}')">
 								<i class="fa fa-eye"></i> Détails
 							</button>`
 						}
@@ -936,7 +936,7 @@ window.show_all_bundles_analysis_advanced = function () {
 
 function show_valuation_manager(frm) {
 	try {
-		// Récupérer la liste des articles pour mise à jour des valorisations
+		// Récupérer la liste des articles pour mise à jour des prix d'achat
 		frappe.call({
 			method: "josseaume_energies.margin_calculation_simple.export_items_for_valuation_update",
 			callback: function (r) {
@@ -946,18 +946,18 @@ function show_valuation_manager(frm) {
 					} else {
 						// Fallback : afficher un dialogue simple si l'API ne fonctionne pas
 						frappe.msgprint({
-							title: __("Gestionnaire de valorisation"),
+							title: __("Gestionnaire des prix d'achat"),
 							message: `
-								<p>Pour gérer les prix de valorisation :</p>
+								<p>Pour gérer les prix d'achat :</p>
 								<ol>
 									<li>Allez dans <strong>Stock > Article</strong></li>
 									<li>Ouvrez l'article souhaité</li>
-									<li>Dans l'onglet "Valorisation", modifiez le champ <strong>Valuation Rate</strong></li>
+									<li>Dans l'onglet "Prix d'achat", modifiez le champ <strong>Valuation Rate</strong></li>
 									<li>Sauvegardez</li>
 								</ol>
 							`,
 							primary_action: {
-								label: __("Synchroniser Valorisations"),
+								label: __("Synchroniser Prix d'achat"),
 								action: function () {
 									sync_valuations_from_purchases();
 								},
@@ -965,29 +965,29 @@ function show_valuation_manager(frm) {
 						});
 					}
 				} catch (error) {
-					console.error("Erreur callback valorisation:", error);
+					console.error("Erreur callback prix d'achat:", error);
 				}
 			},
 			error: function (err) {
-				console.error("Erreur API valorisation:", err);
+				console.error("Erreur API prix d'achat:", err);
 				// Afficher quand même le dialogue de base
 				frappe.msgprint({
-					title: __("Gestionnaire de valorisation"),
+					title: __("Gestionnaire des prix d'achat"),
 					message: __(
-						"Fonctionnalité en cours de développement. Utilisez Stock > Article pour modifier les prix de valorisation."
+						"Fonctionnalité en cours de développement. Utilisez Stock > Article pour modifier les prix d'achat."
 					),
 				});
 			},
 		});
 	} catch (error) {
-		console.error("Erreur gestionnaire valorisation:", error);
+		console.error("Erreur gestionnaire prix d'achat:", error);
 	}
 }
 
 function show_valuation_dialog(items) {
 	try {
 		const dialog = new frappe.ui.Dialog({
-			title: __("Gestionnaire des prix de valorisation"),
+			title: __("Gestionnaire des prix d'achat"),
 			size: "large",
 			fields: [
 				{
@@ -1004,7 +1004,7 @@ function show_valuation_dialog(items) {
 
 		dialog.show();
 	} catch (error) {
-		console.error("Erreur dialogue valorisation:", error);
+		console.error("Erreur dialogue prix d'achat:", error);
 		frappe.msgprint(__("Erreur lors de l'affichage du gestionnaire"));
 	}
 }
@@ -1013,16 +1013,16 @@ function generate_valuation_manager_html(items) {
 	try {
 		let html = `
 			<div class="valuation-manager">
-				<p>Gérez les prix de valorisation de vos articles :</p>
+				<p>Gérez les prix d'achat de vos articles :</p>
 				<div style="max-height: 400px; overflow-y: auto;">
 					<table class="table table-bordered">
 						<thead>
 							<tr>
 								<th>Article</th>
 								<th>Nom</th>
-								<th>Prix valorisation actuel</th>
+								<th>Prix d'achat actuel</th>
 								<th>Prix vente standard</th>
-								<th>Nouveau prix valorisation</th>
+								<th>Nouveau prix d'achat</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -1082,7 +1082,7 @@ function update_valuations_from_dialog(dialog) {
 					try {
 						if (r.message && r.message.status === "success") {
 							frappe.show_alert(
-								`${r.message.updated_count} prix de valorisation mis à jour`,
+								`${r.message.updated_count} prix d'achat mis à jour`,
 								3
 							);
 							dialog.hide();
@@ -1101,14 +1101,14 @@ function update_valuations_from_dialog(dialog) {
 			frappe.msgprint(__("Aucune modification à sauvegarder"));
 		}
 	} catch (error) {
-		console.error("Erreur update valorisations:", error);
+		console.error("Erreur update prix d'achat:", error);
 	}
 }
 
 function sync_valuations_from_purchases() {
 	try {
 		frappe.confirm(
-			__("Synchroniser les prix de valorisation depuis les derniers achats ?"),
+			__("Synchroniser les prix d'achat depuis les derniers achats ?"),
 			function () {
 				frappe.call({
 					method: "josseaume_energies.margin_calculation_simple.sync_valuation_from_last_purchase",
@@ -1154,19 +1154,19 @@ function show_all_bundles_analysis() {
 							indicator: "red",
 							message: r.message
 								? r.message.message
-								: __("Erreur lors de l'analyse des bundles"),
+								: __("Erreur lors de l'analyse des kits"),
 						});
 					}
 				} catch (error) {
-					console.error("Erreur callback bundles:", error);
+					console.error("Erreur callback kits:", error);
 				}
 			},
 			error: function (err) {
-				console.error("Erreur API bundles:", err);
+				console.error("Erreur API kits:", err);
 				frappe.msgprint({
 					title: __("Erreur"),
 					indicator: "red",
-					message: __("Erreur de connexion lors de l'analyse des bundles"),
+					message: __("Erreur de connexion lors de l'analyse des kits"),
 				});
 			},
 		});
@@ -1178,7 +1178,7 @@ function show_all_bundles_analysis() {
 function show_bundles_overview_dialog(data) {
 	try {
 		const dialog = new frappe.ui.Dialog({
-			title: __("Vue d'ensemble des Bundles"),
+			title: __("Vue d'ensemble des Kits"),
 			size: "extra-large",
 			fields: [
 				{
@@ -1193,7 +1193,7 @@ function show_bundles_overview_dialog(data) {
 				<div class="row">
 					<div class="col-md-4">
 						<div class="margin-card excellent">
-							<h4>📦 Bundles Total</h4>
+							<h4>📦 Kits Total</h4>
 							<p style="font-size: 24px; font-weight: bold; text-align: center;">${data.total_bundles}</p>
 						</div>
 					</div>
@@ -1211,12 +1211,12 @@ function show_bundles_overview_dialog(data) {
 					</div>
 				</div>
 				
-				<h5>📋 Liste des Bundles</h5>
+				<h5>📋 Liste des Kits</h5>
 				<div class="items-margin-table">
 					<table class="table table-bordered">
 						<thead>
 							<tr>
-								<th>Code Bundle</th>
+								<th>Code Kit</th>
 								<th>Nom</th>
 								<th>Composants</th>
 								<th>Coût Total</th>
@@ -1248,10 +1248,10 @@ function show_bundles_overview_dialog(data) {
 					<td>${marginDisplay}</td>
 					<td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
 					<td>
-						<button class="btn btn-xs btn-info" onclick="analyze_bundle_item('${bundle.item_code}')">
+						<button class="btn btn-xs btn-info" onclick="window.analyze_bundle_item('${bundle.item_code}')">
 							<i class="fa fa-search"></i> Analyser
 						</button>
-						<button class="btn btn-xs btn-secondary" onclick="view_item_details('${bundle.item_code}')">
+						<button class="btn btn-xs btn-secondary" onclick="window.view_item_details('${bundle.item_code}')">
 							<i class="fa fa-external-link"></i> Ouvrir
 						</button>
 					</td>
@@ -1269,7 +1269,7 @@ function show_bundles_overview_dialog(data) {
 		dialog.fields_dict.bundles_overview.$wrapper.html(html);
 		dialog.show();
 	} catch (error) {
-		console.error("Erreur dialogue bundles overview:", error);
+		console.error("Erreur dialogue kits overview:", error);
 		frappe.msgprint({
 			title: __("Erreur"),
 			indicator: "red",
@@ -1295,19 +1295,19 @@ function analyze_bundle_item(item_code) {
 							indicator: "red",
 							message: r.message
 								? r.message.message
-								: __("Erreur lors de l'analyse du bundle"),
+								: __("Erreur lors de l'analyse du kit"),
 						});
 					}
 				} catch (error) {
-					console.error("Erreur callback bundle analysis:", error);
+					console.error("Erreur callback kit analysis:", error);
 				}
 			},
 			error: function (err) {
-				console.error("Erreur API bundle analysis:", err);
+				console.error("Erreur API kit analysis:", err);
 				frappe.msgprint({
 					title: __("Erreur"),
 					indicator: "red",
-					message: __("Erreur de connexion lors de l'analyse du bundle"),
+					message: __("Erreur de connexion lors de l'analyse du kit"),
 				});
 			},
 		});
@@ -1319,7 +1319,7 @@ function analyze_bundle_item(item_code) {
 function show_bundle_analysis_dialog(data) {
 	try {
 		const dialog = new frappe.ui.Dialog({
-			title: __("Analyse Bundle - ") + data.item_code,
+			title: __("Analyse Kit - ") + data.item_code,
 			size: "large",
 			fields: [
 				{
@@ -1332,7 +1332,7 @@ function show_bundle_analysis_dialog(data) {
 		let html = `
 			<div class="margin-analysis">
 				<div class="margin-card bundle-info">
-					<h4>📦 Informations Bundle</h4>
+					<h4>📦 Informations Kit</h4>
 					<p><strong>Code article:</strong> ${data.item_code}</p>
 					<p><strong>Nom:</strong> ${data.item_name}</p>
 					<p><strong>Prix de vente standard:</strong> ${format_currency(
@@ -1365,7 +1365,7 @@ function show_bundle_analysis_dialog(data) {
 			data.bundle_details.components.length > 0
 		) {
 			html += `
-				<h5>🔧 Composants du Bundle</h5>
+				<h5>🔧 Composants du Kit</h5>
 				<div class="items-margin-table">
 					<table class="table table-bordered">
 						<thead>
@@ -1373,7 +1373,7 @@ function show_bundle_analysis_dialog(data) {
 								<th>Code Composant</th>
 								<th>Nom</th>
 								<th>Quantité</th>
-								<th>Coût Unitaire</th>
+								<th>Prix d'achat Unitaire</th>
 								<th>Coût Total</th>
 								<th>% du Total</th>
 							</tr>
@@ -1413,11 +1413,11 @@ function show_bundle_analysis_dialog(data) {
 			html += `
 				<div class="margin-card">
 					<h5>⚠️ Composants non disponibles</h5>
-					<p>Les détails des composants de ce bundle ne sont pas disponibles.</p>
+					<p>Les détails des composants de ce kit ne sont pas disponibles.</p>
 					<p>Cela peut être dû à :</p>
 					<ul>
-						<li>Bundle non configuré correctement</li>
-						<li>Composants sans prix de valorisation</li>
+						<li>Kit non configuré correctement</li>
+						<li>Composants sans prix d'achat</li>
 						<li>Problème de configuration des Product Bundle</li>
 					</ul>
 				</div>
@@ -1429,11 +1429,11 @@ function show_bundle_analysis_dialog(data) {
 		dialog.fields_dict.bundle_analysis.$wrapper.html(html);
 		dialog.show();
 	} catch (error) {
-		console.error("Erreur dialogue bundle analysis:", error);
+		console.error("Erreur dialogue kit analysis:", error);
 		frappe.msgprint({
 			title: __("Erreur"),
 			indicator: "red",
-			message: __("Erreur lors de l'affichage de l'analyse du bundle"),
+			message: __("Erreur lors de l'affichage de l'analyse du kit"),
 		});
 	}
 }
