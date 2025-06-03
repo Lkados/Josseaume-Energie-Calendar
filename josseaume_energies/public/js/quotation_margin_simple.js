@@ -16,19 +16,19 @@ window.analyze_bundle_item = function (item_code) {
 							indicator: "red",
 							message: r.message
 								? r.message.message
-								: __("Erreur lors de l'analyse du bundle"),
+								: __("Erreur lors de l'analyse du kit"),
 						});
 					}
 				} catch (error) {
-					console.error("Erreur callback bundle analysis global:", error);
+					console.error("Erreur callback kit analysis global:", error);
 				}
 			},
 			error: function (err) {
-				console.error("Erreur API bundle analysis global:", err);
+				console.error("Erreur API kit analysis global:", err);
 				frappe.msgprint({
 					title: __("Erreur"),
 					indicator: "red",
-					message: __("Erreur de connexion lors de l'analyse du bundle"),
+					message: __("Erreur de connexion lors de l'analyse du kit"),
 				});
 			},
 		});
@@ -529,7 +529,7 @@ function show_margin_summary_dialog(data) {
 								<th>Type</th>
 								<th>Qté</th>
 								<th>Prix vente</th>
-								<th>Prix valorisation</th>
+								<th>Prix d'achat</th>
 								<th>Marge</th>
 								<th>Taux</th>
 								<th>Statut</th>
@@ -542,27 +542,40 @@ function show_margin_summary_dialog(data) {
 		data.items_analysis.forEach((item) => {
 			const isBundle = item.is_bundle || false;
 			const bundleIcon = isBundle ? "📦" : "📄";
-			const bundleLabel = isBundle ? "Bundle" : "Article";
+			const bundleLabel = isBundle ? "Kit" : "Article";
 
 			html += `
 				<tr class="item-row ${item.margin_status}">
-					<td><strong>${item.item_code}</strong><br><small>${item.item_name || ""}</small></td>
-					<td><span style="font-size: 12px;">${bundleIcon} ${bundleLabel}</span></td>
-					<td>${item.qty}</td>
-					<td>${format_currency(item.rate)}</td>
-					<td>${format_currency(item.cost_price)}</td>
-					<td>${format_currency(item.margin_amount)}</td>
-					<td><span class="margin-percentage">${item.margin_percentage.toFixed(1)}%</span></td>
-					<td><span class="status-badge ${item.margin_status}">${get_status_label(
+					<td style="min-width: 150px;">
+						<strong>${item.item_code}</strong><br>
+						<small style="color: #666;">${item.item_name || ""}</small>
+					</td>
+					<td style="width: 60px; text-align: center;">
+						<span style="font-size: 11px;">${bundleIcon} ${bundleLabel}</span>
+					</td>
+					<td style="width: 50px; text-align: center;">${item.qty}</td>
+					<td style="width: 90px; text-align: right;">${format_currency(item.rate)}</td>
+					<td style="width: 90px; text-align: right;">${format_currency(item.cost_price)}</td>
+					<td style="width: 80px; text-align: right;">${format_currency(item.margin_amount)}</td>
+					<td style="width: 60px; text-align: center;">
+						<span class="margin-percentage" style="font-size: 11px; padding: 2px 6px; border-radius: 3px; background: #f8f9fa;">${item.margin_percentage.toFixed(
+							1
+						)}%</span>
+					</td>
+					<td style="width: 80px; text-align: center;">
+						<span class="status-badge ${
+							item.margin_status
+						}" style="font-size: 10px; padding: 2px 4px;">${get_status_label(
 				item.margin_status
-			)}</span></td>
-					<td>
+			)}</span>
+					</td>
+					<td style="width: 120px; text-align: center;">
 						${
 							isBundle
-								? `<button class="btn btn-xs btn-info" onclick="window.analyze_bundle_item('${item.item_code}')">
-								<i class="fa fa-search"></i> Analyser Bundle
+								? `<button class="btn btn-xs btn-info" onclick="window.analyze_bundle_item('${item.item_code}')" style="font-size: 10px; padding: 2px 6px; margin: 1px;">
+								<i class="fa fa-search"></i> Kit
 							</button>`
-								: `<button class="btn btn-xs btn-secondary" onclick="window.view_item_details('${item.item_code}')">
+								: `<button class="btn btn-xs btn-secondary" onclick="window.view_item_details('${item.item_code}')" style="font-size: 10px; padding: 2px 6px; margin: 1px;">
 								<i class="fa fa-eye"></i> Détails
 							</button>`
 						}
@@ -580,6 +593,13 @@ function show_margin_summary_dialog(data) {
 
 		dialog.fields_dict.margin_summary.$wrapper.html(html);
 		dialog.show();
+
+		// Améliorer l'affichage du dialogue
+		dialog.$wrapper.find(".modal-dialog").css("max-width", "90vw");
+		dialog.$wrapper.find(".table").css({
+			"font-size": "12px",
+			"margin-bottom": "0",
+		});
 	} catch (error) {
 		console.error("Erreur création dialogue marge:", error);
 		frappe.msgprint({
@@ -787,8 +807,8 @@ function show_detailed_margin_dialog(frm) {
 							<p>Actions disponibles pour l'analyse des marges :</p>
 							<div style="text-align: center; padding: 20px;">
 								<button class="btn btn-primary" style="margin: 5px;" onclick="recalculate_all_margins_advanced('${frm.doc.name}')">🔄 Recalculer les marges</button>
-								<button class="btn btn-info" style="margin: 5px;" onclick="show_valuation_analysis_advanced()">📊 Analyse des valorisations</button>
-								<button class="btn btn-warning" style="margin: 5px;" onclick="sync_all_valuations_advanced()">💰 Synchroniser valorisations</button>
+								<button class="btn btn-info" style="margin: 5px;" onclick="show_valuation_analysis_advanced()">📊 Analyse des prix d'achat</button>
+								<button class="btn btn-warning" style="margin: 5px;" onclick="sync_all_valuations_advanced()">💰 Synchroniser prix d'achat</button>
 								<button class="btn btn-success" style="margin: 5px;" onclick="show_margin_report_advanced('${frm.doc.name}')">📋 Rapport détaillé</button>
 							</div>
 						</div>
@@ -837,28 +857,28 @@ window.show_valuation_analysis_advanced = function () {
 				if (r.message && r.message.status === "success") {
 					const setup = r.message;
 					frappe.msgprint({
-						title: __("Analyse des valorisations"),
+						title: __("Analyse des prix d'achat"),
 						size: "large",
 						message: `
 							<div style="padding: 20px;">
 								<h4>📊 Statistiques Articles</h4>
 								<p><strong>Articles totaux:</strong> ${setup.total_items}</p>
-								<p><strong>Articles avec valorisation:</strong> ${setup.items_with_valuation}</p>
+								<p><strong>Articles avec prix d'achat:</strong> ${setup.items_with_valuation}</p>
 								<p><strong>Couverture:</strong> ${setup.valuation_coverage}</p>
 								
 								<hr>
 								
-								<h4>📦 Statistiques Bundles</h4>
-								<p><strong>Bundles totaux:</strong> ${setup.total_bundles || 0}</p>
-								<p><strong>Bundles avec coût calculable:</strong> ${setup.bundles_with_cost || 0}</p>
-								<p><strong>Couverture bundles:</strong> ${setup.bundle_coverage || "0%"}</p>
+								<h4>📦 Statistiques Kits</h4>
+								<p><strong>Kits totaux:</strong> ${setup.total_bundles || 0}</p>
+								<p><strong>Kits avec coût calculable:</strong> ${setup.bundles_with_cost || 0}</p>
+								<p><strong>Couverture kits:</strong> ${setup.bundle_coverage || "0%"}</p>
 								
 								${
 									setup.total_bundles > 0
 										? `
 									<div style="margin-top: 15px;">
 										<button class="btn btn-primary" onclick="show_all_bundles_analysis_advanced()">
-											<i class="fa fa-search"></i> Analyser tous les bundles
+											<i class="fa fa-search"></i> Analyser tous les kits
 										</button>
 									</div>
 								`
@@ -871,7 +891,7 @@ window.show_valuation_analysis_advanced = function () {
 			},
 		});
 	} catch (error) {
-		console.error("Erreur analyse valorisation:", error);
+		console.error("Erreur analyse prix d'achat:", error);
 	}
 };
 
@@ -913,24 +933,24 @@ window.show_all_bundles_analysis_advanced = function () {
 							indicator: "red",
 							message: r.message
 								? r.message.message
-								: __("Erreur lors de l'analyse des bundles"),
+								: __("Erreur lors de l'analyse des kits"),
 						});
 					}
 				} catch (error) {
-					console.error("Erreur callback bundles advanced:", error);
+					console.error("Erreur callback kits advanced:", error);
 				}
 			},
 			error: function (err) {
-				console.error("Erreur API bundles advanced:", err);
+				console.error("Erreur API kits advanced:", err);
 				frappe.msgprint({
 					title: __("Erreur"),
 					indicator: "red",
-					message: __("Erreur de connexion lors de l'analyse des bundles"),
+					message: __("Erreur de connexion lors de l'analyse des kits"),
 				});
 			},
 		});
 	} catch (error) {
-		console.error("Erreur bundles analysis advanced:", error);
+		console.error("Erreur kits analysis advanced:", error);
 	}
 };
 
@@ -1014,15 +1034,15 @@ function generate_valuation_manager_html(items) {
 		let html = `
 			<div class="valuation-manager">
 				<p>Gérez les prix d'achat de vos articles :</p>
-				<div style="max-height: 400px; overflow-y: auto;">
-					<table class="table table-bordered">
+				<div style="max-height: 400px; overflow-y: auto; overflow-x: auto;">
+					<table class="table table-bordered" style="min-width: 800px; font-size: 12px;">
 						<thead>
 							<tr>
-								<th>Article</th>
-								<th>Nom</th>
-								<th>Prix d'achat actuel</th>
-								<th>Prix vente standard</th>
-								<th>Nouveau prix d'achat</th>
+								<th style="min-width: 120px;">Article</th>
+								<th style="min-width: 200px;">Nom</th>
+								<th style="width: 120px; text-align: right;">Prix d'achat actuel</th>
+								<th style="width: 120px; text-align: right;">Prix vente standard</th>
+								<th style="width: 140px; text-align: center;">Nouveau prix d'achat</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -1031,13 +1051,25 @@ function generate_valuation_manager_html(items) {
 		items.forEach((item) => {
 			html += `
 				<tr>
-					<td>${item.item_code}</td>
-					<td>${item.item_name || ""}</td>
-					<td>${format_currency(item.valuation_rate || 0)}</td>
-					<td>${format_currency(item.standard_rate || 0)}</td>
-					<td><input type="number" class="form-control valuation-input" data-item="${
-						item.item_code
-					}" step="0.01" value="${item.valuation_rate || 0}"></td>
+					<td style="min-width: 120px;">
+						<strong>${item.item_code}</strong>
+					</td>
+					<td style="min-width: 200px;">
+						${item.item_name || ""}
+					</td>
+					<td style="width: 120px; text-align: right;">
+						${format_currency(item.valuation_rate || 0)}
+					</td>
+					<td style="width: 120px; text-align: right;">
+						${format_currency(item.standard_rate || 0)}
+					</td>
+					<td style="width: 140px; text-align: center;">
+						<input type="number" class="form-control valuation-input" data-item="${
+							item.item_code
+						}" step="0.01" value="${
+				item.valuation_rate || 0
+			}" style="width: 100%; font-size: 11px;">
+					</td>
 				</tr>
 			`;
 		});
@@ -1213,20 +1245,21 @@ function show_bundles_overview_dialog(data) {
 				
 				<h5>📋 Liste des Kits</h5>
 				<div class="items-margin-table">
-					<table class="table table-bordered">
-						<thead>
-							<tr>
-								<th>Code Kit</th>
-								<th>Nom</th>
-								<th>Composants</th>
-								<th>Coût Total</th>
-								<th>Prix Vente</th>
-								<th>Marge %</th>
-								<th>Statut</th>
-								<th>Actions</th>
-							</tr>
-						</thead>
-						<tbody>
+					<div style="overflow-x: auto;">
+						<table class="table table-bordered" style="min-width: 1000px; font-size: 12px;">
+							<thead>
+								<tr>
+									<th style="min-width: 120px;">Code Kit</th>
+									<th style="min-width: 200px;">Nom</th>
+									<th style="width: 80px; text-align: center;">Composants</th>
+									<th style="width: 100px; text-align: right;">Coût Total</th>
+									<th style="width: 100px; text-align: right;">Prix Vente</th>
+									<th style="width: 70px; text-align: center;">Marge %</th>
+									<th style="width: 80px; text-align: center;">Statut</th>
+									<th style="width: 150px; text-align: center;">Actions</th>
+								</tr>
+							</thead>
+							<tbody>
 		`;
 
 		data.bundles_analysis.forEach((bundle) => {
@@ -1240,18 +1273,36 @@ function show_bundles_overview_dialog(data) {
 
 			html += `
 				<tr class="item-row ${statusClass}">
-					<td><strong>${bundle.item_code}</strong></td>
-					<td>${bundle.item_name}</td>
-					<td style="text-align: center;">${bundle.components_count}</td>
-					<td>${format_currency(bundle.total_cost)}</td>
-					<td>${priceDisplay}</td>
-					<td>${marginDisplay}</td>
-					<td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
-					<td>
-						<button class="btn btn-xs btn-info" onclick="window.analyze_bundle_item('${bundle.item_code}')">
+					<td style="min-width: 120px;">
+						<strong>${bundle.item_code}</strong>
+					</td>
+					<td style="min-width: 200px;">
+						${bundle.item_name}
+					</td>
+					<td style="width: 80px; text-align: center;">
+						${bundle.components_count}
+					</td>
+					<td style="width: 100px; text-align: right;">
+						${format_currency(bundle.total_cost)}
+					</td>
+					<td style="width: 100px; text-align: right;">
+						${priceDisplay}
+					</td>
+					<td style="width: 70px; text-align: center;">
+						<span style="font-size: 11px; padding: 2px 6px; border-radius: 3px; background: #f8f9fa;">${marginDisplay}</span>
+					</td>
+					<td style="width: 80px; text-align: center;">
+						<span class="status-badge ${statusClass}" style="font-size: 10px; padding: 2px 4px;">${statusLabel}</span>
+					</td>
+					<td style="width: 150px; text-align: center;">
+						<button class="btn btn-xs btn-info" onclick="window.analyze_bundle_item('${
+							bundle.item_code
+						}')" style="font-size: 10px; padding: 2px 6px; margin: 1px;">
 							<i class="fa fa-search"></i> Analyser
 						</button>
-						<button class="btn btn-xs btn-secondary" onclick="window.view_item_details('${bundle.item_code}')">
+						<button class="btn btn-xs btn-secondary" onclick="window.view_item_details('${
+							bundle.item_code
+						}')" style="font-size: 10px; padding: 2px 6px; margin: 1px;">
 							<i class="fa fa-external-link"></i> Ouvrir
 						</button>
 					</td>
@@ -1267,6 +1318,14 @@ function show_bundles_overview_dialog(data) {
 		`;
 
 		dialog.fields_dict.bundles_overview.$wrapper.html(html);
+
+		// Améliorer l'affichage du dialogue
+		dialog.$wrapper.find(".modal-dialog").css("max-width", "95vw");
+		dialog.$wrapper.find(".table").css({
+			"font-size": "12px",
+			"margin-bottom": "0",
+		});
+
 		dialog.show();
 	} catch (error) {
 		console.error("Erreur dialogue kits overview:", error);
@@ -1367,18 +1426,19 @@ function show_bundle_analysis_dialog(data) {
 			html += `
 				<h5>🔧 Composants du Kit</h5>
 				<div class="items-margin-table">
-					<table class="table table-bordered">
-						<thead>
-							<tr>
-								<th>Code Composant</th>
-								<th>Nom</th>
-								<th>Quantité</th>
-								<th>Prix d'achat Unitaire</th>
-								<th>Coût Total</th>
-								<th>% du Total</th>
-							</tr>
-						</thead>
-						<tbody>
+					<div style="overflow-x: auto;">
+						<table class="table table-bordered" style="min-width: 800px; font-size: 12px;">
+							<thead>
+								<tr>
+									<th style="min-width: 120px;">Code Composant</th>
+									<th style="min-width: 180px;">Nom</th>
+									<th style="width: 70px; text-align: center;">Quantité</th>
+									<th style="width: 110px; text-align: right;">Prix d'achat Unit.</th>
+									<th style="width: 100px; text-align: right;">Coût Total</th>
+									<th style="width: 80px; text-align: center;">% du Total</th>
+								</tr>
+							</thead>
+							<tbody>
 			`;
 
 			data.bundle_details.components.forEach((component) => {
@@ -1387,12 +1447,26 @@ function show_bundle_analysis_dialog(data) {
 
 				html += `
 					<tr>
-						<td><strong>${component.item_code || "N/A"}</strong></td>
-						<td>${component.item_name || "Nom non disponible"}</td>
-						<td>${component.qty || 0}</td>
-						<td>${format_currency(component.cost_price || 0)}</td>
-						<td>${format_currency(component.total_cost || 0)}</td>
-						<td>${percentage.toFixed(1)}%</td>
+						<td style="min-width: 120px;">
+							<strong>${component.item_code || "N/A"}</strong>
+						</td>
+						<td style="min-width: 180px;">
+							${component.item_name || "Nom non disponible"}
+						</td>
+						<td style="width: 70px; text-align: center;">
+							${component.qty || 0}
+						</td>
+						<td style="width: 110px; text-align: right;">
+							${format_currency(component.cost_price || 0)}
+						</td>
+						<td style="width: 100px; text-align: right;">
+							${format_currency(component.total_cost || 0)}
+						</td>
+						<td style="width: 80px; text-align: center;">
+							<span style="font-size: 11px; padding: 2px 6px; border-radius: 3px; background: #f8f9fa;">${percentage.toFixed(
+								1
+							)}%</span>
+						</td>
 					</tr>
 				`;
 			});
@@ -1401,12 +1475,13 @@ function show_bundle_analysis_dialog(data) {
 					</tbody>
 					<tfoot>
 						<tr style="font-weight: bold; background-color: #f8f9fa;">
-							<td colspan="4">TOTAL</td>
-							<td>${format_currency(data.total_cost || 0)}</td>
-							<td>100%</td>
+							<td colspan="4" style="text-align: right; padding-right: 10px;">TOTAL</td>
+							<td style="width: 100px; text-align: right;">${format_currency(data.total_cost || 0)}</td>
+							<td style="width: 80px; text-align: center;">100%</td>
 						</tr>
 					</tfoot>
 				</table>
+			</div>
 			</div>
 			`;
 		} else {
@@ -1427,6 +1502,14 @@ function show_bundle_analysis_dialog(data) {
 		html += `</div>`;
 
 		dialog.fields_dict.bundle_analysis.$wrapper.html(html);
+
+		// Améliorer l'affichage du dialogue
+		dialog.$wrapper.find(".modal-dialog").css("max-width", "90vw");
+		dialog.$wrapper.find(".table").css({
+			"font-size": "12px",
+			"margin-bottom": "0",
+		});
+
 		dialog.show();
 	} catch (error) {
 		console.error("Erreur dialogue kit analysis:", error);
