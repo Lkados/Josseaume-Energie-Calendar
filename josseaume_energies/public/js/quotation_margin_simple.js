@@ -111,15 +111,7 @@ function add_margin_buttons(frm) {
 				marginGroup
 			);
 		} else {
-			// Pour les documents sauvegardés, afficher tous les boutons
-			frm.add_custom_button(
-				__("Calculer Marges"),
-				function () {
-					show_margin_analysis(frm);
-				},
-				marginGroup
-			);
-
+			// Pour les documents sauvegardés, afficher tous les boutons SAUF Calculer Marges
 			frm.add_custom_button(
 				__("Analyse détaillée"),
 				function () {
@@ -712,20 +704,327 @@ function show_bundle_analysis_dialog(data) {
 }
 
 function show_detailed_margin_dialog(frm) {
-	// Version simplifiée pour éviter les conflits
-	show_margin_analysis(frm);
+	try {
+		if (!frm || !frm.doc) {
+			frappe.msgprint(__("Erreur : formulaire non disponible"));
+			return;
+		}
+
+		if (frm.doc.__islocal) {
+			frappe.msgprint(__("Veuillez d'abord sauvegarder le devis"));
+			return;
+		}
+
+		// Dialogue avec options avancées
+		const dialog = new frappe.ui.Dialog({
+			title: __("Gestion avancée des marges"),
+			size: "large",
+			fields: [
+				{
+					fieldtype: "HTML",
+					fieldname: "actions_html",
+					options: `
+						<div class="margin-actions">
+							<p>Actions disponibles pour l'analyse des marges :</p>
+							<div style="text-align: center; padding: 20px;">
+								<button class="btn btn-primary" style="margin: 5px;" onclick="recalculate_all_margins_advanced('${frm.doc.name}')">🔄 Recalculer les marges</button>
+								<button class="btn btn-info" style="margin: 5px;" onclick="show_valuation_analysis_advanced()">📊 Analyse des valorisations</button>
+								<button class="btn btn-warning" style="margin: 5px;" onclick="sync_all_valuations_advanced()">💰 Synchroniser valorisations</button>
+								<button class="btn btn-success" style="margin: 5px;" onclick="show_margin_report_advanced('${frm.doc.name}')">📋 Rapport détaillé</button>
+							</div>
+						</div>
+					`,
+				},
+			],
+		});
+
+		dialog.show();
+	} catch (error) {
+		console.error("Erreur dialogue avancé:", error);
+	}
 }
+
+// Actions globales pour le dialogue avancé
+window.recalculate_all_margins_advanced = function (quotation_name) {
+	try {
+		frappe.show_alert("Recalcul en cours...", 3);
+
+		frappe.call({
+			method: "josseaume_energies.margin_calculation_simple.calculate_quotation_margin",
+			args: {
+				quotation_name: quotation_name,
+			},
+			callback: function (r) {
+				if (r.message && r.message.status === "success") {
+					frappe.show_alert("Marges recalculées avec succès", 3);
+					if (cur_frm) {
+						cur_frm.reload_doc();
+					}
+				} else {
+					frappe.msgprint(__("Erreur lors du recalcul"));
+				}
+			},
+		});
+	} catch (error) {
+		console.error("Erreur recalcul:", error);
+	}
+};
+
+window.show_valuation_analysis_advanced = function () {
+	try {
+		frappe.call({
+			method: "josseaume_energies.margin_calculation_simple.check_margin_setup",
+			callback: function (r) {
+				if (r.message && r.message.status === "success") {
+					const setup = r.message;
+					frappe.msgprint({
+						title: __("Analyse des valorisations"),
+						size: "large",
+						message: `
+							<div style="padding: 20px;">
+								<h4>📊 Statistiques Articles</h4>
+								<p><strong>Articles totaux:</strong> ${setup.total_items}</p>
+								<p><strong>Articles avec valorisation:</strong> ${setup.items_with_valuation}</p>
+								<p><strong>Couverture:</strong> ${setup.valuation_coverage}</p>
+								
+								<hr>
+								
+								<h4>📦 Statistiques Bundles</h4>
+								<p><strong>Bundles totaux:</strong> ${setup.total_bundles || 0}</p>
+								<p><strong>Bundles avec coût calculable:</strong> ${setup.bundles_with_cost || 0}</p>
+								<p><strong>Couverture bundles:</strong> ${setup.bundle_coverage || "0%"}</p>
+								
+								${
+									setup.total_bundles > 0
+										? `
+									<div style="margin-top: 15px;">
+										<button class="btn btn-primary" onclick="show_all_bundles_analysis_advanced()">
+											<i class="fa fa-search"></i> Analyser tous les bundles
+										</button>
+									</div>
+								`
+										: ""
+								}
+							</div>
+						`,
+					});
+				}
+			},
+		});
+	} catch (error) {
+		console.error("Erreur analyse valorisation:", error);
+	}
+};
+
+window.sync_all_valuations_advanced = function () {
+	sync_valuations_from_purchases();
+};
+
+window.show_margin_report_advanced = function (quotation_name) {
+	try {
+		frappe.call({
+			method: "josseaume_energies.margin_calculation_simple.calculate_quotation_margin",
+			args: {
+				quotation_name: quotation_name,
+			},
+			callback: function (r) {
+				if (r.message && r.message.status === "success") {
+					show_margin_summary_dialog(r.message);
+				} else {
+					frappe.msgprint(__("Erreur lors de la génération du rapport"));
+				}
+			},
+		});
+	} catch (error) {
+		console.error("Erreur rapport marge:", error);
+	}
+};
+
+window.show_all_bundles_analysis_advanced = function () {
+	try {
+		frappe.call({
+			method: "josseaume_energies.margin_calculation_simple.get_all_bundles_analysis",
+			callback: function (r) {
+				if (r.message && r.message.status === "success") {
+					show_bundles_overview_dialog(r.message);
+				} else {
+					frappe.msgprint(__("Erreur lors de l'analyse des bundles"));
+				}
+			},
+		});
+	} catch (error) {
+		console.error("Erreur bundles analysis:", error);
+	}
+};
 
 function show_valuation_manager(frm) {
 	try {
-		frappe.msgprint({
-			title: __("Gestionnaire de valorisation"),
-			message: __(
-				"Fonctionnalité en cours de développement. Utilisez Stock > Article pour modifier les prix de valorisation."
-			),
+		// Récupérer la liste des articles pour mise à jour des valorisations
+		frappe.call({
+			method: "josseaume_energies.margin_calculation_simple.export_items_for_valuation_update",
+			callback: function (r) {
+				try {
+					if (r.message && r.message.status === "success") {
+						show_valuation_dialog(r.message.items);
+					} else {
+						// Fallback : afficher un dialogue simple si l'API ne fonctionne pas
+						frappe.msgprint({
+							title: __("Gestionnaire de valorisation"),
+							message: `
+								<p>Pour gérer les prix de valorisation :</p>
+								<ol>
+									<li>Allez dans <strong>Stock > Article</strong></li>
+									<li>Ouvrez l'article souhaité</li>
+									<li>Dans l'onglet "Valorisation", modifiez le champ <strong>Valuation Rate</strong></li>
+									<li>Sauvegardez</li>
+								</ol>
+							`,
+							primary_action: {
+								label: __("Synchroniser Valorisations"),
+								action: function () {
+									sync_valuations_from_purchases();
+								},
+							},
+						});
+					}
+				} catch (error) {
+					console.error("Erreur callback valorisation:", error);
+				}
+			},
+			error: function (err) {
+				console.error("Erreur API valorisation:", err);
+				// Afficher quand même le dialogue de base
+				frappe.msgprint({
+					title: __("Gestionnaire de valorisation"),
+					message: __(
+						"Fonctionnalité en cours de développement. Utilisez Stock > Article pour modifier les prix de valorisation."
+					),
+				});
+			},
 		});
 	} catch (error) {
 		console.error("Erreur gestionnaire valorisation:", error);
+	}
+}
+
+function show_valuation_dialog(items) {
+	try {
+		const dialog = new frappe.ui.Dialog({
+			title: __("Gestionnaire des prix de valorisation"),
+			size: "large",
+			fields: [
+				{
+					fieldtype: "HTML",
+					fieldname: "valuation_manager",
+					options: generate_valuation_manager_html(items),
+				},
+			],
+			primary_action_label: __("Mettre à jour"),
+			primary_action: function () {
+				update_valuations_from_dialog(dialog);
+			},
+		});
+
+		dialog.show();
+	} catch (error) {
+		console.error("Erreur dialogue valorisation:", error);
+		frappe.msgprint(__("Erreur lors de l'affichage du gestionnaire"));
+	}
+}
+
+function generate_valuation_manager_html(items) {
+	try {
+		let html = `
+			<div class="valuation-manager">
+				<p>Gérez les prix de valorisation de vos articles :</p>
+				<div style="max-height: 400px; overflow-y: auto;">
+					<table class="table table-bordered">
+						<thead>
+							<tr>
+								<th>Article</th>
+								<th>Nom</th>
+								<th>Prix valorisation actuel</th>
+								<th>Prix vente standard</th>
+								<th>Nouveau prix valorisation</th>
+							</tr>
+						</thead>
+						<tbody>
+		`;
+
+		items.forEach((item) => {
+			html += `
+				<tr>
+					<td>${item.item_code}</td>
+					<td>${item.item_name || ""}</td>
+					<td>${format_currency(item.valuation_rate || 0)}</td>
+					<td>${format_currency(item.standard_rate || 0)}</td>
+					<td><input type="number" class="form-control valuation-input" data-item="${
+						item.item_code
+					}" step="0.01" value="${item.valuation_rate || 0}"></td>
+				</tr>
+			`;
+		});
+
+		html += `
+					</tbody>
+				</table>
+			</div>
+		</div>
+		`;
+
+		return html;
+	} catch (error) {
+		console.error("Erreur génération HTML:", error);
+		return "<p>Erreur lors de la génération du contenu</p>";
+	}
+}
+
+function update_valuations_from_dialog(dialog) {
+	try {
+		const items_data = [];
+
+		dialog.$wrapper.find(".valuation-input").each(function () {
+			const item_code = $(this).data("item");
+			const valuation_rate = $(this).val();
+
+			if (item_code && valuation_rate) {
+				items_data.push({
+					item_code: item_code,
+					valuation_rate: parseFloat(valuation_rate),
+				});
+			}
+		});
+
+		if (items_data.length > 0) {
+			frappe.call({
+				method: "josseaume_energies.margin_calculation_simple.bulk_update_valuation_rates",
+				args: {
+					items_data: items_data,
+				},
+				callback: function (r) {
+					try {
+						if (r.message && r.message.status === "success") {
+							frappe.show_alert(
+								`${r.message.updated_count} prix de valorisation mis à jour`,
+								3
+							);
+							dialog.hide();
+						} else {
+							frappe.msgprint(__("Erreur lors de la mise à jour"));
+						}
+					} catch (error) {
+						console.error("Erreur callback update:", error);
+					}
+				},
+				error: function (err) {
+					console.error("Erreur API update:", err);
+				},
+			});
+		} else {
+			frappe.msgprint(__("Aucune modification à sauvegarder"));
+		}
+	} catch (error) {
+		console.error("Erreur update valorisations:", error);
 	}
 }
 
