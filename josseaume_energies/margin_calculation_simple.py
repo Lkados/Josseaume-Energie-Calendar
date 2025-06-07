@@ -1,21 +1,21 @@
-# josseaume_energies/margin_calculation_simple.py - VERSION CORRIGÉE BUNDLE
+# josseaume_energies/margin_calculation_simple.py - VERSION CORRIGÉE AVEC REMISES
 
 import frappe
 from frappe import _
 from frappe.utils import flt, cstr
 
 # ========================================
-# FONCTIONS POUR LE CALCUL DES MARGES SIMPLIFIÉ AVEC SUPPORT BUNDLE CORRIGÉ
+# FONCTIONS POUR LE CALCUL DES MARGES AVEC GESTION REMISES ET PRIX ZÉRO
 # ========================================
 
 @frappe.whitelist()
-def calculate_item_margin(item_code, selling_price, qty=1):
+def calculate_item_margin(item_code, selling_price, qty=1, discount_percentage=0, discount_amount=0):
     """
-    Calcule la marge pour un article donné (inclut le support des bundle items)
+    Calcule la marge pour un article donné (AMÉLIORÉ : gère remises et prix zéro)
     """
     try:
         # Récupérer le prix de revient de l'article (bundle ou normal)
-        cost_price = get_item_cost_price(item_code)
+        cost_price = get_item_cost_price_safe(item_code)
         
         # Vérifier si c'est un bundle pour fournir des détails supplémentaires
         is_bundle = is_bundle_item(item_code)
@@ -24,44 +24,64 @@ def calculate_item_margin(item_code, selling_price, qty=1):
         if is_bundle:
             bundle_details = get_bundle_details(item_code)
         
-        if not cost_price:
-            return {
-                "status": "warning",
-                "message": f"Prix de revient non défini pour {item_code}" + (" (Bundle)" if is_bundle else ""),
-                "cost_price": 0,
-                "selling_price": flt(selling_price),
-                "margin_amount": 0,
-                "margin_percentage": 0,
-                "is_bundle": is_bundle,
-                "bundle_details": bundle_details
-            }
+        # NOUVEAU : Calculer le prix de vente net après remise
+        selling_price = flt(selling_price)
+        qty = flt(qty) or 1
+        discount_percentage = flt(discount_percentage)
+        discount_amount = flt(discount_amount)
+        
+        # Calculer le prix de vente net
+        net_selling_price = calculate_net_selling_price(selling_price, discount_percentage, discount_amount)
+        
+        # Log pour debug
+        frappe.log_error(f"Calcul marge {item_code}: prix_brut={selling_price}, remise%={discount_percentage}, remise_montant={discount_amount}, prix_net={net_selling_price}, coût={cost_price}", "Margin Debug")
         
         # Calculer la marge
-        selling_price = flt(selling_price)
-        cost_price = flt(cost_price)
-        qty = flt(qty) or 1
+        cost_price = flt(cost_price)  # Garantit que c'est un nombre (0 si pas de prix)
         
         # Marge en montant (pour la quantité)
-        margin_amount = (selling_price - cost_price) * qty
+        margin_amount = (net_selling_price - cost_price) * qty
         
         # Marge en pourcentage
         margin_percentage = 0
-        if selling_price > 0:
-            margin_percentage = ((selling_price - cost_price) / selling_price) * 100
+        if net_selling_price > 0:
+            margin_percentage = ((net_selling_price - cost_price) / net_selling_price) * 100
         
         # Déterminer le statut selon le taux de marge
         status = get_margin_status(margin_percentage)
         
+        # NOUVEAU : Informations sur les remises
+        discount_info = {
+            "has_discount": discount_percentage > 0 or discount_amount > 0,
+            "discount_percentage": discount_percentage,
+            "discount_amount": discount_amount,
+            "gross_selling_price": selling_price,
+            "net_selling_price": net_selling_price,
+            "discount_total": selling_price - net_selling_price
+        }
+        
+        # NOUVEAU : Alertes spéciales
+        alerts = []
+        if cost_price == 0:
+            alerts.append("Prix de revient non défini (coût = 0€)")
+        if net_selling_price <= cost_price and cost_price > 0:
+            alerts.append("Vente à perte détectée")
+        if discount_percentage > 50:
+            alerts.append("Remise très importante (>50%)")
+        
         return {
             "status": "success",
             "cost_price": cost_price,
-            "selling_price": selling_price,
+            "selling_price": net_selling_price,  # Prix net utilisé pour les calculs
+            "gross_selling_price": selling_price,  # Prix brut original
             "margin_amount": margin_amount,
             "margin_percentage": margin_percentage,
             "margin_status": status,
             "qty": qty,
             "is_bundle": is_bundle,
-            "bundle_details": bundle_details
+            "bundle_details": bundle_details,
+            "discount_info": discount_info,
+            "alerts": alerts
         }
         
     except Exception as e:
@@ -71,29 +91,205 @@ def calculate_item_margin(item_code, selling_price, qty=1):
             "message": str(e)
         }
 
+def get_item_cost_price_safe(item_code):
+    """
+    Version sécurisée de get_item_cost_price qui garantit un retour numérique
+    AMÉLIORÉ : Garantit toujours un nombre (0 minimum)
+    """
+    try:
+        cost_price = get_item_cost_price(item_code)
+        
+        # S'assurer qu'on a un nombre valide
+        cost_price = flt(cost_price)
+        
+        # Si négatif ou NaN, forcer à 0
+        if cost_price < 0 or not cost_price == cost_price:  # NaN check
+            cost_price = 0
+            
+        frappe.log_error(f"Prix de revient pour {item_code}: {cost_price}", "Cost Price Debug")
+        
+        return cost_price
+        
+    except Exception as e:
+        frappe.log_error(f"Erreur récupération prix de revient {item_code}: {str(e)}")
+        return 0  # Retourner 0 en cas d'erreur
+
+def calculate_net_selling_price(gross_price, discount_percentage=0, discount_amount=0):
+    """
+    Calcule le prix de vente net après application des remises
+    NOUVEAU : Gestion complète des remises
+    """
+    try:
+        gross_price = flt(gross_price)
+        discount_percentage = flt(discount_percentage)
+        discount_amount = flt(discount_amount)
+        
+        # Appliquer d'abord la remise en pourcentage
+        net_price = gross_price
+        if discount_percentage > 0:
+            net_price = gross_price * (1 - discount_percentage / 100)
+        
+        # Puis soustraire la remise en montant
+        if discount_amount > 0:
+            net_price = net_price - discount_amount
+        
+        # S'assurer que le prix ne devient pas négatif
+        if net_price < 0:
+            net_price = 0
+            
+        return net_price
+        
+    except Exception as e:
+        frappe.log_error(f"Erreur calcul prix net: {str(e)}")
+        return flt(gross_price)  # Retourner le prix brut en cas d'erreur
+
+@frappe.whitelist()
+def calculate_quotation_margin(quotation_name):
+    """
+    Calcule la marge globale d'un devis (AMÉLIORÉ : avec remises)
+    """
+    try:
+        quotation = frappe.get_doc("Quotation", quotation_name)
+        
+        total_cost = 0
+        total_selling_gross = 0
+        total_selling_net = 0
+        items_analysis = []
+        total_discount = 0
+        
+        for item in quotation.items:
+            # NOUVEAU : Récupérer les informations de remise de l'article
+            discount_percentage = flt(getattr(item, 'discount_percentage', 0))
+            discount_amount = flt(getattr(item, 'discount_amount', 0))
+            
+            # Calculer la marge pour chaque article avec remises
+            item_margin = calculate_item_margin(
+                item.item_code, 
+                item.rate, 
+                item.qty,
+                discount_percentage,
+                discount_amount
+            )
+            
+            if item_margin["status"] == "success":
+                item_cost = flt(item_margin["cost_price"]) * flt(item.qty)
+                item_selling_gross = flt(item.rate) * flt(item.qty)
+                item_selling_net = flt(item_margin["selling_price"]) * flt(item.qty)
+                
+                # CORRECTION : Utiliser le montant net réel de l'article
+                # ERPNext calcule déjà le montant net dans item.amount
+                item_amount_net = flt(item.amount)  # Montant déjà calculé par ERPNext
+                
+                total_cost += item_cost
+                total_selling_gross += item_selling_gross
+                total_selling_net += item_amount_net  # Utiliser le montant ERPNext
+                total_discount += (item_selling_gross - item_amount_net)
+                
+                items_analysis.append({
+                    "item_code": item.item_code,
+                    "item_name": item.item_name,
+                    "qty": item.qty,
+                    "rate": item.rate,
+                    "amount_gross": item_selling_gross,
+                    "amount_net": item_amount_net,
+                    "cost_price": item_margin["cost_price"],
+                    "total_cost": item_cost,
+                    "margin_amount": item_amount_net - item_cost,
+                    "margin_percentage": item_margin["margin_percentage"],
+                    "margin_status": item_margin["margin_status"],
+                    "is_bundle": item_margin.get("is_bundle", False),
+                    "bundle_details": item_margin.get("bundle_details"),
+                    "discount_info": item_margin.get("discount_info", {}),
+                    "alerts": item_margin.get("alerts", [])
+                })
+        
+        # NOUVEAU : Appliquer les remises globales du devis
+        additional_discount = flt(getattr(quotation, 'discount_amount', 0))
+        if additional_discount > 0:
+            total_selling_net -= additional_discount
+            total_discount += additional_discount
+        
+        # Calculer la marge globale
+        global_margin_amount = total_selling_net - total_cost
+        global_margin_percentage = 0
+        
+        if total_selling_net > 0:
+            global_margin_percentage = (global_margin_amount / total_selling_net) * 100
+        
+        global_status = get_margin_status(global_margin_percentage)
+        
+        # NOUVEAU : Statistiques sur les remises
+        discount_stats = {
+            "total_gross": total_selling_gross,
+            "total_net": total_selling_net,
+            "total_discount": total_discount,
+            "discount_percentage_global": (total_discount / total_selling_gross * 100) if total_selling_gross > 0 else 0,
+            "has_discounts": total_discount > 0
+        }
+        
+        # NOUVEAU : Alertes globales
+        global_alerts = []
+        items_without_cost = len([item for item in items_analysis if item["cost_price"] == 0])
+        if items_without_cost > 0:
+            global_alerts.append(f"{items_without_cost} article(s) sans prix de revient")
+        
+        negative_margin_items = len([item for item in items_analysis if item["margin_percentage"] < 0])
+        if negative_margin_items > 0:
+            global_alerts.append(f"{negative_margin_items} article(s) en perte")
+            
+        if discount_stats["discount_percentage_global"] > 20:
+            global_alerts.append(f"Remise globale importante ({discount_stats['discount_percentage_global']:.1f}%)")
+        
+        return {
+            "status": "success",
+            "quotation_name": quotation_name,
+            "total_selling_gross": total_selling_gross,
+            "total_selling_net": total_selling_net,
+            "total_cost": total_cost,
+            "global_margin_amount": global_margin_amount,
+            "global_margin_percentage": global_margin_percentage,
+            "global_margin_status": global_status,
+            "items_count": len(items_analysis),
+            "items_analysis": items_analysis,
+            "discount_stats": discount_stats,
+            "global_alerts": global_alerts
+        }
+        
+    except Exception as e:
+        frappe.log_error(f"Erreur calcul marge devis {quotation_name}: {str(e)}")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+# ========================================
+# FONCTIONS EXISTANTES AMÉLIORÉES
+# ========================================
+
 def get_item_cost_price(item_code):
     """
     Récupère le prix de revient d'un article selon plusieurs méthodes
     INCLUT le support des bundle items (articles en kit)
+    AMÉLIORÉ : Retourne toujours 0 minimum
     """
     try:
         # NOUVEAU: Vérifier si c'est un bundle item
         if is_bundle_item(item_code):
             bundle_cost = get_bundle_cost_price(item_code)
             frappe.log_error(f"Bundle {item_code} - Coût calculé: {bundle_cost}", "Bundle Cost Debug")
-            return bundle_cost
+            return max(0, flt(bundle_cost))  # S'assurer que c'est >= 0
         
         # Méthode 1: Champ custom_standard_cost si il existe
         try:
             custom_cost = frappe.db.get_value("Item", item_code, "custom_standard_cost")
-            if custom_cost and custom_cost > 0:
+            if custom_cost and flt(custom_cost) > 0:
                 return flt(custom_cost)
         except:
             pass  # Le champ n'existe pas encore
         
         # Méthode 2: Prix de valorisation standard (valuation_rate) - SOURCE PRINCIPALE
         valuation_rate = frappe.db.get_value("Item", item_code, "valuation_rate")
-        if valuation_rate and valuation_rate > 0:
+        if valuation_rate and flt(valuation_rate) > 0:
             return flt(valuation_rate)
         
         # Méthode 3: Dernier prix d'achat (Purchase Receipt)
@@ -108,7 +304,7 @@ def get_item_cost_price(item_code):
             LIMIT 1
         """, item_code)
         
-        if last_purchase_rate:
+        if last_purchase_rate and flt(last_purchase_rate[0][0]) > 0:
             return flt(last_purchase_rate[0][0])
         
         # Méthode 4: Prix standard depuis Item Price (liste d'achat)
@@ -118,10 +314,11 @@ def get_item_cost_price(item_code):
             "selling": 0
         }, "price_list_rate")
         
-        if standard_buying_price:
+        if standard_buying_price and flt(standard_buying_price) > 0:
             return flt(standard_buying_price)
         
-        # Si aucune méthode ne fonctionne, retourner 0
+        # AMÉLIORÉ : Si aucune méthode ne fonctionne, retourner 0 (et non None)
+        frappe.log_error(f"Aucun prix de revient trouvé pour {item_code}, coût = 0€", "Missing Cost Price")
         return 0
         
     except Exception as e:
@@ -143,12 +340,12 @@ def is_bundle_item(item_code):
 def get_bundle_cost_price(item_code):
     """
     Calcule le prix de revient d'un bundle en additionnant les coûts de ses composants
-    VERSION CORRIGÉE
+    AMÉLIORÉ : Gestion des coûts zéro
     """
     try:
         total_cost = 0
         
-        # CORRECTION: Récupérer d'abord le nom du Product Bundle
+        # Récupérer d'abord le nom du Product Bundle
         bundle_name = frappe.db.get_value("Product Bundle", {"new_item_code": item_code}, "name")
         
         if not bundle_name:
@@ -167,15 +364,8 @@ def get_bundle_cost_price(item_code):
             component_item_code = bundle_item.get("item_code")
             component_qty = flt(bundle_item.get("qty", 1))
             
-            # CORRECTION: NE PAS utiliser le champ "rate" du Product Bundle Item
-            # car il peut contenir le prix de vente. Utiliser notre fonction de calcul de coût
-            component_cost = get_item_cost_price(component_item_code)
-            
-            # Si pas de coût trouvé, essayer d'utiliser le prix standard de l'item
-            if not component_cost:
-                item_standard_rate = frappe.db.get_value("Item", component_item_code, "standard_rate")
-                if item_standard_rate:
-                    component_cost = flt(item_standard_rate)
+            # Utiliser notre fonction sécurisée pour le coût
+            component_cost = get_item_cost_price_safe(component_item_code)
             
             # Calculer le sous-total
             component_total = component_cost * component_qty
@@ -189,7 +379,7 @@ def get_bundle_cost_price(item_code):
         frappe.log_error(f"Bundle {item_code} - Coût total final: {total_cost}", 
                        "Bundle Total Cost Debug")
         
-        return total_cost
+        return max(0, total_cost)  # S'assurer que c'est >= 0
         
     except Exception as e:
         frappe.log_error(f"Erreur calcul coût bundle {item_code}: {str(e)}")
@@ -198,13 +388,13 @@ def get_bundle_cost_price(item_code):
 def get_bundle_details(item_code):
     """
     Récupère les détails des composants d'un bundle pour l'affichage
-    VERSION CORRIGÉE
+    AMÉLIORÉ : Gestion des coûts zéro
     """
     try:
         if not is_bundle_item(item_code):
             return None
         
-        # CORRECTION: Récupérer d'abord le nom du Product Bundle
+        # Récupérer d'abord le nom du Product Bundle
         bundle_name = frappe.db.get_value("Product Bundle", {"new_item_code": item_code}, "name")
         
         if not bundle_name:
@@ -226,14 +416,8 @@ def get_bundle_details(item_code):
             # Récupérer le nom et le coût du composant
             item_name = frappe.db.get_value("Item", component_item_code, "item_name") or component_item_code
             
-            # CORRECTION: Utiliser notre fonction de calcul de coût au lieu du rate
-            component_cost = get_item_cost_price(component_item_code)
-            
-            # Si pas de coût trouvé, essayer le prix standard
-            if not component_cost:
-                item_standard_rate = frappe.db.get_value("Item", component_item_code, "standard_rate")
-                if item_standard_rate:
-                    component_cost = flt(item_standard_rate)
+            # Utiliser notre fonction sécurisée
+            component_cost = get_item_cost_price_safe(component_item_code)
             
             component_total = component_cost * component_qty
             
@@ -243,7 +427,8 @@ def get_bundle_details(item_code):
                 "qty": component_qty,
                 "cost_price": component_cost,
                 "total_cost": component_total,
-                "description": bundle_item.get("description") or ""
+                "description": bundle_item.get("description") or "",
+                "has_cost": component_cost > 0  # NOUVEAU : Indiquer si le composant a un coût
             })
             
             total_cost += component_total
@@ -251,7 +436,9 @@ def get_bundle_details(item_code):
         return {
             "components": components,
             "total_components": len(components),
-            "total_cost": total_cost
+            "total_cost": total_cost,
+            "components_with_cost": len([c for c in components if c["has_cost"]]),
+            "components_without_cost": len([c for c in components if not c["has_cost"]])
         }
         
     except Exception as e:
@@ -261,10 +448,13 @@ def get_bundle_details(item_code):
 def get_margin_status(margin_percentage):
     """
     Détermine le statut de la marge selon les seuils définis
+    AMÉLIORÉ : Gestion des marges extrêmes
     """
     margin_percentage = flt(margin_percentage)
     
-    if margin_percentage >= 30:
+    if margin_percentage >= 50:
+        return "exceptional"  # NOUVEAU : Marges exceptionnelles
+    elif margin_percentage >= 30:
         return "excellent"
     elif margin_percentage >= 20:
         return "good"
@@ -275,75 +465,202 @@ def get_margin_status(margin_percentage):
     else:
         return "negative"
 
+# ========================================
+# FONCTIONS UTILITAIRES AMÉLIORÉES
+# ========================================
+
 @frappe.whitelist()
-def calculate_quotation_margin(quotation_name):
+def check_items_without_cost():
     """
-    Calcule la marge globale d'un devis
+    NOUVELLE FONCTION : Identifie tous les articles sans prix de revient
     """
     try:
-        quotation = frappe.get_doc("Quotation", quotation_name)
+        # Récupérer tous les articles actifs
+        items = frappe.get_all("Item", 
+            filters={"disabled": 0},
+            fields=["item_code", "item_name", "valuation_rate", "item_group"]
+        )
         
-        total_cost = 0
-        total_selling = 0
-        items_analysis = []
+        items_without_cost = []
+        items_with_cost = 0
         
-        for item in quotation.items:
-            # Calculer la marge pour chaque article
-            item_margin = calculate_item_margin(
-                item.item_code, 
-                item.rate, 
-                item.qty
-            )
+        for item in items:
+            cost_price = get_item_cost_price_safe(item.item_code)
             
-            if item_margin["status"] == "success":
-                item_cost = flt(item_margin["cost_price"]) * flt(item.qty)
-                item_selling = flt(item.amount)
-                
-                total_cost += item_cost
-                total_selling += item_selling
-                
-                items_analysis.append({
+            if cost_price == 0:
+                items_without_cost.append({
                     "item_code": item.item_code,
                     "item_name": item.item_name,
-                    "qty": item.qty,
-                    "rate": item.rate,
-                    "amount": item.amount,
-                    "cost_price": item_margin["cost_price"],
-                    "total_cost": item_cost,
-                    "margin_amount": item_selling - item_cost,
-                    "margin_percentage": item_margin["margin_percentage"],
-                    "margin_status": item_margin["margin_status"],
-                    "is_bundle": item_margin.get("is_bundle", False),
-                    "bundle_details": item_margin.get("bundle_details")
+                    "item_group": item.item_group,
+                    "valuation_rate": item.valuation_rate
                 })
-        
-        # Calculer la marge globale
-        global_margin_amount = total_selling - total_cost
-        global_margin_percentage = 0
-        
-        if total_selling > 0:
-            global_margin_percentage = (global_margin_amount / total_selling) * 100
-        
-        global_status = get_margin_status(global_margin_percentage)
+            else:
+                items_with_cost += 1
         
         return {
             "status": "success",
-            "quotation_name": quotation_name,
-            "total_selling": total_selling,
-            "total_cost": total_cost,
-            "global_margin_amount": global_margin_amount,
-            "global_margin_percentage": global_margin_percentage,
-            "global_margin_status": global_status,
-            "items_count": len(items_analysis),
-            "items_analysis": items_analysis
+            "total_items": len(items),
+            "items_with_cost": items_with_cost,
+            "items_without_cost": len(items_without_cost),
+            "coverage_percentage": (items_with_cost / len(items) * 100) if len(items) > 0 else 0,
+            "items_without_cost_details": items_without_cost
         }
         
     except Exception as e:
-        frappe.log_error(f"Erreur calcul marge devis {quotation_name}: {str(e)}")
         return {
             "status": "error",
             "message": str(e)
         }
+
+@frappe.whitelist()
+def analyze_quotation_discounts(quotation_name):
+    """
+    NOUVELLE FONCTION : Analyse détaillée des remises d'un devis
+    """
+    try:
+        quotation = frappe.get_doc("Quotation", quotation_name)
+        
+        total_items = len(quotation.items)
+        items_with_discount = 0
+        total_discount_amount = 0
+        discount_analysis = []
+        
+        for item in quotation.items:
+            discount_percentage = flt(getattr(item, 'discount_percentage', 0))
+            discount_amount = flt(getattr(item, 'discount_amount', 0))
+            
+            gross_amount = flt(item.rate) * flt(item.qty)
+            net_amount = flt(item.amount)
+            item_discount = gross_amount - net_amount
+            
+            if discount_percentage > 0 or discount_amount > 0 or item_discount > 0:
+                items_with_discount += 1
+                total_discount_amount += item_discount
+                
+                discount_analysis.append({
+                    "item_code": item.item_code,
+                    "item_name": item.item_name,
+                    "gross_amount": gross_amount,
+                    "net_amount": net_amount,
+                    "discount_amount": item_discount,
+                    "discount_percentage": (item_discount / gross_amount * 100) if gross_amount > 0 else 0
+                })
+        
+        # Remise globale du devis
+        global_discount = flt(getattr(quotation, 'discount_amount', 0))
+        total_discount_amount += global_discount
+        
+        total_gross = sum(flt(item.rate) * flt(item.qty) for item in quotation.items)
+        total_net = flt(quotation.net_total)
+        
+        return {
+            "status": "success",
+            "quotation_name": quotation_name,
+            "total_items": total_items,
+            "items_with_discount": items_with_discount,
+            "total_gross": total_gross,
+            "total_net": total_net,
+            "total_discount": total_discount_amount,
+            "global_discount_percentage": (total_discount_amount / total_gross * 100) if total_gross > 0 else 0,
+            "discount_analysis": discount_analysis,
+            "global_discount": global_discount
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+# ========================================
+# HOOKS AMÉLIORÉS
+# ========================================
+
+def quotation_on_save(doc, method):
+    """
+    Hook appelé lors de la sauvegarde d'un devis
+    AMÉLIORÉ : Calcule automatiquement les marges avec remises
+    """
+    try:
+        if not doc.get("custom_margin_calculated"):
+            calculate_and_update_quotation_margins_with_discounts(doc)
+    except Exception as e:
+        frappe.log_error(f"Erreur calcul automatique marge devis {doc.name}: {str(e)}")
+
+def calculate_and_update_quotation_margins_with_discounts(doc):
+    """
+    AMÉLIORÉ : Calcule et met à jour les champs de marge du devis avec remises
+    """
+    try:
+        total_cost = 0
+        total_selling_gross = 0
+        total_selling_net = 0
+        
+        for item in doc.items:
+            # Récupérer les informations de remise
+            discount_percentage = flt(getattr(item, 'discount_percentage', 0))
+            discount_amount = flt(getattr(item, 'discount_amount', 0))
+            
+            # Calculer le coût pour chaque article
+            cost_price = get_item_cost_price_safe(item.item_code)
+            item_cost = cost_price * flt(item.qty)
+            
+            # Calculs de vente
+            item_selling_gross = flt(item.rate) * flt(item.qty)
+            item_selling_net = flt(item.amount)  # ERPNext calcule déjà le net
+            
+            total_cost += item_cost
+            total_selling_gross += item_selling_gross
+            total_selling_net += item_selling_net
+            
+            # Mettre à jour les champs personnalisés de l'article si ils existent
+            if hasattr(item, 'custom_cost_price'):
+                item.custom_cost_price = cost_price
+            if hasattr(item, 'custom_margin_amount'):
+                item.custom_margin_amount = item_selling_net - item_cost
+            if hasattr(item, 'custom_margin_percentage'):
+                if item_selling_net > 0:
+                    item.custom_margin_percentage = ((item_selling_net - item_cost) / item_selling_net) * 100
+        
+        # Appliquer les remises globales
+        additional_discount = flt(getattr(doc, 'discount_amount', 0))
+        if additional_discount > 0:
+            total_selling_net -= additional_discount
+        
+        # Calculer la marge globale
+        global_margin_amount = total_selling_net - total_cost
+        global_margin_percentage = 0
+        
+        if total_selling_net > 0:
+            global_margin_percentage = (global_margin_amount / total_selling_net) * 100
+        
+        # Mettre à jour les champs personnalisés du devis si ils existent
+        if hasattr(doc, 'custom_total_cost'):
+            doc.custom_total_cost = total_cost
+        if hasattr(doc, 'custom_margin_amount'):
+            doc.custom_margin_amount = global_margin_amount
+        if hasattr(doc, 'custom_margin_percentage'):
+            doc.custom_margin_percentage = global_margin_percentage
+        if hasattr(doc, 'custom_margin_status'):
+            doc.custom_margin_status = get_margin_status(global_margin_percentage)
+        
+        # NOUVEAU : Champs pour les remises
+        if hasattr(doc, 'custom_total_gross'):
+            doc.custom_total_gross = total_selling_gross
+        if hasattr(doc, 'custom_total_discount'):
+            doc.custom_total_discount = total_selling_gross - total_selling_net
+        
+        # Marquer comme calculé
+        doc.custom_margin_calculated = 1
+        
+        frappe.log_error(f"Marges calculées pour {doc.name}: brut={total_selling_gross}, net={total_selling_net}, coût={total_cost}, marge={global_margin_percentage:.2f}%", "Margin Calculation")
+        
+    except Exception as e:
+        frappe.log_error(f"Erreur mise à jour marges devis avec remises: {str(e)}")
+
+# ========================================
+# AUTRES FONCTIONS EXISTANTES (inchangées)
+# ========================================
 
 @frappe.whitelist()
 def update_item_valuation_rate(item_code, valuation_rate):
@@ -365,74 +682,6 @@ def update_item_valuation_rate(item_code, valuation_rate):
             "message": str(e)
         }
 
-# ========================================
-# HOOKS POUR CALCUL AUTOMATIQUE
-# ========================================
-
-def quotation_on_save(doc, method):
-    """
-    Hook appelé lors de la sauvegarde d'un devis
-    Calcule automatiquement les marges
-    """
-    try:
-        if not doc.get("custom_margin_calculated"):
-            calculate_and_update_quotation_margins(doc)
-    except Exception as e:
-        frappe.log_error(f"Erreur calcul automatique marge devis {doc.name}: {str(e)}")
-
-def calculate_and_update_quotation_margins(doc):
-    """
-    Calcule et met à jour les champs de marge du devis
-    """
-    try:
-        total_cost = 0
-        total_selling = 0
-        
-        for item in doc.items:
-            # Calculer le coût pour chaque article
-            cost_price = get_item_cost_price(item.item_code)
-            item_cost = flt(cost_price) * flt(item.qty)
-            item_selling = flt(item.amount)
-            
-            total_cost += item_cost
-            total_selling += item_selling
-            
-            # Mettre à jour les champs personnalisés de l'article si ils existent
-            if hasattr(item, 'custom_cost_price'):
-                item.custom_cost_price = cost_price
-            if hasattr(item, 'custom_margin_amount'):
-                item.custom_margin_amount = item_selling - item_cost
-            if hasattr(item, 'custom_margin_percentage'):
-                if item_selling > 0:
-                    item.custom_margin_percentage = ((item_selling - item_cost) / item_selling) * 100
-        
-        # Calculer la marge globale
-        global_margin_amount = total_selling - total_cost
-        global_margin_percentage = 0
-        
-        if total_selling > 0:
-            global_margin_percentage = (global_margin_amount / total_selling) * 100
-        
-        # Mettre à jour les champs personnalisés du devis si ils existent
-        if hasattr(doc, 'custom_total_cost'):
-            doc.custom_total_cost = total_cost
-        if hasattr(doc, 'custom_margin_amount'):
-            doc.custom_margin_amount = global_margin_amount
-        if hasattr(doc, 'custom_margin_percentage'):
-            doc.custom_margin_percentage = global_margin_percentage
-        if hasattr(doc, 'custom_margin_status'):
-            doc.custom_margin_status = get_margin_status(global_margin_percentage)
-        
-        # Marquer comme calculé
-        doc.custom_margin_calculated = 1
-        
-    except Exception as e:
-        frappe.log_error(f"Erreur mise à jour marges devis: {str(e)}")
-
-# ========================================
-# FONCTIONS UTILITAIRES
-# ========================================
-
 @frappe.whitelist()
 def bulk_update_valuation_rates(items_data):
     """
@@ -449,7 +698,7 @@ def bulk_update_valuation_rates(items_data):
                 item_code = item_data.get("item_code")
                 valuation_rate = flt(item_data.get("valuation_rate"))
                 
-                if item_code and valuation_rate > 0:
+                if item_code and valuation_rate >= 0:  # AMÉLIORÉ : Accepter 0
                     frappe.db.set_value("Item", item_code, "valuation_rate", valuation_rate)
                     updated_count += 1
                     
@@ -546,15 +795,11 @@ def sync_valuation_from_last_purchase():
             "message": str(e)
         }
 
-# ========================================
-# API pour vérifier la configuration avec support Bundle
-# ========================================
-
 @frappe.whitelist()
 def check_margin_setup():
     """
     Vérifie que tous les champs nécessaires existent
-    INCLUT la vérification des bundles
+    AMÉLIORÉ : Inclut les statistiques de remises et coûts zéro
     """
     try:
         # Vérifier les champs Quotation
@@ -563,7 +808,9 @@ def check_margin_setup():
             "custom_margin_amount", 
             "custom_margin_percentage",
             "custom_margin_status",
-            "custom_margin_calculated"
+            "custom_margin_calculated",
+            "custom_total_gross",  # NOUVEAU
+            "custom_total_discount"  # NOUVEAU
         ]
         
         missing_quotation_fields = []
@@ -583,7 +830,7 @@ def check_margin_setup():
             if not frappe.db.has_column("Quotation Item", field):
                 missing_item_fields.append(field)
         
-        # Vérifier quelques articles avec valuation_rate
+        # Statistiques des articles avec valorisation
         items_with_valuation = frappe.db.count("Item", {
             "valuation_rate": [">", 0],
             "disabled": 0
@@ -591,7 +838,7 @@ def check_margin_setup():
         
         total_items = frappe.db.count("Item", {"disabled": 0})
         
-        # NOUVEAU: Statistiques sur les bundles
+        # NOUVEAU : Statistiques sur les bundles
         total_bundles = frappe.db.count("Product Bundle")
         bundles_with_cost = 0
         
@@ -602,17 +849,30 @@ def check_margin_setup():
                 if get_bundle_cost_price(bundle.new_item_code) > 0:
                     bundles_with_cost += 1
         
+        # NOUVEAU : Vérifier des devis récents avec remises
+        recent_quotations_with_discounts = frappe.db.count("Quotation", {
+            "creation": [">=", "2024-01-01"],
+            "discount_amount": [">", 0]
+        })
+        
         return {
             "status": "success",
             "quotation_fields_missing": missing_quotation_fields,
             "quotation_item_fields_missing": missing_item_fields,
             "items_with_valuation": items_with_valuation,
             "total_items": total_items,
+            "items_without_valuation": total_items - items_with_valuation,
             "valuation_coverage": f"{(items_with_valuation/total_items)*100:.1f}%" if total_items > 0 else "0%",
             "total_bundles": total_bundles,
             "bundles_with_cost": bundles_with_cost,
             "bundle_coverage": f"{(bundles_with_cost/total_bundles)*100:.1f}%" if total_bundles > 0 else "0%",
-            "ready_for_use": len(missing_quotation_fields) == 0 and len(missing_item_fields) == 0
+            "recent_quotations_with_discounts": recent_quotations_with_discounts,
+            "ready_for_use": len(missing_quotation_fields) == 0 and len(missing_item_fields) == 0,
+            "improvements": [
+                f"{total_items - items_with_valuation} articles sans prix de revient seront traités avec coût=0€",
+                "Les remises sont maintenant incluses dans les calculs de marge",
+                "Gestion améliorée des bundles avec composants sans coût"
+            ]
         }
         
     except Exception as e:
@@ -667,7 +927,9 @@ def analyze_bundle_item(item_code):
             "bundle_details": bundle_details,
             "margin_info": margin_info,
             "components_count": len(bundle_details["components"]),
-            "total_cost": bundle_details["total_cost"]
+            "total_cost": bundle_details["total_cost"],
+            "components_with_cost": bundle_details["components_with_cost"],
+            "components_without_cost": bundle_details["components_without_cost"]
         }
         
     except Exception as e:
@@ -706,7 +968,9 @@ def get_all_bundles_analysis():
                     "standard_selling_price": analysis["standard_selling_price"],
                     "margin_percentage": analysis["margin_info"]["margin_percentage"] if analysis["margin_info"] else 0,
                     "margin_status": analysis["margin_info"]["margin_status"] if analysis["margin_info"] else "unknown",
-                    "has_selling_price": analysis["standard_selling_price"] > 0
+                    "has_selling_price": analysis["standard_selling_price"] > 0,
+                    "components_with_cost": analysis["components_with_cost"],
+                    "components_without_cost": analysis["components_without_cost"]
                 })
         
         # Statistiques globales
@@ -728,10 +992,6 @@ def get_all_bundles_analysis():
             "status": "error",
             "message": str(e)
         }
-
-# ========================================
-# FONCTION DEBUG POUR TESTER UN BUNDLE SPÉCIFIQUE
-# ========================================
 
 @frappe.whitelist()
 def debug_bundle_calculation(item_code):
@@ -769,8 +1029,8 @@ def debug_bundle_calculation(item_code):
                     component_item_code = bundle_item.get("item_code")
                     component_qty = flt(bundle_item.get("qty", 1))
                     
-                    # Récupérer le coût du composant
-                    component_cost = get_item_cost_price(component_item_code)
+                    # Récupérer le coût du composant avec notre fonction sécurisée
+                    component_cost = get_item_cost_price_safe(component_item_code)
                     component_total = component_cost * component_qty
                     total_cost += component_total
                     
@@ -779,7 +1039,8 @@ def debug_bundle_calculation(item_code):
                         "qty": component_qty,
                         "rate_in_bundle": bundle_item.get("rate", 0),  # Prix dans le bundle
                         "calculated_cost": component_cost,  # Coût calculé
-                        "total_cost": component_total
+                        "total_cost": component_total,
+                        "has_cost": component_cost > 0  # NOUVEAU
                     })
                     
                     result["steps"].append(f"Composant {component_item_code}: qté={component_qty}, coût={component_cost}, total={component_total}")
