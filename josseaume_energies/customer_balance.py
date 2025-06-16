@@ -269,8 +269,16 @@ def determine_balance_status(balance):
     Détermine le statut du solde avec seuils configurables
     """
     try:
-        # Seuil configurable (peut être mis en paramètres système)
-        threshold = flt(frappe.db.get_single_value("Accounts Settings", "credit_limit") or 0.01)
+        # Seuil par défaut de 0.01 EUR - peut être configuré plus tard
+        threshold = 0.01
+        
+        # Optionnel: récupérer depuis les paramètres personnalisés si configuré
+        try:
+            custom_threshold = frappe.db.get_single_value("Accounts Settings", "balance_threshold")
+            if custom_threshold:
+                threshold = flt(custom_threshold)
+        except:
+            pass  # Ignore si le champ n'existe pas
         
         if balance > threshold:
             return {
