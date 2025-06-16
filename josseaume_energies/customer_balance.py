@@ -1,13 +1,14 @@
-# josseaume_energies/customer_balance.py - VERSION SIMPLIFIÉE
+# josseaume_energies/customer_balance.py - API pour le calcul du solde client
 
 import frappe
 from frappe import _
-from frappe.utils import flt
+from frappe.utils import flt, fmt_money, getdate, today
+from erpnext.accounts.utils import get_balance_on
 
 @frappe.whitelist()
 def get_customer_balance(customer):
     """
-    Version simplifiée pour calculer le solde client
+    Récupère le solde d'un client avec plusieurs méthodes de calcul
     """
     try:
         if not customer:
@@ -23,23 +24,51 @@ def get_customer_balance(customer):
                 "message": f"Client '{customer}' non trouvé"
             }
         
-        # Calcul simple via GL Entries
-        balance = calculate_balance_simple(customer)
+        # Méthode 1: Utiliser la fonction ERPNext standard pour les comptes débiteurs
+        balance = 0
+        calculation_method = "Standard ERPNext"
         
-        # Devise par défaut
-        currency = get_default_currency()
+        try:
+            # Récupérer le compte débiteur du client
+            customer_doc = frappe.get_doc("Customer", customer)
+            
+            # Essayer d'abord avec le compte de débiteur par défaut
+            receivable_account = get_customer_receivable_account(customer)
+            
+            if receivable_account:
+                balance = get_balance_on(
+                    account=receivable_account,
+                    date=today(),
+                    party_type="Customer",
+                    party=customer
+                )
+                calculation_method = f"Compte débiteur: {receivable_account}"
+            else:
+                # Fallback: calculer depuis les GL Entries directement
+                balance = calculate_balance_from_gl_entries(customer)
+                calculation_method = "Calcul GL Entries"
+                
+        except Exception as e:
+            frappe.log_error(f"Erreur calcul solde standard pour {customer}: {str(e)}")
+            # Fallback: calculer depuis les GL Entries
+            balance = calculate_balance_from_gl_entries(customer)
+            calculation_method = "Fallback GL Entries"
+        
+        # Récupérer la devise par défaut
+        currency = get_customer_currency(customer)
         
         # Formater le montant
-        formatted_balance = f"{balance:.2f} {currency}"
+        formatted_balance = fmt_money(balance, currency=currency)
         
-        # Statut
+        # Déterminer le statut
         status_text = "Équilibré"
         if balance > 0:
             status_text = "Débiteur"
         elif balance < 0:
             status_text = "Créditeur"
         
-        frappe.log_error(f"Solde calculé pour {customer}: {balance}", "Customer Balance Debug")
+        # Récupérer des statistiques supplémentaires
+        stats = get_customer_payment_stats(customer)
         
         return {
             "status": "success",
@@ -48,113 +77,182 @@ def get_customer_balance(customer):
             "formatted_balance": formatted_balance,
             "currency": currency,
             "status_text": status_text,
-            "calculation_method": "GL Entries Simple"
+            "calculation_method": calculation_method,
+            "calculation_date": today(),
+            "stats": stats
         }
         
     except Exception as e:
-        error_msg = str(e)
-        frappe.log_error(f"Erreur calcul solde {customer}: {error_msg}", "Customer Balance Error")
-        
+        frappe.log_error(f"Erreur lors du calcul du solde client {customer}: {str(e)}")
         return {
             "status": "error",
-            "message": f"Erreur calcul solde: {error_msg}"
+            "message": f"Erreur lors du calcul du solde: {str(e)}"
         }
 
-def calculate_balance_simple(customer):
+def get_customer_receivable_account(customer):
     """
-    Calcul simple du solde via les écritures comptables
+    Récupère le compte débiteur du client
     """
     try:
-        # Requête simple pour récupérer le solde
-        result = frappe.db.sql("""
+        customer_doc = frappe.get_doc("Customer", customer)
+        
+        # Essayer le compte par défaut du client
+        if hasattr(customer_doc, 'default_receivable_account') and customer_doc.default_receivable_account:
+            return customer_doc.default_receivable_account
+        
+        # Sinon, chercher dans les comptes de la société par défaut
+        company = frappe.defaults.get_global_default("company")
+        
+        if company:
+            # Récupérer le compte débiteur par défaut de la société
+            receivable_account = frappe.db.get_value(
+                "Company", 
+                company, 
+                "default_receivable_account"
+            )
+            
+            if receivable_account:
+                return receivable_account
+        
+        # Fallback: chercher un compte de type "Receivable"
+        receivable_accounts = frappe.db.get_list(
+            "Account",
+            filters={
+                "account_type": "Receivable",
+                "is_group": 0,
+                "disabled": 0
+            },
+            fields=["name"],
+            limit=1
+        )
+        
+        if receivable_accounts:
+            return receivable_accounts[0].name
+            
+        return None
+        
+    except Exception as e:
+        frappe.log_error(f"Erreur récupération compte débiteur pour {customer}: {str(e)}")
+        return None
+
+def calculate_balance_from_gl_entries(customer):
+    """
+    Calcule le solde depuis les écritures comptables
+    """
+    try:
+        # Récupérer toutes les écritures comptables pour ce client
+        gl_entries = frappe.db.sql("""
             SELECT 
-                COALESCE(SUM(debit), 0) as total_debit,
-                COALESCE(SUM(credit), 0) as total_credit
+                SUM(debit) as total_debit,
+                SUM(credit) as total_credit
             FROM `tabGL Entry`
             WHERE party_type = 'Customer'
             AND party = %s
             AND is_cancelled = 0
         """, (customer,), as_dict=True)
         
-        if result and len(result) > 0:
-            total_debit = flt(result[0].total_debit or 0)
-            total_credit = flt(result[0].total_credit or 0)
+        if gl_entries and gl_entries[0]:
+            total_debit = flt(gl_entries[0].total_debit or 0)
+            total_credit = flt(gl_entries[0].total_credit or 0)
             balance = total_debit - total_credit
-            
-            frappe.log_error(f"Détail calcul {customer}: Débit={total_debit}, Crédit={total_credit}, Solde={balance}", "Balance Calculation")
-            
             return balance
         
-        return 0.0
+        return 0
         
     except Exception as e:
-        frappe.log_error(f"Erreur calculate_balance_simple: {str(e)}")
-        return 0.0
+        frappe.log_error(f"Erreur calcul GL Entries pour {customer}: {str(e)}")
+        return 0
 
-def get_default_currency():
+def get_customer_currency(customer):
     """
-    Récupère la devise par défaut
+    Récupère la devise du client ou par défaut
     """
     try:
-        # Essayer d'abord la devise de la société par défaut
+        customer_doc = frappe.get_doc("Customer", customer)
+        
+        if hasattr(customer_doc, 'default_currency') and customer_doc.default_currency:
+            return customer_doc.default_currency
+        
+        # Devise par défaut de la société
         company = frappe.defaults.get_global_default("company")
         if company:
-            currency = frappe.db.get_value("Company", company, "default_currency")
-            if currency:
-                return currency
+            default_currency = frappe.db.get_value("Company", company, "default_currency")
+            if default_currency:
+                return default_currency
         
-        # Sinon, devise globale par défaut
-        currency = frappe.defaults.get_global_default("currency")
-        if currency:
-            return currency
-            
         # Fallback sur EUR
         return "EUR"
         
     except Exception as e:
-        frappe.log_error(f"Erreur get_default_currency: {str(e)}")
+        frappe.log_error(f"Erreur récupération devise pour {customer}: {str(e)}")
         return "EUR"
 
-@frappe.whitelist()
-def test_customer_balance_simple(customer=None):
+def get_customer_payment_stats(customer):
     """
-    Fonction de test simple
+    Récupère des statistiques de paiement pour le client
     """
     try:
-        if not customer:
-            # Prendre le premier client actif
-            customers = frappe.get_all("Customer", 
-                                     filters={"disabled": 0}, 
-                                     limit=1,
-                                     fields=["name", "customer_name"])
-            
-            if not customers:
-                return {
-                    "status": "error",
-                    "message": "Aucun client trouvé pour le test"
-                }
-            
-            customer = customers[0].name
+        stats = {}
         
-        # Tester le calcul
-        result = get_customer_balance(customer)
+        # Nombre de factures impayées
+        unpaid_invoices = frappe.db.count("Sales Invoice", {
+            "customer": customer,
+            "status": ["in", ["Unpaid", "Partly Paid", "Overdue"]],
+            "docstatus": 1
+        })
+        stats["unpaid_invoices"] = unpaid_invoices
         
-        return {
-            "status": "success",
-            "test_customer": customer,
-            "result": result
-        }
+        # Montant total des factures impayées
+        unpaid_amount = frappe.db.sql("""
+            SELECT SUM(outstanding_amount)
+            FROM `tabSales Invoice`
+            WHERE customer = %s
+            AND docstatus = 1
+            AND status IN ('Unpaid', 'Partly Paid', 'Overdue')
+        """, (customer,))
+        
+        stats["unpaid_amount"] = flt(unpaid_amount[0][0] if unpaid_amount and unpaid_amount[0][0] else 0)
+        
+        # Dernière facture
+        last_invoice = frappe.db.get_value(
+            "Sales Invoice",
+            {"customer": customer, "docstatus": 1},
+            ["name", "posting_date", "grand_total"],
+            order_by="posting_date desc"
+        )
+        
+        if last_invoice:
+            stats["last_invoice"] = {
+                "name": last_invoice[0],
+                "date": last_invoice[1],
+                "amount": last_invoice[2]
+            }
+        
+        # Dernier paiement
+        last_payment = frappe.db.get_value(
+            "Payment Entry",
+            {"party": customer, "party_type": "Customer", "docstatus": 1},
+            ["name", "posting_date", "paid_amount"],
+            order_by="posting_date desc"
+        )
+        
+        if last_payment:
+            stats["last_payment"] = {
+                "name": last_payment[0],
+                "date": last_payment[1],
+                "amount": last_payment[2]
+            }
+        
+        return stats
         
     except Exception as e:
-        return {
-            "status": "error",
-            "message": f"Erreur test: {str(e)}"
-        }
+        frappe.log_error(f"Erreur récupération stats pour {customer}: {str(e)}")
+        return {}
 
 @frappe.whitelist()
-def get_customer_transactions_simple(customer, limit=20):
+def get_customer_transactions(customer, limit=50):
     """
-    Version simplifiée pour récupérer les transactions
+    Récupère les dernières transactions d'un client
     """
     try:
         if not customer:
@@ -172,14 +270,16 @@ def get_customer_transactions_simple(customer, limit=20):
                 account,
                 debit,
                 credit,
-                remarks
+                against,
+                remarks,
+                creation
             FROM `tabGL Entry`
             WHERE party_type = 'Customer'
             AND party = %s
             AND is_cancelled = 0
             ORDER BY posting_date DESC, creation DESC
             LIMIT %s
-        """, (customer, int(limit)), as_dict=True)
+        """, (customer, limit), as_dict=True)
         
         return {
             "status": "success",
@@ -189,57 +289,143 @@ def get_customer_transactions_simple(customer, limit=20):
         }
         
     except Exception as e:
-        frappe.log_error(f"Erreur get_customer_transactions_simple: {str(e)}")
+        frappe.log_error(f"Erreur récupération transactions pour {customer}: {str(e)}")
+        return {
+            "status": "error",
+            "message": f"Erreur lors de la récupération des transactions: {str(e)}"
+        }
+
+@frappe.whitelist()
+def update_all_customer_balances():
+    """
+    Met à jour les soldes de tous les clients (fonction utilitaire)
+    """
+    try:
+        customers = frappe.get_all("Customer", 
+                                 filters={"disabled": 0}, 
+                                 fields=["name"])
+        
+        updated_count = 0
+        errors = []
+        
+        for customer in customers:
+            try:
+                balance_data = get_customer_balance(customer.name)
+                if balance_data["status"] == "success":
+                    updated_count += 1
+                else:
+                    errors.append(f"{customer.name}: {balance_data.get('message', 'Erreur inconnue')}")
+            except Exception as e:
+                errors.append(f"{customer.name}: {str(e)}")
+        
+        return {
+            "status": "success",
+            "updated_count": updated_count,
+            "total_customers": len(customers),
+            "errors": errors[:10]  # Limiter le nombre d'erreurs affichées
+        }
+        
+    except Exception as e:
+        frappe.log_error(f"Erreur mise à jour en masse des soldes: {str(e)}")
+        return {
+            "status": "error",
+            "message": f"Erreur lors de la mise à jour en masse: {str(e)}"
+        }
+
+@frappe.whitelist()
+def get_customers_with_outstanding_balance(minimum_amount=1):
+    """
+    Récupère la liste des clients avec un solde impayé
+    """
+    try:
+        minimum_amount = flt(minimum_amount)
+        
+        customers_with_balance = []
+        
+        # Récupérer tous les clients actifs
+        customers = frappe.get_all("Customer", 
+                                 filters={"disabled": 0}, 
+                                 fields=["name", "customer_name"])
+        
+        for customer in customers:
+            balance_data = get_customer_balance(customer.name)
+            
+            if (balance_data["status"] == "success" and 
+                abs(balance_data["balance"]) >= minimum_amount):
+                
+                customers_with_balance.append({
+                    "customer": customer.name,
+                    "customer_name": customer.customer_name,
+                    "balance": balance_data["balance"],
+                    "formatted_balance": balance_data["formatted_balance"],
+                    "status": balance_data["status_text"]
+                })
+        
+        # Trier par montant décroissant (plus gros débiteurs en premier)
+        customers_with_balance.sort(key=lambda x: x["balance"], reverse=True)
+        
+        return {
+            "status": "success",
+            "customers": customers_with_balance,
+            "count": len(customers_with_balance)
+        }
+        
+    except Exception as e:
+        frappe.log_error(f"Erreur récupération clients avec solde: {str(e)}")
         return {
             "status": "error",
             "message": f"Erreur: {str(e)}"
         }
 
-# Fonction de debug pour les logs
-def log_customer_balance_debug(customer):
-    """
-    Log de debug pour comprendre les problèmes
-    """
-    try:
-        frappe.log_error(f"=== DEBUG CUSTOMER BALANCE {customer} ===", "Customer Balance Debug")
-        
-        # Vérifier l'existence du client
-        exists = frappe.db.exists("Customer", customer)
-        frappe.log_error(f"Client existe: {exists}", "Customer Balance Debug")
-        
-        # Compter les GL Entries
-        count = frappe.db.count("GL Entry", {
-            "party_type": "Customer",
-            "party": customer,
-            "is_cancelled": 0
-        })
-        frappe.log_error(f"Nombre GL Entries: {count}", "Customer Balance Debug")
-        
-        # Détail des montants
-        result = frappe.db.sql("""
-            SELECT 
-                voucher_type,
-                COUNT(*) as count,
-                SUM(debit) as total_debit,
-                SUM(credit) as total_credit
-            FROM `tabGL Entry`
-            WHERE party_type = 'Customer'
-            AND party = %s
-            AND is_cancelled = 0
-            GROUP BY voucher_type
-        """, (customer,), as_dict=True)
-        
-        frappe.log_error(f"Détail par type: {result}", "Customer Balance Debug")
-        
-    except Exception as e:
-        frappe.log_error(f"Erreur debug: {str(e)}", "Customer Balance Debug")
-
-# Hook pour les mises à jour de client (optionnel)
+# Fonction utilitaire pour les hooks
 def customer_on_update(doc, method):
     """
-    Hook simple appelé lors de la mise à jour d'un client
+    Hook appelé lors de la mise à jour d'un client
+    Peut être utilisé pour recalculer automatiquement le solde
     """
     try:
+        # Log de l'événement
         frappe.log_error(f"Client {doc.name} mis à jour", "Customer Update")
+        
+        # Optionnel: Recalculer le solde immédiatement
+        # get_customer_balance(doc.name)
+        
     except Exception as e:
         frappe.log_error(f"Erreur hook customer_on_update: {str(e)}")
+
+# Fonction de test
+@frappe.whitelist()
+def test_customer_balance(customer=None):
+    """
+    Fonction de test pour vérifier le calcul des soldes
+    """
+    try:
+        test_customers = []
+        
+        if customer:
+            test_customers = [customer]
+        else:
+            # Prendre les 5 premiers clients actifs
+            test_customers = frappe.get_all("Customer", 
+                                          filters={"disabled": 0}, 
+                                          fields=["name"], 
+                                          limit=5)
+            test_customers = [c.name for c in test_customers]
+        
+        results = []
+        
+        for customer_name in test_customers:
+            balance_data = get_customer_balance(customer_name)
+            results.append(balance_data)
+        
+        return {
+            "status": "success",
+            "test_results": results,
+            "tested_customers": len(results)
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Erreur test: {str(e)}"
+        }
