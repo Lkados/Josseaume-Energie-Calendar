@@ -1,242 +1,269 @@
-// josseaume_energies/public/js/customer.js - Affichage du solde client avec code couleur
+// =============================================
+// SOLUTION SIMPLE POUR LE SOLDE CLIENT
+// Remplacer le contenu de customer.js par ce code
+// =============================================
+
+// josseaume_energies/public/js/customer.js - VERSION CORRIGÉE SIMPLE
+
+console.log("🚀 Script customer.js - Correction solde");
 
 frappe.ui.form.on("Customer", {
 	refresh: function (frm) {
-		// Ajouter l'affichage du solde client
 		if (!frm.doc.__islocal && frm.doc.name) {
-			add_customer_balance_indicator(frm);
+			// Attendre que tout soit chargé avant d'ajouter le solde
+			setTimeout(() => {
+				add_customer_balance_safe(frm);
+			}, 1000);
 		}
 	},
 
 	onload: function (frm) {
-		// Charger le solde au chargement du formulaire
 		if (!frm.doc.__islocal && frm.doc.name) {
 			setTimeout(() => {
-				add_customer_balance_indicator(frm);
-			}, 500);
+				add_customer_balance_safe(frm);
+			}, 1500);
 		}
 	},
 });
 
-function add_customer_balance_indicator(frm) {
+function add_customer_balance_safe(frm) {
 	try {
-		// Supprimer les anciens indicateurs de solde
-		remove_existing_balance_indicators(frm);
+		console.log("💰 Calcul solde pour:", frm.doc.name);
 
-		// Récupérer le solde du client
-		get_customer_balance(frm, function (balance_data) {
-			if (balance_data && balance_data.status === "success") {
-				display_balance_indicator(frm, balance_data);
-			} else {
-				console.log("Impossible de récupérer le solde client");
-			}
-		});
-	} catch (error) {
-		console.error("Erreur lors de l'ajout de l'indicateur de solde:", error);
-	}
-}
+		// Vérification TRÈS défensive du dashboard
+		if (!frm.dashboard) {
+			console.log("❌ Dashboard non disponible");
+			return;
+		}
 
-function get_customer_balance(frm, callback) {
-	try {
-		// Appel API pour récupérer le solde
+		// Supprimer les anciens indicateurs de manière SÉCURISÉE
+		remove_old_indicators_safe(frm);
+
+		// Récupérer le solde
 		frappe.call({
 			method: "josseaume_energies.customer_balance.get_customer_balance",
 			args: {
 				customer: frm.doc.name,
 			},
 			callback: function (r) {
-				if (r.message) {
-					callback(r.message);
+				if (r.message && r.message.status === "success") {
+					console.log("✅ API réussie:", r.message);
+					display_balance_safe(frm, r.message);
 				} else {
-					// Fallback : utiliser la méthode ERPNext standard
-					get_customer_balance_fallback(frm, callback);
+					console.log("⚠️ API échouée, méthode de fallback...");
+					get_balance_fallback(frm);
 				}
 			},
 			error: function (err) {
-				console.log("Erreur API solde client, utilisation du fallback");
-				get_customer_balance_fallback(frm, callback);
+				console.log("❌ Erreur API:", err);
+				get_balance_fallback(frm);
 			},
 		});
 	} catch (error) {
-		console.error("Erreur get_customer_balance:", error);
-		get_customer_balance_fallback(frm, callback);
+		console.error("Erreur générale:", error);
 	}
 }
 
-function get_customer_balance_fallback(frm, callback) {
+function remove_old_indicators_safe(frm) {
 	try {
-		// Méthode de fallback utilisant l'API standard ERPNext
-		frappe.call({
-			method: "erpnext.accounts.utils.get_balance_on",
-			args: {
-				account: frm.doc.name,
-				date: frappe.datetime.get_today(),
-			},
-			callback: function (r) {
-				if (r.message !== undefined) {
-					const balance = flt(r.message);
-					callback({
-						status: "success",
-						balance: balance,
-						currency: frappe.defaults.get_default("currency") || "EUR",
-						formatted_balance: format_currency(balance),
-					});
-				} else {
-					// Dernière tentative : récupérer depuis les comptes clients
-					get_customer_balance_from_receivables(frm, callback);
-				}
-			},
-			error: function (err) {
-				console.error("Erreur fallback balance:", err);
-				get_customer_balance_from_receivables(frm, callback);
-			},
-		});
+		// Méthode ULTRA sécurisée
+		if (frm.dashboard && frm.dashboard.wrapper && frm.dashboard.wrapper.find) {
+			const indicators = frm.dashboard.wrapper.find(".indicator");
+			if (indicators && indicators.length > 0) {
+				indicators.each(function () {
+					const text = $(this).text().toLowerCase();
+					if (
+						text.includes("solde") ||
+						text.includes("doit") ||
+						text.includes("devons")
+					) {
+						$(this).remove();
+					}
+				});
+			}
+		}
+		console.log("🧹 Nettoyage sécurisé OK");
 	} catch (error) {
-		console.error("Erreur get_customer_balance_fallback:", error);
-		get_customer_balance_from_receivables(frm, callback);
+		// On ignore les erreurs de nettoyage, ce n'est pas critique
+		console.log("Note: nettoyage ignoré -", error.message);
 	}
 }
 
-function get_customer_balance_from_receivables(frm, callback) {
+function get_balance_fallback(frm) {
 	try {
-		// Récupérer le solde depuis les entrées comptables
-		frappe.call({
-			method: "frappe.client.get_list",
-			args: {
-				doctype: "GL Entry",
+		console.log("🔄 Méthode de fallback...");
+
+		// Utiliser l'API moderne de Frappe
+		frappe.db
+			.get_list("GL Entry", {
 				filters: {
 					party_type: "Customer",
 					party: frm.doc.name,
 					is_cancelled: 0,
 				},
 				fields: ["debit", "credit"],
-			},
-			callback: function (r) {
-				if (r.message && Array.isArray(r.message)) {
-					let total_debit = 0;
-					let total_credit = 0;
+			})
+			.then((entries) => {
+				let total_debit = 0;
+				let total_credit = 0;
 
-					r.message.forEach((entry) => {
-						total_debit += flt(entry.debit || 0);
-						total_credit += flt(entry.credit || 0);
-					});
+				entries.forEach((entry) => {
+					total_debit += parseFloat(entry.debit || 0);
+					total_credit += parseFloat(entry.credit || 0);
+				});
 
-					const balance = total_debit - total_credit;
+				const balance = total_debit - total_credit;
 
-					callback({
-						status: "success",
-						balance: balance,
-						currency: frappe.defaults.get_default("currency") || "EUR",
-						formatted_balance: format_currency(balance),
-						calculation_method: "GL Entries",
-					});
-				} else {
-					// Si tout échoue, retourner un solde de 0
-					callback({
-						status: "success",
-						balance: 0,
-						currency: frappe.defaults.get_default("currency") || "EUR",
-						formatted_balance: format_currency(0),
-						calculation_method: "Default (0)",
-					});
-				}
-			},
-			error: function (err) {
-				console.error("Erreur récupération GL Entries:", err);
-				// Retourner un solde de 0 en cas d'erreur
-				callback({
+				const balance_data = {
+					status: "success",
+					balance: balance,
+					currency: "EUR",
+					formatted_balance: `${balance.toFixed(2)} EUR`,
+				};
+
+				console.log("✅ Fallback réussi:", balance_data);
+				display_balance_safe(frm, balance_data);
+			})
+			.catch((error) => {
+				console.error("Erreur fallback:", error);
+				// Même en cas d'erreur, afficher un solde à 0
+				display_balance_safe(frm, {
 					status: "success",
 					balance: 0,
-					currency: frappe.defaults.get_default("currency") || "EUR",
-					formatted_balance: format_currency(0),
-					calculation_method: "Error fallback (0)",
+					currency: "EUR",
+					formatted_balance: "0.00 EUR",
 				});
-			},
-		});
+			});
 	} catch (error) {
-		console.error("Erreur get_customer_balance_from_receivables:", error);
-		callback({
-			status: "error",
-			message: "Impossible de calculer le solde",
-		});
+		console.error("Erreur fallback:", error);
 	}
 }
 
-function display_balance_indicator(frm, balance_data) {
+function display_balance_safe(frm, balance_data) {
 	try {
-		const balance = flt(balance_data.balance);
-		const formatted_balance = balance_data.formatted_balance;
+		const balance = parseFloat(balance_data.balance || 0);
+		const formatted_balance = balance_data.formatted_balance || `${balance.toFixed(2)} EUR`;
 
-		// Déterminer la couleur et le texte selon le solde
-		let color = "grey";
+		console.log("🎯 Affichage du solde:", balance, formatted_balance);
+
+		// Déterminer couleur et message
+		let color = "blue";
 		let label = "";
-		let icon = "";
 
-		if (balance > 0) {
-			// Client nous doit de l'argent - ROUGE
+		if (balance > 0.01) {
 			color = "red";
 			label = `💳 Client doit : ${formatted_balance}`;
-			icon = "fa-arrow-up";
-		} else if (balance < 0) {
-			// On doit de l'argent au client - VERT
+		} else if (balance < -0.01) {
 			color = "green";
-			label = `💰 Nous devons : ${format_currency(Math.abs(balance))}`;
-			icon = "fa-arrow-down";
+			label = `💰 Nous devons : ${Math.abs(balance).toFixed(2)} EUR`;
 		} else {
-			// Solde équilibré - pas d'affichage ou gris
 			color = "blue";
 			label = `⚖️ Solde équilibré : ${formatted_balance}`;
-			icon = "fa-check-circle";
 		}
 
-		// Ajouter l'indicateur au dashboard seulement si solde non nul ou pour information
-		if (balance !== 0 || frappe.user.has_role(["System Manager", "Accounts Manager"])) {
-			frm.dashboard.add_indicator(__(label), color);
-
-			// Ajouter des informations supplémentaires en petit texte si disponible
-			if (balance_data.calculation_method) {
-				frm.dashboard.add_comment(
-					`<small style="color: #666;">Méthode de calcul: ${balance_data.calculation_method}</small>`,
-					"blue"
-				);
+		// TRIPLE sécurité pour l'affichage
+		if (frm.dashboard && typeof frm.dashboard.add_indicator === "function") {
+			try {
+				frm.dashboard.add_indicator(label, color);
+				console.log("📊 Indicateur ajouté via dashboard:", label);
+			} catch (dashboard_error) {
+				console.log("Dashboard échoué, méthode alternative...");
+				display_via_intro(frm, label, color);
 			}
+		} else {
+			console.log("Dashboard non disponible, méthode alternative...");
+			display_via_intro(frm, label, color);
 		}
 
-		// NOUVEAU : Ajouter un bouton pour voir le détail des transactions
-		if (balance !== 0) {
+		// Ajouter les boutons
+		add_balance_buttons_safe(frm, balance);
+
+		console.log("✅ Affichage terminé avec succès");
+	} catch (error) {
+		console.error("Erreur affichage:", error);
+	}
+}
+
+function display_via_intro(frm, label, color) {
+	try {
+		// Affichage de secours via l'intro du formulaire
+		const intro_html = `
+            <div style="
+                padding: 10px 15px; 
+                background: ${
+					color === "red" ? "#f8d7da" : color === "green" ? "#d4edda" : "#d1ecf1"
+				}; 
+                color: ${color === "red" ? "#721c24" : color === "green" ? "#155724" : "#0c5460"};
+                border: 1px solid ${
+					color === "red" ? "#f5c6cb" : color === "green" ? "#c3e6cb" : "#bee5eb"
+				};
+                border-radius: 4px; 
+                margin: 10px 0;
+                font-weight: 600;
+            ">
+                ${label}
+            </div>
+        `;
+
+		frm.set_intro(intro_html);
+		console.log("📋 Solde affiché via intro:", label);
+	} catch (intro_error) {
+		console.error("Erreur affichage intro:", intro_error);
+	}
+}
+
+function add_balance_buttons_safe(frm, balance) {
+	try {
+		const balance_group = "💰 Solde";
+
+		// Bouton actualiser
+		frm.add_custom_button(
+			"🔄 Actualiser",
+			function () {
+				// Nettoyer et relancer
+				remove_old_indicators_safe(frm);
+				frm.set_intro(""); // Nettoyer l'intro aussi
+
+				setTimeout(() => {
+					add_customer_balance_safe(frm);
+				}, 300);
+
+				frappe.show_alert("Solde actualisé", 2);
+			},
+			balance_group
+		);
+
+		// Bouton transactions si nécessaire
+		if (Math.abs(balance) > 0.01) {
 			frm.add_custom_button(
-				__("Voir transactions"),
+				"📋 Transactions",
 				function () {
-					show_customer_transactions_detail(frm, balance_data);
+					show_transactions_simple(frm);
 				},
-				__("Comptabilité")
+				balance_group
 			);
 		}
 
-		// NOUVEAU : Ajouter un bouton pour actualiser le solde
+		// Bouton écritures comptables
 		frm.add_custom_button(
-			__("Actualiser solde"),
+			"📚 Écritures",
 			function () {
-				frm.dashboard.clear_indicator();
-				add_customer_balance_indicator(frm);
-				frappe.show_alert("Solde actualisé", 2);
+				frappe.set_route("List", "GL Entry", {
+					party_type: "Customer",
+					party: frm.doc.name,
+				});
 			},
-			__("Actions")
+			balance_group
 		);
-
-		console.log(`Solde client ${frm.doc.name}: ${balance} (${formatted_balance})`);
 	} catch (error) {
-		console.error("Erreur lors de l'affichage de l'indicateur:", error);
+		console.error("Erreur boutons:", error);
 	}
 }
 
-function show_customer_transactions_detail(frm, balance_data) {
+function show_transactions_simple(frm) {
 	try {
-		// Récupérer les transactions détaillées
-		frappe.call({
-			method: "frappe.client.get_list",
-			args: {
-				doctype: "GL Entry",
+		frappe.db
+			.get_list("GL Entry", {
 				filters: {
 					party_type: "Customer",
 					party: frm.doc.name,
@@ -246,34 +273,34 @@ function show_customer_transactions_detail(frm, balance_data) {
 					"posting_date",
 					"voucher_type",
 					"voucher_no",
-					"account",
 					"debit",
 					"credit",
-					"against",
 					"remarks",
 				],
 				order_by: "posting_date desc",
-				limit: 50,
-			},
-			callback: function (r) {
-				if (r.message && Array.isArray(r.message)) {
-					show_transactions_dialog(frm, r.message, balance_data);
+				limit: 20,
+			})
+			.then((transactions) => {
+				if (transactions && transactions.length > 0) {
+					show_transactions_dialog(frm, transactions);
 				} else {
 					frappe.msgprint("Aucune transaction trouvée pour ce client");
 				}
-			},
-		});
+			})
+			.catch((error) => {
+				console.error("Erreur transactions:", error);
+				frappe.msgprint("Erreur lors de la récupération des transactions");
+			});
 	} catch (error) {
-		console.error("Erreur récupération transactions:", error);
-		frappe.msgprint("Erreur lors de la récupération des transactions");
+		console.error("Erreur show_transactions_simple:", error);
 	}
 }
 
-function show_transactions_dialog(frm, transactions, balance_data) {
+function show_transactions_dialog(frm, transactions) {
 	try {
 		const dialog = new frappe.ui.Dialog({
-			title: __("Transactions comptables - ") + frm.doc.customer_name,
-			size: "extra-large",
+			title: `Transactions - ${frm.doc.customer_name || frm.doc.name}`,
+			size: "large",
 			fields: [
 				{
 					fieldtype: "HTML",
@@ -283,159 +310,56 @@ function show_transactions_dialog(frm, transactions, balance_data) {
 		});
 
 		let html = `
-			<div style="margin: 15px 0;">
-				<div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
-					<h4 style="margin: 0 0 10px 0;">Résumé du solde</h4>
-					<p><strong>Solde actuel:</strong> ${balance_data.formatted_balance}</p>
-					<p><strong>Statut:</strong> ${
-						balance_data.balance > 0
-							? '<span style="color: red;">Client débiteur</span>'
-							: balance_data.balance < 0
-							? '<span style="color: green;">Client créditeur</span>'
-							: '<span style="color: blue;">Solde équilibré</span>'
-					}</p>
-				</div>
-				
-				<h5>Dernières transactions (${transactions.length})</h5>
-				<div style="max-height: 400px; overflow-y: auto;">
-					<table class="table table-bordered">
-						<thead>
-							<tr>
-								<th>Date</th>
-								<th>Type</th>
-								<th>Document</th>
-								<th>Compte</th>
-								<th>Débit</th>
-								<th>Crédit</th>
-								<th>Remarques</th>
-							</tr>
-						</thead>
-						<tbody>
-		`;
-
-		let running_balance = 0;
+            <div style="margin: 15px 0;">
+                <h5>Dernières transactions (${transactions.length})</h5>
+                <div style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Document</th>
+                                <th>Débit</th>
+                                <th>Crédit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+        `;
 
 		transactions.forEach((transaction) => {
-			const debit = flt(transaction.debit || 0);
-			const credit = flt(transaction.credit || 0);
-			running_balance += debit - credit;
+			const debit = parseFloat(transaction.debit || 0);
+			const credit = parseFloat(transaction.credit || 0);
 
 			html += `
-				<tr>
-					<td>${frappe.datetime.str_to_user(transaction.posting_date)}</td>
-					<td>${transaction.voucher_type}</td>
-					<td>
-						<a href="/app/${transaction.voucher_type.toLowerCase().replace(" ", "-")}/${
-				transaction.voucher_no
-			}" target="_blank">
-							${transaction.voucher_no}
-						</a>
-					</td>
-					<td style="font-size: 11px;">${transaction.account}</td>
-					<td style="text-align: right; color: red;">${debit > 0 ? format_currency(debit) : ""}</td>
-					<td style="text-align: right; color: green;">${credit > 0 ? format_currency(credit) : ""}</td>
-					<td style="font-size: 11px;">${transaction.remarks || ""}</td>
-				</tr>
-			`;
+                <tr>
+                    <td>${frappe.datetime.str_to_user(transaction.posting_date)}</td>
+                    <td>${transaction.voucher_type}</td>
+                    <td>${transaction.voucher_no}</td>
+                    <td style="text-align: right; color: red;">
+                        ${debit > 0 ? debit.toFixed(2) + " EUR" : ""}
+                    </td>
+                    <td style="text-align: right; color: green;">
+                        ${credit > 0 ? credit.toFixed(2) + " EUR" : ""}
+                    </td>
+                </tr>
+            `;
 		});
 
 		html += `
-					</tbody>
-				</table>
-			</div>
-		</div>
-		`;
+                    </tbody>
+                </table>
+            </div>
+        `;
 
 		dialog.fields_dict.transactions_html.$wrapper.html(html);
 		dialog.show();
-
-		// Ajuster la taille du dialogue
-		dialog.$wrapper.find(".modal-dialog").css("max-width", "95vw");
 	} catch (error) {
-		console.error("Erreur création dialogue transactions:", error);
+		console.error("Erreur dialogue:", error);
 	}
 }
 
-function remove_existing_balance_indicators(frm) {
-	try {
-		// Supprimer les indicateurs existants qui contiennent des mots-clés de solde
-		const indicators = frm.dashboard.wrapper.find(".indicator");
-		indicators.each(function () {
-			const text = $(this).text().toLowerCase();
-			if (
-				text.includes("doit") ||
-				text.includes("devons") ||
-				text.includes("solde") ||
-				text.includes("💳") ||
-				text.includes("💰") ||
-				text.includes("⚖️")
-			) {
-				$(this).remove();
-			}
-		});
-
-		// Supprimer aussi les commentaires de méthode de calcul
-		const comments = frm.dashboard.wrapper.find(".dashboard-comment");
-		comments.each(function () {
-			const text = $(this).text().toLowerCase();
-			if (text.includes("méthode de calcul")) {
-				$(this).remove();
-			}
-		});
-	} catch (error) {
-		console.error("Erreur suppression indicateurs existants:", error);
-	}
-}
-
-// Fonction utilitaire pour formater les devises
-function format_currency(amount, currency = null) {
-	try {
-		currency = currency || frappe.defaults.get_default("currency") || "EUR";
-		return format_number(amount, null, 2) + " " + currency;
-	} catch (error) {
-		return (amount || 0).toFixed(2) + " EUR";
-	}
-}
-
-// Fonction pour gérer les valeurs flottantes
-function flt(value, precision = 2) {
-	try {
-		const num = parseFloat(value) || 0;
-		return Math.round(num * Math.pow(10, precision)) / Math.pow(10, precision);
-	} catch (error) {
-		return 0;
-	}
-}
-
-// NOUVELLE FONCTION : Auto-refresh périodique du solde (optionnel)
-function setup_balance_auto_refresh(frm) {
-	try {
-		// Actualiser le solde toutes les 5 minutes si le formulaire est ouvert
-		if (frm._balance_refresh_interval) {
-			clearInterval(frm._balance_refresh_interval);
-		}
-
-		frm._balance_refresh_interval = setInterval(() => {
-			if (frm && frm.doc && !frm.doc.__islocal && frm.doc.name) {
-				console.log("Auto-refresh solde client");
-				remove_existing_balance_indicators(frm);
-				add_customer_balance_indicator(frm);
-			}
-		}, 5 * 60 * 1000); // 5 minutes
-	} catch (error) {
-		console.error("Erreur setup auto-refresh:", error);
-	}
-}
-
-// Nettoyer l'interval lors de la fermeture du formulaire
-$(document).on("page:unload", function () {
-	if (cur_frm && cur_frm._balance_refresh_interval) {
-		clearInterval(cur_frm._balance_refresh_interval);
-	}
-});
-
-// Debug: Fonction pour tester manuellement le solde
-window.debug_customer_balance = function (customer_name) {
+// Fonction de test globale
+window.debug_customer_balance_simple = function (customer_name) {
 	if (!customer_name && cur_frm && cur_frm.doc) {
 		customer_name = cur_frm.doc.name;
 	}
@@ -445,15 +369,52 @@ window.debug_customer_balance = function (customer_name) {
 		return;
 	}
 
-	console.log("Debug solde pour:", customer_name);
+	console.log("🧪 Test solde pour:", customer_name);
 
-	frappe.call({
-		method: "josseaume_energies.customer_balance.get_customer_balance",
-		args: {
-			customer: customer_name,
-		},
-		callback: function (r) {
-			console.log("Résultat debug solde:", r.message);
-		},
-	});
+	if (cur_frm) {
+		add_customer_balance_safe(cur_frm);
+	}
 };
+
+console.log("✅ Script customer.js corrigé - Version simple");
+console.log("💡 Utilisez debug_customer_balance_simple() pour tester");
+
+// =============================================
+// CORRECTION IMMÉDIATE DU FICHIER CSS MANQUANT
+// =============================================
+
+// Si le fichier CSS est manquant, ajouter les styles de base directement
+if (!document.getElementById("customer-balance-emergency-styles")) {
+	const style = document.createElement("style");
+	style.id = "customer-balance-emergency-styles";
+	style.textContent = `
+        .indicator[title*="Client doit"],
+        .indicator[title*="Nous devons"], 
+        .indicator[title*="Solde équilibré"] {
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 15px;
+            margin: 4px 6px 4px 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .indicator.red[title*="Client doit"] {
+            background: #dc3545 !important;
+            color: white !important;
+        }
+        
+        .indicator.green[title*="Nous devons"] {
+            background: #28a745 !important;
+            color: white !important;
+        }
+        
+        .indicator.blue[title*="Solde équilibré"] {
+            background: #007bff !important;
+            color: white !important;
+        }
+    `;
+	document.head.appendChild(style);
+	console.log("🎨 Styles CSS d'urgence ajoutés");
+}
