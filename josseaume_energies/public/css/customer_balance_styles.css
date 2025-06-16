@@ -1,336 +1,50 @@
 /* ========================================= */
-/* STYLES POUR L'AFFICHAGE DES SOLDES CLIENTS */
-/* Améliore la présentation des indicateurs de solde */
+/* STYLES POUR L'AFFICHAGE DU SOLDE CLIENT EN EN-TÊTE */
+/* Optimisé pour l'affichage près du nom du client */
 /* ========================================= */
 
-/* Indicateurs de solde client - styles généraux */
-.indicator[title*="Client doit"],
-.indicator[title*="Nous devons"],
-.indicator[title*="Solde équilibré"] {
-	font-weight: 600;
-	font-size: 13px;
-	padding: 6px 12px;
-	border-radius: 20px;
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-	transition: all 0.3s ease;
-	margin: 4px 6px 4px 0;
+/* Styles pour l'affichage principal du solde en en-tête */
+.customer-balance-header {
+	display: inline-flex !important;
+	align-items: center !important;
+	padding: 8px 16px !important;
+	margin: 8px 0 8px 16px !important;
+	border-radius: 20px !important;
+	font-weight: 600 !important;
+	font-size: 14px !important;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+	gap: 8px !important;
+	animation: fadeInBalance 0.5s ease-out !important;
+	transition: all 0.3s ease !important;
+	z-index: 999 !important;
+	position: relative !important;
 }
 
-/* Hover effect pour les indicateurs de solde */
-.indicator[title*="Client doit"]:hover,
-.indicator[title*="Nous devons"]:hover,
-.indicator[title*="Solde équilibré"]:hover {
-	transform: translateY(-1px);
-	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+.customer-balance-header:hover {
+	transform: translateY(-1px) !important;
+	box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
 }
 
-/* Style spécifique pour les clients débiteurs (rouge) */
-.indicator.red[title*="Client doit"] {
-	background: linear-gradient(135deg, #ff4757 0%, #ff3742 100%) !important;
-	color: white !important;
-	border: 1px solid #ff3742;
+/* Styles spécifiques selon le type de solde */
+.customer-balance-debiteur {
+	background: linear-gradient(135deg, #ffeaea 0%, #ffe0e0 100%) !important;
+	color: #dc3545 !important;
+	border: 1px solid rgba(220, 53, 69, 0.3) !important;
 }
 
-.indicator.red[title*="Client doit"]::before {
-	content: "⚠️";
-	font-size: 12px;
+.customer-balance-crediteur {
+	background: linear-gradient(135deg, #eafaf1 0%, #e0f7e7 100%) !important;
+	color: #28a745 !important;
+	border: 1px solid rgba(40, 167, 69, 0.3) !important;
 }
 
-/* Style spécifique pour les clients créditeurs (vert) */
-.indicator.green[title*="Nous devons"] {
-	background: linear-gradient(135deg, #2ed573 0%, #1dd65b 100%) !important;
-	color: white !important;
-	border: 1px solid #1dd65b;
+.customer-balance-equilibre {
+	background: linear-gradient(135deg, #e3f2fd 0%, #d9edf7 100%) !important;
+	color: #007bff !important;
+	border: 1px solid rgba(0, 123, 255, 0.3) !important;
 }
 
-.indicator.green[title*="Nous devons"]::before {
-	content: "💰";
-	font-size: 12px;
-}
-
-/* Style pour les soldes équilibrés (bleu) */
-.indicator.blue[title*="Solde équilibré"] {
-	background: linear-gradient(135deg, #3742fa 0%, #2f32e2 100%) !important;
-	color: white !important;
-	border: 1px solid #2f32e2;
-}
-
-.indicator.blue[title*="Solde équilibré"]::before {
-	content: "⚖️";
-	font-size: 12px;
-}
-
-/* ========================================= */
-/* STYLES POUR LES DIALOGUES DE TRANSACTIONS */
-/* ========================================= */
-
-/* Container principal des transactions */
-.customer-transactions-dialog {
-	background: #ffffff;
-	border-radius: 8px;
-	padding: 0;
-	overflow: hidden;
-}
-
-/* En-tête du résumé de solde */
-.customer-balance-summary {
-	background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-	padding: 20px;
-	border-radius: 8px;
-	margin-bottom: 20px;
-	border-left: 4px solid #007bff;
-}
-
-.customer-balance-summary h4 {
-	margin: 0 0 15px 0;
-	color: #343a40;
-	font-size: 18px;
-	font-weight: 600;
-	display: flex;
-	align-items: center;
-	gap: 8px;
-}
-
-.customer-balance-summary h4::before {
-	content: "💳";
-	font-size: 20px;
-}
-
-.customer-balance-summary p {
-	margin: 8px 0;
-	font-size: 14px;
-	color: #495057;
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-}
-
-.customer-balance-summary strong {
-	color: #343a40;
-	font-weight: 600;
-}
-
-/* Statuts colorés dans le résumé */
-.customer-balance-summary .status-debiteur {
-	color: #dc3545;
-	font-weight: 600;
-	padding: 2px 8px;
-	background: rgba(220, 53, 69, 0.1);
-	border-radius: 12px;
-	font-size: 12px;
-}
-
-.customer-balance-summary .status-crediteur {
-	color: #28a745;
-	font-weight: 600;
-	padding: 2px 8px;
-	background: rgba(40, 167, 69, 0.1);
-	border-radius: 12px;
-	font-size: 12px;
-}
-
-.customer-balance-summary .status-equilibre {
-	color: #007bff;
-	font-weight: 600;
-	padding: 2px 8px;
-	background: rgba(0, 123, 255, 0.1);
-	border-radius: 12px;
-	font-size: 12px;
-}
-
-/* ========================================= */
-/* TABLEAU DES TRANSACTIONS */
-/* ========================================= */
-
-/* Container avec scroll pour le tableau */
-.customer-transactions-table {
-	max-height: 450px;
-	overflow-y: auto;
-	border: 1px solid #dee2e6;
-	border-radius: 6px;
-	background: white;
-}
-
-/* Styles du tableau */
-.customer-transactions-table table {
-	margin: 0;
-	border-collapse: collapse;
-	width: 100%;
-	font-size: 13px;
-}
-
-.customer-transactions-table thead th {
-	background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-	color: #495057;
-	font-weight: 600;
-	padding: 12px 8px;
-	text-align: left;
-	border-bottom: 2px solid #dee2e6;
-	position: sticky;
-	top: 0;
-	z-index: 10;
-}
-
-.customer-transactions-table tbody td {
-	padding: 10px 8px;
-	border-bottom: 1px solid #f1f3f4;
-	vertical-align: middle;
-}
-
-.customer-transactions-table tbody tr:hover {
-	background-color: #f8f9fa;
-	transition: background-color 0.2s ease;
-}
-
-/* Colonnes spécifiques */
-.customer-transactions-table .date-column {
-	width: 90px;
-	font-weight: 500;
-	color: #6c757d;
-}
-
-.customer-transactions-table .type-column {
-	width: 120px;
-	font-weight: 500;
-}
-
-.customer-transactions-table .document-column {
-	width: 130px;
-}
-
-.customer-transactions-table .document-column a {
-	color: #007bff;
-	text-decoration: none;
-	font-weight: 500;
-}
-
-.customer-transactions-table .document-column a:hover {
-	text-decoration: underline;
-	color: #0056b3;
-}
-
-.customer-transactions-table .account-column {
-	width: 200px;
-	font-size: 11px;
-	color: #6c757d;
-}
-
-.customer-transactions-table .amount-column {
-	width: 90px;
-	text-align: right;
-	font-weight: 600;
-	font-family: "Monaco", "Menlo", "Consolas", monospace;
-}
-
-.customer-transactions-table .debit-amount {
-	color: #dc3545;
-}
-
-.customer-transactions-table .credit-amount {
-	color: #28a745;
-}
-
-.customer-transactions-table .remarks-column {
-	max-width: 200px;
-	font-size: 11px;
-	color: #6c757d;
-	word-wrap: break-word;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-/* ========================================= */
-/* BOUTONS D'ACTION POUR LES SOLDES */
-/* ========================================= */
-
-/* Boutons dans le groupe "Comptabilité" */
-.btn-group[data-label="Comptabilité"] .btn {
-	background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-	border: 1px solid #0056b3;
-	color: white;
-	font-weight: 500;
-	padding: 6px 12px;
-	border-radius: 4px;
-	transition: all 0.3s ease;
-}
-
-.btn-group[data-label="Comptabilité"] .btn:hover {
-	background: linear-gradient(135deg, #0056b3 0%, #003d82 100%);
-	transform: translateY(-1px);
-	box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
-}
-
-/* Bouton "Actualiser solde" */
-.btn[data-label*="Actualiser solde"] {
-	background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
-	border: 1px solid #1e7e34;
-	color: white;
-}
-
-.btn[data-label*="Actualiser solde"]:hover {
-	background: linear-gradient(135deg, #1e7e34 0%, #155724 100%);
-}
-
-/* ========================================= */
-/* RESPONSIVE DESIGN */
-/* ========================================= */
-
-/* Mobile et tablettes */
-@media (max-width: 768px) {
-	.indicator[title*="Client doit"],
-	.indicator[title*="Nous devons"],
-	.indicator[title*="Solde équilibré"] {
-		font-size: 12px;
-		padding: 4px 10px;
-		margin: 2px 4px 2px 0;
-	}
-
-	.customer-balance-summary {
-		padding: 15px;
-		margin-bottom: 15px;
-	}
-
-	.customer-balance-summary h4 {
-		font-size: 16px;
-	}
-
-	.customer-balance-summary p {
-		font-size: 13px;
-		flex-direction: column;
-		align-items: flex-start;
-		gap: 4px;
-	}
-
-	.customer-transactions-table {
-		max-height: 300px;
-		font-size: 12px;
-	}
-
-	.customer-transactions-table thead th {
-		padding: 8px 6px;
-		font-size: 11px;
-	}
-
-	.customer-transactions-table tbody td {
-		padding: 8px 6px;
-	}
-
-	/* Masquer certaines colonnes sur mobile */
-	.customer-transactions-table .account-column,
-	.customer-transactions-table .remarks-column {
-		display: none;
-	}
-}
-
-/* ========================================= */
-/* ANIMATIONS ET EFFETS */
-/* ========================================= */
-
-/* Animation d'apparition pour les indicateurs */
+/* Animation d'apparition */
 @keyframes fadeInBalance {
 	from {
 		opacity: 0;
@@ -342,27 +56,332 @@
 	}
 }
 
-.indicator[title*="Client doit"],
-.indicator[title*="Nous devons"],
-.indicator[title*="Solde équilibré"] {
-	animation: fadeInBalance 0.4s ease-out;
+/* ========================================= */
+/* INTÉGRATION AVEC L'EN-TÊTE FRAPPE */
+/* ========================================= */
+
+/* S'assurer que l'en-tête peut contenir notre élément */
+.form-header,
+.page-title,
+.title-area,
+.page-title-area {
+	position: relative;
+	overflow: visible !important;
 }
 
-/* Animation de chargement pour les données */
-@keyframes pulse {
-	0% {
-		opacity: 1;
+/* Styles pour l'injection après le titre */
+h1 + .customer-balance-header,
+.page-title + .customer-balance-header,
+.form-title + .customer-balance-header {
+	margin-top: 15px !important;
+	margin-bottom: 10px !important;
+}
+
+/* Styles pour l'injection dans le layout principal */
+.form-layout .customer-balance-header:first-child,
+.layout-main .customer-balance-header:first-child {
+	margin-top: 0 !important;
+	margin-bottom: 20px !important;
+}
+
+/* ========================================= */
+/* STYLES POUR LES BOUTONS D'ACTION */
+/* ========================================= */
+
+/* Groupe de boutons du solde */
+.btn-group[data-label*="Solde"] .btn,
+.btn-group[data-label*="💰"] .btn {
+	background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
+	border: 1px solid #0056b3 !important;
+	color: white !important;
+	font-weight: 500 !important;
+	padding: 6px 12px !important;
+	border-radius: 4px !important;
+	transition: all 0.3s ease !important;
+	font-size: 13px !important;
+}
+
+.btn-group[data-label*="Solde"] .btn:hover,
+.btn-group[data-label*="💰"] .btn:hover {
+	background: linear-gradient(135deg, #0056b3 0%, #003d82 100%) !important;
+	transform: translateY(-1px) !important;
+	box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3) !important;
+}
+
+/* Bouton actualiser - style spécial */
+.btn[data-label*="Actualiser Solde"] {
+	background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%) !important;
+	border: 1px solid #1e7e34 !important;
+}
+
+.btn[data-label*="Actualiser Solde"]:hover {
+	background: linear-gradient(135deg, #1e7e34 0%, #155724 100%) !important;
+}
+
+/* ========================================= */
+/* STYLES POUR LES DIALOGUES DE TRANSACTIONS */
+/* ========================================= */
+
+/* Dialog de transactions amélioré */
+.frappe-dialog[data-title*="Transactions"] .modal-dialog {
+	max-width: 90vw !important;
+}
+
+.frappe-dialog[data-title*="Transactions"] .modal-content {
+	border-radius: 8px !important;
+	overflow: hidden !important;
+}
+
+/* Résumé du solde dans le dialogue */
+.customer-balance-summary {
+	background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+	padding: 20px !important;
+	border-radius: 8px !important;
+	margin-bottom: 20px !important;
+	border-left: 4px solid #007bff !important;
+}
+
+.customer-balance-summary h4,
+.customer-balance-summary h5 {
+	margin: 0 0 15px 0 !important;
+	color: #343a40 !important;
+	font-size: 18px !important;
+	font-weight: 600 !important;
+	display: flex !important;
+	align-items: center !important;
+	gap: 8px !important;
+}
+
+/* Grille de résumé */
+.balance-summary-grid {
+	display: grid !important;
+	grid-template-columns: 1fr 1fr 1fr !important;
+	gap: 15px !important;
+	margin-top: 10px !important;
+}
+
+.balance-summary-card {
+	text-align: center !important;
+	padding: 15px !important;
+	border-radius: 8px !important;
+	border: 1px solid rgba(0, 0, 0, 0.1) !important;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+}
+
+.balance-summary-card strong {
+	display: block !important;
+	margin-bottom: 8px !important;
+	font-size: 14px !important;
+}
+
+.balance-summary-amount {
+	font-size: 20px !important;
+	font-weight: bold !important;
+	font-family: "Monaco", "Menlo", "Consolas", monospace !important;
+}
+
+/* Tableau des transactions */
+.customer-transactions-table {
+	max-height: 500px !important;
+	overflow-y: auto !important;
+	border: 1px solid #dee2e6 !important;
+	border-radius: 6px !important;
+	background: white !important;
+}
+
+.customer-transactions-table table {
+	margin: 0 !important;
+	border-collapse: collapse !important;
+	width: 100% !important;
+	font-size: 13px !important;
+}
+
+.customer-transactions-table thead th {
+	background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+	color: #495057 !important;
+	font-weight: 600 !important;
+	padding: 12px 8px !important;
+	text-align: left !important;
+	border-bottom: 2px solid #dee2e6 !important;
+	position: sticky !important;
+	top: 0 !important;
+	z-index: 10 !important;
+}
+
+.customer-transactions-table tbody td {
+	padding: 10px 8px !important;
+	border-bottom: 1px solid #f1f3f4 !important;
+	vertical-align: middle !important;
+}
+
+.customer-transactions-table tbody tr:hover {
+	background-color: #f8f9fa !important;
+	transition: background-color 0.2s ease !important;
+}
+
+/* Colonnes spécifiques du tableau */
+.customer-transactions-table .date-column {
+	width: 100px !important;
+	font-weight: 500 !important;
+	color: #6c757d !important;
+}
+
+.customer-transactions-table .type-column {
+	width: 120px !important;
+	font-weight: 500 !important;
+}
+
+.customer-transactions-table .document-column {
+	width: 140px !important;
+}
+
+.customer-transactions-table .document-column a {
+	color: #007bff !important;
+	text-decoration: none !important;
+	font-weight: 500 !important;
+}
+
+.customer-transactions-table .document-column a:hover {
+	text-decoration: underline !important;
+	color: #0056b3 !important;
+}
+
+.customer-transactions-table .account-column {
+	width: 200px !important;
+	font-size: 11px !important;
+	color: #6c757d !important;
+}
+
+.customer-transactions-table .amount-column {
+	width: 100px !important;
+	text-align: right !important;
+	font-weight: 600 !important;
+	font-family: "Monaco", "Menlo", "Consolas", monospace !important;
+}
+
+.customer-transactions-table .debit-amount {
+	color: #dc3545 !important;
+}
+
+.customer-transactions-table .credit-amount {
+	color: #28a745 !important;
+}
+
+.customer-transactions-table .remarks-column {
+	max-width: 200px !important;
+	font-size: 11px !important;
+	color: #6c757d !important;
+	word-wrap: break-word !important;
+	overflow: hidden !important;
+	text-overflow: ellipsis !important;
+}
+
+/* ========================================= */
+/* STYLES POUR LE RAPPORT DE SOLDE */
+/* ========================================= */
+
+.customer-balance-report {
+	margin: 20px !important;
+}
+
+.balance-report-header {
+	background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+	padding: 20px !important;
+	border-radius: 8px !important;
+	margin-bottom: 20px !important;
+	border-left: 4px solid #007bff !important;
+}
+
+.balance-report-main {
+	padding: 25px !important;
+	border-radius: 8px !important;
+	margin-bottom: 20px !important;
+	text-align: center !important;
+}
+
+.balance-report-amount {
+	font-size: 36px !important;
+	font-weight: bold !important;
+	margin: 15px 0 !important;
+	font-family: "Monaco", "Menlo", "Consolas", monospace !important;
+}
+
+.balance-report-stats {
+	background: #ffffff !important;
+	border: 1px solid #dee2e6 !important;
+	border-radius: 8px !important;
+	padding: 20px !important;
+}
+
+.balance-stats-grid {
+	display: grid !important;
+	grid-template-columns: 1fr 1fr !important;
+	gap: 20px !important;
+	margin-top: 15px !important;
+}
+
+/* ========================================= */
+/* RESPONSIVE DESIGN */
+/* ========================================= */
+
+/* Tablettes */
+@media (max-width: 992px) {
+	.customer-balance-header {
+		font-size: 13px !important;
+		padding: 6px 14px !important;
+		margin: 6px 0 6px 12px !important;
 	}
-	50% {
-		opacity: 0.5;
+
+	.balance-summary-grid {
+		grid-template-columns: 1fr 1fr !important;
 	}
-	100% {
-		opacity: 1;
+
+	.balance-stats-grid {
+		grid-template-columns: 1fr !important;
 	}
 }
 
-.customer-balance-loading {
-	animation: pulse 1.5s infinite;
+/* Mobile */
+@media (max-width: 768px) {
+	.customer-balance-header {
+		font-size: 12px !important;
+		padding: 6px 12px !important;
+		margin: 6px 0 6px 8px !important;
+		flex-wrap: wrap !important;
+	}
+
+	.balance-summary-grid {
+		grid-template-columns: 1fr !important;
+		gap: 10px !important;
+	}
+
+	.customer-transactions-table {
+		font-size: 11px !important;
+	}
+
+	.customer-transactions-table thead th {
+		padding: 8px 6px !important;
+		font-size: 11px !important;
+	}
+
+	.customer-transactions-table tbody td {
+		padding: 6px 4px !important;
+	}
+
+	/* Masquer certaines colonnes sur mobile */
+	.customer-transactions-table .account-column,
+	.customer-transactions-table .remarks-column {
+		display: none !important;
+	}
+
+	.balance-report-amount {
+		font-size: 24px !important;
+	}
+
+	.frappe-dialog[data-title*="Transactions"] .modal-dialog {
+		max-width: 95vw !important;
+		margin: 10px !important;
+	}
 }
 
 /* ========================================= */
@@ -370,66 +389,198 @@
 /* ========================================= */
 
 /* Adaptation pour le mode sombre */
-body.dark .customer-balance-summary {
-	background: linear-gradient(135deg, #2d2d2d 0%, #3a3a3a 100%);
-	border-left-color: #0d6efd;
+body.dark .customer-balance-header {
+	background: linear-gradient(135deg, #2d2d2d 0%, #3a3a3a 100%) !important;
+	color: #f8f9fa !important;
+	border-color: rgba(248, 249, 250, 0.3) !important;
+}
+
+body.dark .customer-balance-debiteur {
+	background: linear-gradient(135deg, #4a2626 0%, #5a2d2d 100%) !important;
+	color: #ff6b6b !important;
+}
+
+body.dark .customer-balance-crediteur {
+	background: linear-gradient(135deg, #264a2b 0%, #2d5a33 100%) !important;
+	color: #51cf66 !important;
+}
+
+body.dark .customer-balance-equilibre {
+	background: linear-gradient(135deg, #1e3a5f 0%, #2d4a7a 100%) !important;
+	color: #66b3ff !important;
+}
+
+body.dark .customer-balance-summary,
+body.dark .balance-report-header {
+	background: linear-gradient(135deg, #2d2d2d 0%, #3a3a3a 100%) !important;
+	border-left-color: #66b3ff !important;
 }
 
 body.dark .customer-balance-summary h4,
-body.dark .customer-balance-summary strong {
-	color: #f8f9fa;
-}
-
-body.dark .customer-balance-summary p {
-	color: #e9ecef;
+body.dark .customer-balance-summary h5,
+body.dark .balance-report-header h4 {
+	color: #f8f9fa !important;
 }
 
 body.dark .customer-transactions-table {
-	background: #2d2d2d;
-	border-color: #444;
+	background: #2d2d2d !important;
+	border-color: #444 !important;
 }
 
 body.dark .customer-transactions-table thead th {
-	background: linear-gradient(135deg, #3a3a3a 0%, #2d2d2d 100%);
-	color: #f8f9fa;
-	border-bottom-color: #444;
+	background: linear-gradient(135deg, #3a3a3a 0%, #2d2d2d 100%) !important;
+	color: #f8f9fa !important;
+	border-bottom-color: #444 !important;
 }
 
 body.dark .customer-transactions-table tbody td {
-	border-bottom-color: #444;
-	color: #e9ecef;
+	border-bottom-color: #444 !important;
+	color: #e9ecef !important;
 }
 
 body.dark .customer-transactions-table tbody tr:hover {
-	background-color: #3a3a3a;
+	background-color: #3a3a3a !important;
 }
 
 body.dark .customer-transactions-table .document-column a {
-	color: #66b3ff;
+	color: #66b3ff !important;
 }
 
 body.dark .customer-transactions-table .document-column a:hover {
-	color: #4da6ff;
+	color: #4da6ff !important;
+}
+
+body.dark .balance-report-stats {
+	background: #2d2d2d !important;
+	border-color: #444 !important;
+	color: #f8f9fa !important;
 }
 
 /* ========================================= */
-/* UTILITAIRES */
+/* ANIMATIONS ET EFFETS AVANCÉS */
 /* ========================================= */
 
-/* Classe pour masquer les éléments temporairement */
+/* Animation de pulsation pour les montants importants */
+@keyframes pulseAmount {
+	0%,
+	100% {
+		transform: scale(1);
+	}
+	50% {
+		transform: scale(1.05);
+	}
+}
+
+.customer-balance-header[data-amount-high="true"] {
+	animation: pulseAmount 2s infinite ease-in-out !important;
+}
+
+/* Animation de chargement */
+@keyframes shimmer {
+	0% {
+		background-position: -200px 0;
+	}
+	100% {
+		background-position: calc(200px + 100%) 0;
+	}
+}
+
+.customer-balance-loading {
+	background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%) !important;
+	background-size: 200px 100% !important;
+	animation: shimmer 1.5s infinite !important;
+}
+
+/* Effet de hover sur les lignes de transaction */
+.customer-transactions-table tbody tr {
+	cursor: pointer !important;
+}
+
+.customer-transactions-table tbody tr:hover {
+	background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 100%) !important;
+	border-left: 3px solid #007bff !important;
+}
+
+/* ========================================= */
+/* UTILITAIRES ET CLASSES D'AIDE */
+/* ========================================= */
+
+/* Classes pour masquer/afficher */
 .customer-balance-hidden {
 	display: none !important;
 }
 
-/* Classe pour les éléments en cours de chargement */
-.customer-balance-updating {
-	opacity: 0.6;
-	pointer-events: none;
+.customer-balance-visible {
+	display: block !important;
 }
 
-/* Espacement spécifique pour les indicateurs multiples */
-.indicator + .indicator[title*="Client doit"],
-.indicator + .indicator[title*="Nous devons"],
-.indicator + .indicator[title*="Solde équilibré"] {
-	margin-left: 8px;
+/* Classes pour les états */
+.customer-balance-updating {
+	opacity: 0.6 !important;
+	pointer-events: none !important;
+	position: relative !important;
+}
+
+.customer-balance-updating::after {
+	content: "" !important;
+	position: absolute !important;
+	top: 0 !important;
+	left: 0 !important;
+	width: 100% !important;
+	height: 100% !important;
+	background: rgba(255, 255, 255, 0.8) !important;
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+}
+
+/* Espacements spéciaux */
+.customer-balance-margin-top {
+	margin-top: 20px !important;
+}
+
+.customer-balance-margin-bottom {
+	margin-bottom: 20px !important;
+}
+
+/* Classes de priorité pour les montants */
+.balance-amount-high {
+	font-weight: 800 !important;
+	font-size: 1.2em !important;
+}
+
+.balance-amount-medium {
+	font-weight: 700 !important;
+	font-size: 1.1em !important;
+}
+
+.balance-amount-low {
+	font-weight: 600 !important;
+	font-size: 1em !important;
+}
+
+/* ========================================= */
+/* CORRECTIONS SPÉCIFIQUES FRAPPE */
+/* ========================================= */
+
+/* S'assurer que nos styles prennent le dessus */
+.frappe-control[data-fieldname] .customer-balance-header,
+.form-group .customer-balance-header,
+.form-column .customer-balance-header {
+	position: relative !important;
+	z-index: 999 !important;
+	margin: 10px 0 !important;
+}
+
+/* Éviter les conflits avec les styles Frappe */
+.customer-balance-header * {
+	box-sizing: border-box !important;
+}
+
+/* Force l'affichage même si Frappe essaie de le masquer */
+.customer-balance-header,
+.customer-balance-header * {
+	visibility: visible !important;
+	opacity: 1 !important;
+	display: inline-flex !important;
 }
