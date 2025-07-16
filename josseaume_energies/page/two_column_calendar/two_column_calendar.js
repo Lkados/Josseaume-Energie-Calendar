@@ -1,7 +1,7 @@
 frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	var page = frappe.ui.make_app_page({
 		parent: wrapper,
-		title: "Calendrier des Interventions",
+		title: "Calendrier des interventions",
 		single_column: true,
 	});
 
@@ -77,34 +77,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	// Créer une version debouncée de refreshCalendar
 	const debouncedRefresh = debounce(() => refreshCalendar(), 300);
 
-	// NOUVELLE FONCTION : Réinitialiser les filtres lors du changement de vue
-	function resetFiltersOnViewChange(newViewType) {
-		try {
-			console.log("Réinitialisation des filtres pour la vue:", newViewType);
-
-			if (newViewType === "Employés") {
-				// En passant à la vue Employés, vider les autres filtres
-				if (page.fields_dict.territory) {
-					page.fields_dict.territory.set_value("");
-				}
-				if (page.fields_dict.employee) {
-					page.fields_dict.employee.set_value("");
-				}
-				if (page.fields_dict.event_type) {
-					page.fields_dict.event_type.set_value("");
-				}
-			} else {
-				// En quittant la vue Employés, vider le filtre équipe
-				if (page.fields_dict.team_filter) {
-					page.fields_dict.team_filter.set_value("");
-				}
-			}
-		} catch (error) {
-			console.error("Erreur lors de la réinitialisation des filtres:", error);
-		}
-	}
-
-	// Ajouter des contrôles - MODIFIÉ pour mettre Employés par défaut et gérer les filtres
+	// Ajouter des contrôles - MODIFIÉ pour mettre Employés par défaut
 	page.add_field({
 		fieldtype: "Select",
 		label: "Vue",
@@ -114,11 +87,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		change: function () {
 			const newViewType = this.get_value();
 			console.log("Changement vue:", newViewType);
-
-			// Réinitialiser les filtres appropriés
-			resetFiltersOnViewChange(newViewType);
-
-			// Actualiser l'affichage avec debounce
 			debouncedRefresh();
 		},
 	});
@@ -134,7 +102,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		},
 	});
 
-	// NOUVEAU: Champ pour filtrer par équipe (seulement visible en vue Employés)
+	// Champ pour filtrer par équipe (visible seulement en vue Employés)
 	page.add_field({
 		fieldtype: "Select",
 		label: "Équipe",
@@ -425,25 +393,26 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			// Supprimer les anciens messages d'information
 			$(".view-info-message").remove();
 
+			// CORRECTION: Afficher tous les filtres pour toutes les vues
+			// Tous les filtres sont toujours visibles
+
+			// Afficher Zone
+			if (page.fields_dict.territory && page.fields_dict.territory.wrapper) {
+				page.fields_dict.territory.wrapper.show();
+			}
+
+			// Afficher Intervenant
+			if (page.fields_dict.employee && page.fields_dict.employee.wrapper) {
+				page.fields_dict.employee.wrapper.show();
+			}
+
+			// Afficher Type d'intervention
+			if (page.fields_dict.event_type && page.fields_dict.event_type.wrapper) {
+				page.fields_dict.event_type.wrapper.show();
+			}
+
+			// Afficher Équipe seulement pour la vue Employés
 			if (viewType === "Employés") {
-				// VUE EMPLOYÉS : Afficher seulement le filtre Équipe
-
-				// Masquer Zone
-				if (page.fields_dict.territory && page.fields_dict.territory.wrapper) {
-					page.fields_dict.territory.wrapper.hide();
-				}
-
-				// Masquer Intervenant
-				if (page.fields_dict.employee && page.fields_dict.employee.wrapper) {
-					page.fields_dict.employee.wrapper.hide();
-				}
-
-				// Masquer Type d'intervention
-				if (page.fields_dict.event_type && page.fields_dict.event_type.wrapper) {
-					page.fields_dict.event_type.wrapper.hide();
-				}
-
-				// Afficher Équipe
 				if (page.fields_dict.team_filter && page.fields_dict.team_filter.wrapper) {
 					page.fields_dict.team_filter.wrapper.show();
 				}
@@ -460,31 +429,12 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 							border-radius: 4px;
 							border-left: 3px solid #007bff;
 						">
-							<i class="fa fa-info-circle"></i> Vue Employés : Filtrez par équipe pour voir les employés correspondants
+							<i class="fa fa-info-circle"></i> Vue Employés : Tous les filtres sont actifs. Le filtre équipe permet de filtrer les employés affichés.
 						</div>
 					`);
 				}
-
-				console.log("Vue Employés : seul le filtre Équipe est visible");
 			} else {
-				// AUTRES VUES : Afficher tous les filtres sauf Équipe
-
-				// Afficher Zone
-				if (page.fields_dict.territory && page.fields_dict.territory.wrapper) {
-					page.fields_dict.territory.wrapper.show();
-				}
-
-				// Afficher Intervenant
-				if (page.fields_dict.employee && page.fields_dict.employee.wrapper) {
-					page.fields_dict.employee.wrapper.show();
-				}
-
-				// Afficher Type d'intervention
-				if (page.fields_dict.event_type && page.fields_dict.event_type.wrapper) {
-					page.fields_dict.event_type.wrapper.show();
-				}
-
-				// Masquer Équipe
+				// Masquer Équipe pour les autres vues
 				if (page.fields_dict.team_filter && page.fields_dict.team_filter.wrapper) {
 					page.fields_dict.team_filter.wrapper.hide();
 				}
@@ -493,13 +443,13 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				let infoMessage = "";
 				if (viewType === "Jour") {
 					infoMessage =
-						'<i class="fa fa-calendar-day"></i> Vue Jour : Filtrez par zone, intervenant ou type d\'intervention';
+						'<i class="fa fa-calendar-day"></i> Vue Jour : Tous les filtres sont actifs';
 				} else if (viewType === "Semaine") {
 					infoMessage =
-						'<i class="fa fa-calendar-week"></i> Vue Semaine : Utilisez les filtres pour affiner l\'affichage';
+						'<i class="fa fa-calendar-week"></i> Vue Semaine : Tous les filtres sont actifs';
 				} else if (viewType === "Mois") {
 					infoMessage =
-						'<i class="fa fa-calendar"></i> Vue Mois : Vue mensuelle avec filtres disponibles';
+						'<i class="fa fa-calendar"></i> Vue Mois : Tous les filtres sont actifs';
 				}
 
 				if (
@@ -521,8 +471,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 						</div>
 					`);
 				}
-
-				console.log("Vue", viewType, ": tous les filtres sont visibles sauf Équipe");
 			}
 
 			// Ajouter un effet de transition pour rendre le changement plus fluide
@@ -613,7 +561,8 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 			if (viewType === "Employés") {
 				console.log("Rendu vue Employés");
-				renderEmployeeDayView(currentDate, territory, team_filter, event_type);
+				// CORRECTION: Passer TOUS les filtres à la vue employés
+				renderEmployeeDayView(currentDate, territory, employee, event_type, team_filter);
 			} else if (viewType === "Jour") {
 				console.log("Rendu vue Jour");
 				renderTwoColumnDayView(currentDate, territory, employee, event_type);
@@ -955,14 +904,15 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		);
 	}
 
-	// FONCTION CORRIGÉE: renderEmployeeDayView avec protection contre les appels multiples
-	function renderEmployeeDayView(date, territory, team_filter, event_type) {
+	// FONCTION CORRIGÉE: renderEmployeeDayView avec tous les filtres
+	function renderEmployeeDayView(date, territory, employee, event_type, team_filter) {
 		try {
 			console.log("=== DÉBUT renderEmployeeDayView ===", {
 				date,
 				territory,
-				team_filter,
+				employee,
 				event_type,
+				team_filter,
 			});
 
 			const formatDate = (d) => {
@@ -977,10 +927,22 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				forceCleanContainer();
 			}
 
-			// Créer l'en-tête
+			// Créer l'en-tête avec tous les filtres actifs
+			let headerTitle = `Employés - ${formatDate(date)}`;
+			let activeFilters = [];
+
+			if (team_filter) activeFilters.push(`Équipe: ${team_filter}`);
+			if (territory) activeFilters.push(`Zone: ${territory}`);
+			if (employee) activeFilters.push(`Intervenant: ${employee}`);
+			if (event_type) activeFilters.push(`Type: ${event_type}`);
+
+			if (activeFilters.length > 0) {
+				headerTitle += ` (${activeFilters.join(", ")})`;
+			}
+
 			const dayHeader = $(`
 				<div class="calendar-header">
-					<h2>Employés - ${formatDate(date)} ${team_filter ? `(Équipe: ${team_filter})` : ""}
+					<h2>${headerTitle}
 						<small style="display: block; font-size: 12px; font-weight: normal; color: #666; margin-top: 5px;">
 							Double-cliquez sur une section pour créer une commande client
 						</small>
@@ -995,12 +957,14 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 			const dateStr = frappe.datetime.obj_to_str(date);
 
+			// CORRECTION: Utiliser la fonction API mise à jour qui prend tous les filtres
 			frappe.call({
 				method: "josseaume_energies.api.get_day_events_by_employees",
 				args: {
 					date: dateStr,
 					team_filter: team_filter,
 					territory: territory,
+					employee: employee,
 					event_type: event_type,
 				},
 				callback: function (r) {
@@ -1021,8 +985,16 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 							console.log("Employés après déduplication:", employees.length);
 
 							if (employees.length === 0) {
+								let noEmployeesMessage = "Aucun employé trouvé";
+								if (team_filter) {
+									noEmployeesMessage += ` pour l'équipe "${team_filter}"`;
+								}
+								if (employee) {
+									noEmployeesMessage += ` correspondant à "${employee}"`;
+								}
+
 								$(
-									'<div class="no-events-message">Aucun employé trouvé pour cette équipe</div>'
+									`<div class="no-events-message">${noEmployeesMessage}</div>`
 								).appendTo(calendarContainer);
 								return;
 							}
@@ -1042,23 +1014,26 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 							const processedEmployees = new Set();
 
 							// Créer une colonne pour chaque employé
-							employees.forEach((employee, index) => {
+							employees.forEach((employee_data, index) => {
 								try {
 									// Éviter les doublons
-									if (processedEmployees.has(employee.name)) {
-										console.log("Employé déjà traité, ignoré:", employee.name);
+									if (processedEmployees.has(employee_data.name)) {
+										console.log(
+											"Employé déjà traité, ignoré:",
+											employee_data.name
+										);
 										return;
 									}
-									processedEmployees.add(employee.name);
+									processedEmployees.add(employee_data.name);
 
 									console.log(
 										`Création colonne employé ${index + 1}/${
 											employees.length
 										}:`,
-										employee.employee_name
+										employee_data.employee_name
 									);
 									createEmployeeColumn(
-										employee,
+										employee_data,
 										eventsByEmployee,
 										employeesGrid
 									);
