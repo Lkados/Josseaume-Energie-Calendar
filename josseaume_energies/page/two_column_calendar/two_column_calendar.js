@@ -169,6 +169,108 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	// Conteneur de calendrier
 	let calendarContainer = $('<div class="custom-calendar-container"></div>').appendTo(page.body);
 
+	// NOUVEAU: Ajouter le bouton "Ajouter Note" comme bouton principal
+	page.set_primary_action("Ajouter Note", () => {
+		// Récupérer les filtres actuels pour pré-remplir le formulaire
+		const employee = page.fields_dict.employee.get_value();
+		const currentDateStr = frappe.datetime.obj_to_str(currentDate).split(" ")[0];
+
+		// Créer un dialogue pour créer une note
+		const dialog = new frappe.ui.Dialog({
+			title: "Ajouter une note",
+			fields: [
+				{
+					fieldtype: "Link",
+					label: "Employé",
+					fieldname: "employee",
+					options: "Employee",
+					reqd: 1,
+					default: employee || ""
+				},
+				{
+					fieldtype: "Date",
+					label: "Date",
+					fieldname: "note_date",
+					default: currentDateStr,
+					reqd: 1
+				},
+				{
+					fieldtype: "Select",
+					label: "Horaire",
+					fieldname: "time_slot",
+					options: "\nMatin\nAprès-midi\nJournée complète",
+					default: "Matin"
+				},
+				{
+					fieldtype: "Select",
+					label: "Statut",
+					fieldname: "status",
+					options: "Open\nClosed",
+					default: "Open",
+					reqd: 1
+				},
+				{
+					fieldtype: "Data",
+					label: "Titre",
+					fieldname: "title",
+					reqd: 1
+				},
+				{
+					fieldtype: "Small Text",
+					label: "Description",
+					fieldname: "content",
+					reqd: 1
+				}
+			],
+			primary_action_label: "Créer Note",
+			primary_action: (values) => {
+				// Appeler l'API pour créer la note
+				frappe.call({
+					method: "josseaume_energies.api.create_employee_note",
+					args: {
+						employee: values.employee,
+						note_date: values.note_date,
+						title: values.title,
+						content: values.content,
+						time_slot: values.time_slot,
+						status: values.status
+					},
+					callback: function(r) {
+						if (r.message && r.message.status === "success") {
+							frappe.show_alert({
+								message: "Note créée avec succès",
+								indicator: "green"
+							}, 3);
+							
+							// Rafraîchir le calendrier pour afficher la nouvelle note
+							refreshCalendar();
+							
+							dialog.hide();
+						} else {
+							const errorMsg = r.message ? r.message.message : "Erreur lors de la création de la note";
+							frappe.msgprint({
+								title: "Erreur",
+								indicator: "red",
+								message: errorMsg
+							});
+						}
+					},
+					error: function(err) {
+						console.error("Erreur API:", err);
+						frappe.msgprint({
+							title: "Erreur",
+							indicator: "red",
+							message: "Erreur de connexion lors de la création de la note"
+						});
+					}
+				});
+			},
+			secondary_action_label: "Annuler"
+		});
+
+		dialog.show();
+	}, "octicon octicon-note");
+
 	// Navigation
 	page.add_inner_button(__("Aujourd'hui"), () => {
 		currentDate = new Date();
@@ -228,99 +330,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 		refreshCalendar();
 	});
-
-	// NOUVEAU: Ajouter un bouton pour créer une note
-	page.add_inner_button(__("Ajouter Note"), () => {
-		// Récupérer les filtres actuels pour pré-remplir le formulaire
-		const employee = page.fields_dict.employee.get_value();
-		const currentDateStr = frappe.datetime.obj_to_str(currentDate).split(" ")[0];
-
-		// Créer un dialogue pour créer une note
-		const dialog = new frappe.ui.Dialog({
-			title: __("Ajouter une note"),
-			fields: [
-				{
-					fieldtype: "Link",
-					label: __("Employé"),
-					fieldname: "employee",
-					options: "Employee",
-					reqd: 1,
-					default: employee || ""
-				},
-				{
-					fieldtype: "Date",
-					label: __("Date"),
-					fieldname: "note_date",
-					default: currentDateStr,
-					reqd: 1
-				},
-				{
-					fieldtype: "Select",
-					label: __("Horaire"),
-					fieldname: "time_slot",
-					options: "\nMatin\nAprès-midi\nJournée complète",
-					default: "Matin"
-				},
-				{
-					fieldtype: "Data",
-					label: __("Titre"),
-					fieldname: "title",
-					reqd: 1
-				},
-				{
-					fieldtype: "Small Text",
-					label: __("Description"),
-					fieldname: "content",
-					reqd: 1
-				}
-			],
-			primary_action_label: __("Créer Note"),
-			primary_action: (values) => {
-				// Appeler l'API pour créer la note
-				frappe.call({
-					method: "josseaume_energies.api.create_employee_note",
-					args: {
-						employee: values.employee,
-						note_date: values.note_date,
-						title: values.title,
-						content: values.content,
-						time_slot: values.time_slot
-					},
-					callback: function(r) {
-						if (r.message && r.message.status === "success") {
-							frappe.show_alert({
-								message: __("Note créée avec succès"),
-								indicator: "green"
-							}, 3);
-							
-							// Rafraîchir le calendrier pour afficher la nouvelle note
-							refreshCalendar();
-							
-							dialog.hide();
-						} else {
-							const errorMsg = r.message ? r.message.message : "Erreur lors de la création de la note";
-							frappe.msgprint({
-								title: __("Erreur"),
-								indicator: "red",
-								message: errorMsg
-							});
-						}
-					},
-					error: function(err) {
-						console.error("Erreur API:", err);
-						frappe.msgprint({
-							title: __("Erreur"),
-							indicator: "red",
-							message: __("Erreur de connexion lors de la création de la note")
-						});
-					}
-				});
-			},
-			secondary_action_label: __("Annuler")
-		});
-
-		dialog.show();
-	}, "octicon octicon-note");
 
 	// NOUVELLE FONCTION: Ouvrir un nouveau formulaire de commande avec date, horaire et employé pré-remplis
 	function createNewSalesOrder(date, timeSlot, employeeId = null) {
@@ -737,7 +746,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	}
 
 	// FONCTION AMÉLIORÉE: Nettoyer le texte avec limitation de longueur pour les commentaires
-	function sanitizeText(text) {
+	function sanitizeText(text, maxLength = 100) {
 		if (!text || typeof text !== "string") {
 			return "";
 		}
@@ -749,9 +758,9 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			.replace(/<[^>]*>/g, "") // Balises HTML simples
 			.trim();
 
-		// Limiter la longueur des commentaires pour l'affichage
-		if (cleaned.length > 100) {
-			cleaned = cleaned.substring(0, 97) + "...";
+		// Limiter la longueur si nécessaire
+		if (maxLength && cleaned.length > maxLength) {
+			cleaned = cleaned.substring(0, maxLength - 3) + "...";
 		}
 
 		return cleaned;
@@ -1301,13 +1310,20 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			
 			if (isNote) {
 				// Contenu spécifique aux notes - seulement titre et description
-				const noteContent = event.content ? sanitizeText(event.content) : "";
+				const noteContent = event.content ? sanitizeText(event.content, null) : ""; // Pas de limite de longueur
+				const noteStatus = event.custom_note_status || "Open";
+				
+				// Formatter le contenu pour un meilleur affichage
+				const formattedContent = noteContent.replace(/\n/g, '<br>');
 				
 				cardContent = `
-					<div style="font-weight: 600; margin-bottom: 3px; color: #9c27b0;">
-						<i class="fa ${icon}" style="margin-right: 4px;"></i>${cleanSubject}
+					<div style="font-weight: 600; margin-bottom: 5px; color: #9c27b0; display: flex; align-items: center; justify-content: space-between;">
+						<span><i class="fa ${icon}" style="margin-right: 4px;"></i>${cleanSubject}</span>
+						<span style="font-size: 10px; padding: 2px 6px; background: ${noteStatus === 'Open' ? '#4caf50' : '#f44336'}; color: white; border-radius: 3px;">
+							${noteStatus === 'Open' ? 'Ouverte' : 'Fermée'}
+						</span>
 					</div>
-					${noteContent ? `<div style="color: #666; font-size: 11px; line-height: 1.3; word-wrap: break-word;">${noteContent}</div>` : ""}
+					${formattedContent ? `<div class="note-content">${formattedContent}</div>` : ""}
 				`;
 			} else {
 				// Contenu spécifique aux événements (code existant)

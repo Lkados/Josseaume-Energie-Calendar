@@ -1339,7 +1339,8 @@ def get_day_events_by_employees(date, team_filter=None, territory=None, employee
                     "content": note.get("content", ""),
                     "is_note": True,  # Marqueur pour identifier les notes
                     "created_by": note.get("created_by", ""),
-                    "creation": note.get("creation", "")
+                    "creation": note.get("creation", ""),
+                    "custom_note_status": note.get("custom_note_status", "Open")
                 }
                 
                 if time_slot == "Matin":
