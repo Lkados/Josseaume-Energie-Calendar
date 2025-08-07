@@ -1433,18 +1433,8 @@ def create_employee_note(employee, note_date, title, content, notify_user=None, 
             "custom_note_status": status if frappe.db.has_column("Note", "custom_note_status") else None
         })
         
-        # Si les champs custom n'existent pas, ajouter l'info dans le contenu
-        if not frappe.db.has_column("Note", "custom_employee"):
-            note.content = f"<p><strong>Employé:</strong> {employee_name} ({employee})</p>\n" + (content or "")
-        
-        if not frappe.db.has_column("Note", "custom_note_date"):
-            note.content = f"<p><strong>Date:</strong> {note_date}</p>\n" + note.content
-            
-        if time_slot and not frappe.db.has_column("Note", "custom_time_slot"):
-            note.content = f"<p><strong>Horaire:</strong> {time_slot}</p>\n" + note.content
-            
-        if not frappe.db.has_column("Note", "custom_note_status"):
-            note.content = f"<p><strong>Statut:</strong> {status}</p>\n" + note.content
+        # Si les champs custom n'existent pas, ne pas modifier le contenu
+        # On garde seulement la description pure
         
         note.insert(ignore_permissions=True)
         
@@ -1508,17 +1498,8 @@ def get_employee_notes(employee, date):
                 fields=["name", "title", "content", "owner", "creation"]
             )
             
-            # Filtrer par date et statut dans le contenu
-            date_str = frappe.utils.formatdate(date, "dd/MM/yyyy")
-            for note in all_notes:
-                if (date_str in note.content or date in note.content):
-                    # Vérifier le statut dans le contenu - exclure les notes fermées
-                    if "Statut:</strong> Closed" not in note.content:
-                        # Extraire le time_slot du titre si présent
-                        if note.title.startswith("[") and "]" in note.title:
-                            time_slot = note.title[1:note.title.index("]")]
-                            note["custom_time_slot"] = time_slot
-                        notes.append(note)
+            # Pour la compatibilité, on ne récupère plus les notes basées sur le contenu
+            # car on veut garder le contenu pur sans métadonnées
         
         # Enrichir les notes avec le nom du créateur
         for note in notes:

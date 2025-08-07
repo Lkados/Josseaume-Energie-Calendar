@@ -755,7 +755,9 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		let cleaned = text
 			.replace(/[\x00-\x1F\x7F]/g, "") // Caractères de contrôle
 			.replace(/git\s+reset.*$/gi, "") // Commandes git
-			.replace(/<[^>]*>/g, "") // Balises HTML simples
+			.replace(/<[^>]*>/g, "") // Balises HTML
+			.replace(/<p><strong>.*?<\/strong>.*?<\/p>/gi, "") // Supprimer les métadonnées
+			.replace(/<strong>.*?<\/strong>\s*[^<]*/gi, "") // Supprimer les labels forts
 			.trim();
 
 		// Limiter la longueur si nécessaire
