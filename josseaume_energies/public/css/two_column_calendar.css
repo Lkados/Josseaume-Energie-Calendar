@@ -45,6 +45,11 @@ body.dark {
 	/* NOUVELLES COULEURS POUR LES CHAMPS CLIENT EN MODE SOMBRE */
 	--color-appareil: #bcaaa4; /* Brun clair pour appareil */
 	--color-camion: #ffb74d; /* Orange clair pour camion */
+
+	/* COULEURS POUR LES NOTES */
+	--color-note: #9c27b0; /* Violet pour les notes */
+	--color-note-bg: rgba(156, 39, 176, 0.05); /* Fond violet très léger */
+	--color-note-bg-dark: rgba(156, 39, 176, 0.1); /* Fond violet léger pour mode sombre */
 }
 
 /* ========================================= */
@@ -97,6 +102,44 @@ body.dark {
 .employee-column .event-default,
 .two_column_calendar-container .event-default {
 	border-left-color: var(--color-default) !important;
+}
+
+/* NOUVEAUX STYLES POUR LES NOTES */
+.employee-note,
+.week-event.employee-note,
+.employee-column .employee-note,
+.two_column_calendar-container .employee-note {
+	border-left-color: var(--color-note) !important;
+	background-color: var(--color-note-bg) !important;
+	position: relative;
+}
+
+/* Indicateur visuel spécial pour les notes */
+.employee-note:before {
+	content: "📝";
+	position: absolute;
+	top: 2px;
+	right: 4px;
+	font-size: 12px;
+	opacity: 0.7;
+}
+
+/* Style pour les notes en mode sombre */
+body.dark .employee-note,
+body.dark .week-event.employee-note,
+body.dark .employee-column .employee-note,
+body.dark .two_column_calendar-container .employee-note {
+	background-color: var(--color-note-bg-dark) !important;
+}
+
+/* Effet hover spécial pour les notes */
+.employee-note:hover {
+	background-color: rgba(156, 39, 176, 0.1) !important;
+	transform: translateY(-1px);
+}
+
+body.dark .employee-note:hover {
+	background-color: rgba(156, 39, 176, 0.15) !important;
 }
 
 /* Événements toute la journée - priorité maximale */

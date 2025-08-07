@@ -229,6 +229,99 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		refreshCalendar();
 	});
 
+	// NOUVEAU: Ajouter un bouton pour créer une note
+	page.add_inner_button(__("Ajouter Note"), () => {
+		// Récupérer les filtres actuels pour pré-remplir le formulaire
+		const employee = page.fields_dict.employee.get_value();
+		const currentDateStr = frappe.datetime.obj_to_str(currentDate).split(" ")[0];
+
+		// Créer un dialogue pour créer une note
+		const dialog = new frappe.ui.Dialog({
+			title: __("Ajouter une note"),
+			fields: [
+				{
+					fieldtype: "Link",
+					label: __("Employé"),
+					fieldname: "employee",
+					options: "Employee",
+					reqd: 1,
+					default: employee || ""
+				},
+				{
+					fieldtype: "Date",
+					label: __("Date"),
+					fieldname: "note_date",
+					default: currentDateStr,
+					reqd: 1
+				},
+				{
+					fieldtype: "Select",
+					label: __("Horaire"),
+					fieldname: "time_slot",
+					options: "\nMatin\nAprès-midi\nJournée complète",
+					default: "Matin"
+				},
+				{
+					fieldtype: "Data",
+					label: __("Titre"),
+					fieldname: "title",
+					reqd: 1
+				},
+				{
+					fieldtype: "Text Editor",
+					label: __("Contenu"),
+					fieldname: "content",
+					reqd: 1
+				}
+			],
+			primary_action_label: __("Créer Note"),
+			primary_action: (values) => {
+				// Appeler l'API pour créer la note
+				frappe.call({
+					method: "josseaume_energies.api.create_employee_note",
+					args: {
+						employee: values.employee,
+						note_date: values.note_date,
+						title: values.title,
+						content: values.content,
+						time_slot: values.time_slot
+					},
+					callback: function(r) {
+						if (r.message && r.message.status === "success") {
+							frappe.show_alert({
+								message: __("Note créée avec succès"),
+								indicator: "green"
+							}, 3);
+							
+							// Rafraîchir le calendrier pour afficher la nouvelle note
+							refreshCalendar();
+							
+							dialog.hide();
+						} else {
+							const errorMsg = r.message ? r.message.message : "Erreur lors de la création de la note";
+							frappe.msgprint({
+								title: __("Erreur"),
+								indicator: "red",
+								message: errorMsg
+							});
+						}
+					},
+					error: function(err) {
+						console.error("Erreur API:", err);
+						frappe.msgprint({
+							title: __("Erreur"),
+							indicator: "red",
+							message: __("Erreur de connexion lors de la création de la note")
+						});
+					}
+				});
+			},
+			secondary_action_label: __("Annuler")
+		});
+
+		dialog.show();
+	}, "octicon octicon-note");
+
 	// NOUVELLE FONCTION: Ouvrir un nouveau formulaire de commande avec date, horaire et employé pré-remplis
 	function createNewSalesOrder(date, timeSlot, employeeId = null) {
 		try {
@@ -1173,47 +1266,62 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	function renderEmployeeEventCard(event, container) {
 		try {
 			if (!event || !container || !event.name) {
-				console.warn("Événement invalide ou conteneur manquant");
+				console.warn("Événement/Note invalide ou conteneur manquant");
 				return;
 			}
 
-			// Nettoyer et valider les données de l'événement
-			const cleanSubject = sanitizeText(event.subject) || "Événement sans titre";
+			// Vérifier si c'est une note ou un événement
+			const isNote = event.is_note === true;
+			
+			// Nettoyer et valider les données
+			const cleanSubject = sanitizeText(event.subject) || (isNote ? "Note sans titre" : "Événement sans titre");
 
-			// AMÉLIORATION: Détection plus robuste du type d'événement
-			let eventClass = determineEventClass(event, cleanSubject);
-
-			// Ajouter une classe spécifique pour les événements toute la journée
-			if (isAllDayEvent(event)) {
-				eventClass += " event-all-day";
+			let eventClass, borderColor, icon, docType;
+			
+			if (isNote) {
+				// Style pour les notes
+				eventClass = "employee-note";
+				borderColor = "#9c27b0"; // Violet pour les notes
+				icon = "fa-sticky-note";
+				docType = "Note";
+			} else {
+				// Style pour les événements (code existant)
+				eventClass = determineEventClass(event, cleanSubject);
+				
+				// Ajouter une classe spécifique pour les événements toute la journée
+				if (isAllDayEvent(event)) {
+					eventClass += " event-all-day";
+				}
+				
+				icon = "fa-calendar";
+				docType = "Event";
 			}
 
-			// AMÉLIORATION: Récupération plus robuste des commentaires et nouveaux champs
-			const { clientName, technicianName, comments, customerAppareil, customerCamion } =
-				getCleanEventInfo(event);
+			let cardContent = "";
+			
+			if (isNote) {
+				// Contenu spécifique aux notes
+				const createdBy = event.created_by || "Inconnu";
+				const noteContent = event.content ? sanitizeText(event.content).substring(0, 100) + "..." : "";
+				
+				cardContent = `
+					<div style="font-weight: 600; margin-bottom: 3px; color: #9c27b0;">
+						<i class="fa ${icon}" style="margin-right: 4px;"></i>${cleanSubject}
+					</div>
+					<div style="color: #666; font-size: 10px; margin-bottom: 2px;">
+						<i class="fa fa-user" style="margin-right: 4px;"></i>Par: ${createdBy}
+					</div>
+					${noteContent ? `<div style="color: #888; font-size: 10px; font-style: italic; line-height: 1.3; word-wrap: break-word;">${noteContent}</div>` : ""}
+				`;
+			} else {
+				// Contenu spécifique aux événements (code existant)
+				const { clientName, technicianName, comments, customerAppareil, customerCamion } =
+					getCleanEventInfo(event);
 
-			// DEBUG: Log pour vérifier les données
-			console.log("Event data pour", event.name, ":", {
-				sales_order_info: event.sales_order_info,
-				extracted_comments: comments,
-				clientName: clientName,
-				customerAppareil: customerAppareil,
-				customerCamion: customerCamion,
-			});
-
-			// Créer la carte d'événement compacte pour la vue employé avec les nouveaux champs
-			const eventCard = $(`
-				<div class="${eventClass}" data-event-id="${event.name}" style="
-					margin-bottom: 6px;
-					padding: 8px 10px;
-					border-radius: 4px;
-					border-left: 4px solid;
-					box-shadow: var(--shadow-sm);
-					cursor: pointer;
-					transition: all 0.2s;
-					font-size: 12px;
-				">
-					<div style="font-weight: 600; margin-bottom: 3px; color:rgb(165, 165, 165);">${cleanSubject}</div>
+				cardContent = `
+					<div style="font-weight: 600; margin-bottom: 3px; color:rgb(165, 165, 165);">
+						<i class="fa ${icon}" style="margin-right: 4px;"></i>${cleanSubject}
+					</div>
 					${
 						isAllDayEvent(event)
 							? '<div style="color: var(--color-allday); font-size: 10px; margin-bottom: 3px;"><i class="fa fa-calendar-day"></i> Toute la journée</div>'
@@ -1239,13 +1347,30 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 							? `<div style="color: #6c757d; font-size: 10px; margin-top: 3px; font-style: italic; line-height: 1.3; word-wrap: break-word;"><i class="fa fa-comment" style="margin-right: 4px;"></i> ${comments}</div>`
 							: ""
 					}
+				`;
+			}
+
+			// Créer la carte avec des styles appropriés
+			const eventCard = $(`
+				<div class="${eventClass}" data-event-id="${event.name}" data-doc-type="${docType}" style="
+					margin-bottom: 6px;
+					padding: 8px 10px;
+					border-radius: 4px;
+					border-left: 4px solid ${isNote ? borderColor : ''};
+					box-shadow: var(--shadow-sm);
+					cursor: pointer;
+					transition: all 0.2s;
+					font-size: 12px;
+					${isNote ? 'background-color: rgba(156, 39, 176, 0.05);' : ''}
+				">
+					${cardContent}
 				</div>
 			`).appendTo(container);
 
 			// Ajouter l'interaction au clic
 			eventCard.on("click", function () {
 				try {
-					frappe.set_route("Form", "Event", event.name);
+					frappe.set_route("Form", docType, event.name);
 				} catch (clickError) {
 					console.error("Erreur lors du clic:", clickError);
 				}
@@ -1264,7 +1389,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 						.css("box-shadow", "var(--shadow-sm)");
 				});
 		} catch (error) {
-			console.error("Erreur lors de la création de la carte événement:", error);
+			console.error("Erreur lors de la création de la carte événement/note:", error);
 		}
 	}
 

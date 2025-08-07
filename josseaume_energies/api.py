@@ -1320,6 +1320,47 @@ def get_day_events_by_employees(date, team_filter=None, territory=None, employee
                 key=lambda x: frappe.utils.get_datetime(x["starts_on"])
             )
         
+        # NOUVEAU: Récupérer les notes pour chaque employé
+        for emp_id in events_by_employee:
+            employee_notes = get_employee_notes(emp_id, date)
+            
+            # Organiser les notes par période
+            notes_by_period = {
+                "all_day": [],
+                "morning": [],
+                "afternoon": []
+            }
+            
+            for note in employee_notes:
+                time_slot = note.get("custom_time_slot", "")
+                note_obj = {
+                    "name": note["name"],
+                    "subject": note["title"],
+                    "content": note.get("content", ""),
+                    "is_note": True,  # Marqueur pour identifier les notes
+                    "created_by": note.get("created_by", ""),
+                    "creation": note.get("creation", "")
+                }
+                
+                if time_slot == "Matin":
+                    notes_by_period["morning"].append(note_obj)
+                elif time_slot == "Après-midi":
+                    notes_by_period["afternoon"].append(note_obj)
+                elif time_slot == "Journée complète":
+                    notes_by_period["all_day"].append(note_obj)
+                else:
+                    # Si pas de time_slot, mettre dans all_day par défaut
+                    notes_by_period["all_day"].append(note_obj)
+            
+            # Ajouter les notes aux événements de chaque période
+            if "employee_info" in events_by_employee[emp_id]:
+                events_by_employee[emp_id]["notes"] = notes_by_period
+                
+                # Intégrer les notes dans les listes d'événements pour un affichage unifié
+                events_by_employee[emp_id]["all_day"].extend(notes_by_period["all_day"])
+                events_by_employee[emp_id]["morning"].extend(notes_by_period["morning"])
+                events_by_employee[emp_id]["afternoon"].extend(notes_by_period["afternoon"])
+        
         return {
             "status": "success",
             "date": date,
@@ -1351,3 +1392,240 @@ def get_team_options():
         "Commercial",
         "Rénovation"
     ]
+
+# ========================================
+# NOUVELLES FONCTIONS POUR LES NOTES
+# ========================================
+
+@frappe.whitelist()
+def create_employee_note(employee, note_date, title, content, notify_user=None, time_slot=None):
+    """
+    Crée une note pour un employé en utilisant le DocType Note standard d'ERPNext
+    """
+    try:
+        if not employee or not note_date or not title:
+            return {
+                "status": "error",
+                "message": "Employé, date et titre sont requis"
+            }
+        
+        # Vérifier que l'employé existe
+        if not frappe.db.exists("Employee", employee):
+            return {
+                "status": "error",
+                "message": f"Employé {employee} non trouvé"
+            }
+        
+        # Récupérer le nom de l'employé
+        employee_name = frappe.db.get_value("Employee", employee, "employee_name")
+        
+        # Créer le titre complet avec le time_slot si fourni
+        full_title = title
+        if time_slot:
+            full_title = f"[{time_slot}] {title}"
+        
+        # Créer la note
+        note = frappe.get_doc({
+            "doctype": "Note",
+            "title": full_title,
+            "content": content or "",
+            "public": 1,  # Note publique pour être visible dans le calendrier
+            "notify_on_login": 0,
+            "custom_employee": employee if frappe.db.has_column("Note", "custom_employee") else None,
+            "custom_note_date": note_date if frappe.db.has_column("Note", "custom_note_date") else None,
+            "custom_time_slot": time_slot if frappe.db.has_column("Note", "custom_time_slot") else None
+        })
+        
+        # Si les champs custom n'existent pas, ajouter l'info dans le contenu
+        if not frappe.db.has_column("Note", "custom_employee"):
+            note.content = f"<p><strong>Employé:</strong> {employee_name} ({employee})</p>\n" + (content or "")
+        
+        if not frappe.db.has_column("Note", "custom_note_date"):
+            note.content = f"<p><strong>Date:</strong> {note_date}</p>\n" + note.content
+            
+        if time_slot and not frappe.db.has_column("Note", "custom_time_slot"):
+            note.content = f"<p><strong>Horaire:</strong> {time_slot}</p>\n" + note.content
+        
+        note.insert(ignore_permissions=True)
+        
+        # Si un utilisateur est spécifié pour notification
+        if notify_user:
+            note.add_seen(notify_user)
+        
+        return {
+            "status": "success",
+            "message": f"Note créée avec succès",
+            "note_name": note.name,
+            "note_title": note.title
+        }
+        
+    except Exception as e:
+        frappe.log_error(f"Erreur lors de la création de la note: {str(e)}", "Note creation error")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+@frappe.whitelist()
+def get_employee_notes(employee, date):
+    """
+    Récupère les notes d'un employé pour une date donnée
+    """
+    try:
+        notes = []
+        
+        # Vérifier si les champs custom existent
+        has_custom_fields = (
+            frappe.db.has_column("Note", "custom_employee") and 
+            frappe.db.has_column("Note", "custom_note_date")
+        )
+        
+        if has_custom_fields:
+            # Requête directe si les champs existent
+            notes = frappe.get_all("Note",
+                filters={
+                    "custom_employee": employee,
+                    "custom_note_date": date,
+                    "public": 1
+                },
+                fields=["name", "title", "content", "custom_time_slot", "owner", "creation"]
+            )
+        else:
+            # Recherche dans le contenu si les champs n'existent pas
+            all_notes = frappe.get_all("Note",
+                filters={
+                    "public": 1,
+                    "content": ["like", f"%{employee}%"]
+                },
+                fields=["name", "title", "content", "owner", "creation"]
+            )
+            
+            # Filtrer par date dans le contenu
+            date_str = frappe.utils.formatdate(date, "dd/MM/yyyy")
+            for note in all_notes:
+                if date_str in note.content or date in note.content:
+                    # Extraire le time_slot du titre si présent
+                    if note.title.startswith("[") and "]" in note.title:
+                        time_slot = note.title[1:note.title.index("]")]
+                        note["custom_time_slot"] = time_slot
+                    notes.append(note)
+        
+        # Enrichir les notes avec le nom du créateur
+        for note in notes:
+            note["created_by"] = frappe.db.get_value("User", note.owner, "full_name") or note.owner
+        
+        return notes
+        
+    except Exception as e:
+        frappe.log_error(f"Erreur lors de la récupération des notes: {str(e)}", "Get employee notes error")
+        return []
+
+@frappe.whitelist()
+def get_notes_for_day_view(date, employee=None):
+    """
+    Récupère toutes les notes pour une journée donnée (pour toutes les vues)
+    """
+    try:
+        notes = []
+        
+        # Vérifier si les champs custom existent
+        has_custom_fields = frappe.db.has_column("Note", "custom_note_date")
+        
+        if has_custom_fields:
+            filters = {
+                "custom_note_date": date,
+                "public": 1
+            }
+            
+            if employee and frappe.db.has_column("Note", "custom_employee"):
+                filters["custom_employee"] = employee
+                
+            notes = frappe.get_all("Note",
+                filters=filters,
+                fields=["name", "title", "content", "custom_employee", "custom_time_slot", "owner", "creation"]
+            )
+            
+            # Enrichir avec les noms des employés
+            for note in notes:
+                if note.get("custom_employee"):
+                    note["employee_name"] = frappe.db.get_value("Employee", note.custom_employee, "employee_name")
+        else:
+            # Fallback: rechercher dans toutes les notes publiques
+            all_notes = frappe.get_all("Note",
+                filters={"public": 1},
+                fields=["name", "title", "content", "owner", "creation"],
+                limit=100
+            )
+            
+            date_str = frappe.utils.formatdate(date, "dd/MM/yyyy")
+            for note in all_notes:
+                if date_str in note.content or date in note.content:
+                    if not employee or employee in note.content:
+                        notes.append(note)
+        
+        return notes
+        
+    except Exception as e:
+        frappe.log_error(f"Erreur lors de la récupération des notes du jour: {str(e)}", "Get day notes error")
+        return []
+
+@frappe.whitelist()
+def setup_note_custom_fields():
+    """
+    Configure les champs personnalisés pour le DocType Note s'ils n'existent pas
+    """
+    try:
+        custom_fields = [
+            {
+                "dt": "Note",
+                "fieldname": "custom_employee",
+                "label": "Employee",
+                "fieldtype": "Link",
+                "options": "Employee",
+                "insert_after": "title"
+            },
+            {
+                "dt": "Note",
+                "fieldname": "custom_note_date",
+                "label": "Note Date",
+                "fieldtype": "Date",
+                "insert_after": "custom_employee"
+            },
+            {
+                "dt": "Note",
+                "fieldname": "custom_time_slot",
+                "label": "Time Slot",
+                "fieldtype": "Select",
+                "options": "\nMatin\nAprès-midi\nJournée complète",
+                "insert_after": "custom_note_date"
+            }
+        ]
+        
+        created_fields = []
+        
+        for field in custom_fields:
+            if not frappe.db.exists("Custom Field", {"dt": field["dt"], "fieldname": field["fieldname"]}):
+                cf = frappe.get_doc({
+                    "doctype": "Custom Field",
+                    **field
+                })
+                cf.insert()
+                created_fields.append(field["fieldname"])
+        
+        if created_fields:
+            frappe.db.commit()
+            return {
+                "status": "success",
+                "message": f"Champs créés: {', '.join(created_fields)}"
+            }
+        else:
+            return {
+                "status": "success",
+                "message": "Tous les champs existent déjà"
+            }
+            
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
