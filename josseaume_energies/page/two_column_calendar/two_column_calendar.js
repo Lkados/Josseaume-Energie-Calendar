@@ -268,8 +268,8 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					reqd: 1
 				},
 				{
-					fieldtype: "Text Editor",
-					label: __("Contenu"),
+					fieldtype: "Small Text",
+					label: __("Description"),
 					fieldname: "content",
 					reqd: 1
 				}
@@ -1300,18 +1300,14 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			let cardContent = "";
 			
 			if (isNote) {
-				// Contenu spécifique aux notes
-				const createdBy = event.created_by || "Inconnu";
-				const noteContent = event.content ? sanitizeText(event.content).substring(0, 100) + "..." : "";
+				// Contenu spécifique aux notes - seulement titre et description
+				const noteContent = event.content ? sanitizeText(event.content) : "";
 				
 				cardContent = `
 					<div style="font-weight: 600; margin-bottom: 3px; color: #9c27b0;">
 						<i class="fa ${icon}" style="margin-right: 4px;"></i>${cleanSubject}
 					</div>
-					<div style="color: #666; font-size: 10px; margin-bottom: 2px;">
-						<i class="fa fa-user" style="margin-right: 4px;"></i>Par: ${createdBy}
-					</div>
-					${noteContent ? `<div style="color: #888; font-size: 10px; font-style: italic; line-height: 1.3; word-wrap: break-word;">${noteContent}</div>` : ""}
+					${noteContent ? `<div style="color: #666; font-size: 11px; line-height: 1.3; word-wrap: break-word;">${noteContent}</div>` : ""}
 				`;
 			} else {
 				// Contenu spécifique aux événements (code existant)

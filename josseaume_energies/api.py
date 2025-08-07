@@ -1398,7 +1398,7 @@ def get_team_options():
 # ========================================
 
 @frappe.whitelist()
-def create_employee_note(employee, note_date, title, content, notify_user=None, time_slot=None):
+def create_employee_note(employee, note_date, title, content, notify_user=None, time_slot=None, status="Open"):
     """
     Crée une note pour un employé en utilisant le DocType Note standard d'ERPNext
     """
@@ -1419,21 +1419,17 @@ def create_employee_note(employee, note_date, title, content, notify_user=None, 
         # Récupérer le nom de l'employé
         employee_name = frappe.db.get_value("Employee", employee, "employee_name")
         
-        # Créer le titre complet avec le time_slot si fourni
-        full_title = title
-        if time_slot:
-            full_title = f"[{time_slot}] {title}"
-        
-        # Créer la note
+        # Créer la note (titre simple sans préfixe time_slot)
         note = frappe.get_doc({
             "doctype": "Note",
-            "title": full_title,
+            "title": title,
             "content": content or "",
             "public": 1,  # Note publique pour être visible dans le calendrier
             "notify_on_login": 0,
             "custom_employee": employee if frappe.db.has_column("Note", "custom_employee") else None,
             "custom_note_date": note_date if frappe.db.has_column("Note", "custom_note_date") else None,
-            "custom_time_slot": time_slot if frappe.db.has_column("Note", "custom_time_slot") else None
+            "custom_time_slot": time_slot if frappe.db.has_column("Note", "custom_time_slot") else None,
+            "custom_note_status": status if frappe.db.has_column("Note", "custom_note_status") else None
         })
         
         # Si les champs custom n'existent pas, ajouter l'info dans le contenu
@@ -1445,6 +1441,9 @@ def create_employee_note(employee, note_date, title, content, notify_user=None, 
             
         if time_slot and not frappe.db.has_column("Note", "custom_time_slot"):
             note.content = f"<p><strong>Horaire:</strong> {time_slot}</p>\n" + note.content
+            
+        if not frappe.db.has_column("Note", "custom_note_status"):
+            note.content = f"<p><strong>Statut:</strong> {status}</p>\n" + note.content
         
         note.insert(ignore_permissions=True)
         
@@ -1469,7 +1468,7 @@ def create_employee_note(employee, note_date, title, content, notify_user=None, 
 @frappe.whitelist()
 def get_employee_notes(employee, date):
     """
-    Récupère les notes d'un employé pour une date donnée
+    Récupère les notes ouvertes d'un employé pour une date donnée
     """
     try:
         notes = []
@@ -1480,15 +1479,23 @@ def get_employee_notes(employee, date):
             frappe.db.has_column("Note", "custom_note_date")
         )
         
+        has_status_field = frappe.db.has_column("Note", "custom_note_status")
+        
         if has_custom_fields:
             # Requête directe si les champs existent
+            filters = {
+                "custom_employee": employee,
+                "custom_note_date": date,
+                "public": 1
+            }
+            
+            # Filtrer seulement les notes ouvertes
+            if has_status_field:
+                filters["custom_note_status"] = ["in", ["Open", ""]]  # Open ou vide (pour compatibilité)
+            
             notes = frappe.get_all("Note",
-                filters={
-                    "custom_employee": employee,
-                    "custom_note_date": date,
-                    "public": 1
-                },
-                fields=["name", "title", "content", "custom_time_slot", "owner", "creation"]
+                filters=filters,
+                fields=["name", "title", "content", "custom_time_slot", "custom_note_status", "owner", "creation"]
             )
         else:
             # Recherche dans le contenu si les champs n'existent pas
@@ -1500,19 +1507,24 @@ def get_employee_notes(employee, date):
                 fields=["name", "title", "content", "owner", "creation"]
             )
             
-            # Filtrer par date dans le contenu
+            # Filtrer par date et statut dans le contenu
             date_str = frappe.utils.formatdate(date, "dd/MM/yyyy")
             for note in all_notes:
-                if date_str in note.content or date in note.content:
-                    # Extraire le time_slot du titre si présent
-                    if note.title.startswith("[") and "]" in note.title:
-                        time_slot = note.title[1:note.title.index("]")]
-                        note["custom_time_slot"] = time_slot
-                    notes.append(note)
+                if (date_str in note.content or date in note.content):
+                    # Vérifier le statut dans le contenu - exclure les notes fermées
+                    if "Statut:</strong> Closed" not in note.content:
+                        # Extraire le time_slot du titre si présent
+                        if note.title.startswith("[") and "]" in note.title:
+                            time_slot = note.title[1:note.title.index("]")]
+                            note["custom_time_slot"] = time_slot
+                        notes.append(note)
         
         # Enrichir les notes avec le nom du créateur
         for note in notes:
             note["created_by"] = frappe.db.get_value("User", note.owner, "full_name") or note.owner
+            # S'assurer que le statut est défini
+            if "custom_note_status" not in note:
+                note["custom_note_status"] = "Open"
         
         return notes
         
@@ -1598,6 +1610,15 @@ def setup_note_custom_fields():
                 "fieldtype": "Select",
                 "options": "\nMatin\nAprès-midi\nJournée complète",
                 "insert_after": "custom_note_date"
+            },
+            {
+                "dt": "Note",
+                "fieldname": "custom_note_status",
+                "label": "Status",
+                "fieldtype": "Select",
+                "options": "Open\nClosed",
+                "default": "Open",
+                "insert_after": "custom_time_slot"
             }
         ]
         
