@@ -1651,3 +1651,62 @@ def setup_note_custom_fields():
             "status": "error",
             "message": str(e)
         }
+
+@frappe.whitelist()
+def update_note_status(note_id, status):
+    """
+    Met à jour le statut d'une note (Open/Closed)
+    """
+    try:
+        if not note_id or not status:
+            return {
+                "status": "error",
+                "message": "ID de note et statut requis"
+            }
+        
+        # Vérifier que la note existe
+        if not frappe.db.exists("Note", note_id):
+            return {
+                "status": "error",
+                "message": f"Note {note_id} non trouvée"
+            }
+        
+        # Vérifier que le statut est valide
+        if status not in ["Open", "Closed"]:
+            return {
+                "status": "error",
+                "message": "Statut invalide. Utilisez 'Open' ou 'Closed'"
+            }
+        
+        # Mettre à jour le statut
+        if frappe.db.has_column("Note", "custom_note_status"):
+            frappe.db.set_value("Note", note_id, "custom_note_status", status)
+        else:
+            # Fallback: mettre à jour dans le contenu
+            note = frappe.get_doc("Note", note_id)
+            # Remplacer ou ajouter le statut dans le contenu
+            import re
+            if "<strong>Statut:</strong>" in note.content:
+                note.content = re.sub(
+                    r'<strong>Statut:</strong>\s*\w+',
+                    f'<strong>Statut:</strong> {status}',
+                    note.content
+                )
+            else:
+                note.content = f"<p><strong>Statut:</strong> {status}</p>\n" + note.content
+            note.save(ignore_permissions=True)
+        
+        frappe.db.commit()
+        
+        return {
+            "status": "success",
+            "message": f"Statut mis à jour: {status}",
+            "new_status": status
+        }
+        
+    except Exception as e:
+        frappe.log_error(f"Erreur lors de la mise à jour du statut de la note: {str(e)}", "Update note status error")
+        return {
+            "status": "error",
+            "message": str(e)
+        }

@@ -161,6 +161,28 @@ body.dark .employee-note .note-content {
 	background: rgba(255, 255, 255, 0.05);
 }
 
+/* Style pour le badge de statut cliquable */
+.note-status-badge {
+	display: inline-block;
+	font-size: 11px;
+	padding: 3px 8px;
+	border-radius: 3px;
+	cursor: pointer;
+	user-select: none;
+	transition: all 0.2s ease;
+	text-transform: uppercase;
+	font-weight: 500;
+}
+
+.note-status-badge:hover {
+	transform: scale(1.05);
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.note-status-badge:active {
+	transform: scale(0.95);
+}
+
 /* Événements toute la journée - priorité maximale */
 .event-all-day,
 .week-event.event-all-day,

@@ -1309,7 +1309,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			let cardContent = "";
 			
 			if (isNote) {
-				// Contenu spécifique aux notes - seulement titre et description
+				// Contenu spécifique aux notes - titre, contenu et statut seulement
 				const noteContent = event.content ? sanitizeText(event.content, null) : ""; // Pas de limite de longueur
 				const noteStatus = event.custom_note_status || "Open";
 				
@@ -1317,13 +1317,24 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				const formattedContent = noteContent.replace(/\n/g, '<br>');
 				
 				cardContent = `
-					<div style="font-weight: 600; margin-bottom: 5px; color: #9c27b0; display: flex; align-items: center; justify-content: space-between;">
-						<span><i class="fa ${icon}" style="margin-right: 4px;"></i>${cleanSubject}</span>
-						<span style="font-size: 10px; padding: 2px 6px; background: ${noteStatus === 'Open' ? '#4caf50' : '#f44336'}; color: white; border-radius: 3px;">
+					<div style="font-weight: 600; margin-bottom: 5px; color: #9c27b0;">
+						${cleanSubject}
+					</div>
+					${formattedContent ? `<div class="note-content">${formattedContent}</div>` : ""}
+					<div style="margin-top: 6px; display: flex; align-items: center; justify-content: space-between;">
+						<span class="note-status-badge" data-note-id="${event.name}" data-current-status="${noteStatus}" style="
+							font-size: 11px; 
+							padding: 3px 8px; 
+							background: ${noteStatus === 'Open' ? '#4caf50' : '#f44336'}; 
+							color: white; 
+							border-radius: 3px;
+							cursor: pointer;
+							user-select: none;
+							transition: all 0.2s;
+						">
 							${noteStatus === 'Open' ? 'Ouverte' : 'Fermée'}
 						</span>
 					</div>
-					${formattedContent ? `<div class="note-content">${formattedContent}</div>` : ""}
 				`;
 			} else {
 				// Contenu spécifique aux événements (code existant)
@@ -1380,9 +1391,44 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			`).appendTo(container);
 
 			// Ajouter l'interaction au clic
-			eventCard.on("click", function () {
+			eventCard.on("click", function (e) {
 				try {
-					frappe.set_route("Form", docType, event.name);
+					// Si c'est un clic sur le badge de statut d'une note
+					if ($(e.target).hasClass("note-status-badge")) {
+						e.stopPropagation();
+						const noteId = $(e.target).data("note-id");
+						const currentStatus = $(e.target).data("current-status");
+						const newStatus = currentStatus === "Open" ? "Closed" : "Open";
+						
+						// Mettre à jour le statut
+						frappe.call({
+							method: "josseaume_energies.api.update_note_status",
+							args: {
+								note_id: noteId,
+								status: newStatus
+							},
+							callback: function(r) {
+								if (r.message && r.message.status === "success") {
+									frappe.show_alert({
+										message: `Note ${newStatus === 'Open' ? 'ouverte' : 'fermée'}`,
+										indicator: "green"
+									}, 2);
+									
+									// Rafraîchir le calendrier
+									refreshCalendar();
+								} else {
+									frappe.msgprint({
+										title: "Erreur",
+										indicator: "red",
+										message: "Impossible de changer le statut"
+									});
+								}
+							}
+						});
+					} else {
+						// Clic normal - ouvrir le formulaire
+						frappe.set_route("Form", docType, event.name);
+					}
 				} catch (clickError) {
 					console.error("Erreur lors du clic:", clickError);
 				}
