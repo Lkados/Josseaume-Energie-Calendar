@@ -168,6 +168,35 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 	// Conteneur de calendrier
 	let calendarContainer = $('<div class="custom-calendar-container"></div>').appendTo(page.body);
+	
+	// Fonction globale pour tester les notes (accessible via console)
+	window.testNotes = function() {
+		frappe.call({
+			method: "josseaume_energies.api.test_notes_exist",
+			callback: function(r) {
+				console.log("=== TEST NOTES RÉSULTAT ===");
+				console.log(r.message);
+				alert("Test terminé - voir console pour détails");
+			}
+		});
+	};
+
+	// Bouton de test pour diagnostiquer les notes  
+	page.add_action_item("Test Notes", function() {
+		frappe.call({
+			method: "josseaume_energies.api.test_notes_exist",
+			callback: function(r) {
+				if (r.message) {
+					console.log("Test notes résultat:", r.message);
+					frappe.msgprint({
+						title: "Test Notes",
+						message: "<pre>" + JSON.stringify(r.message, null, 2) + "</pre>",
+						wide: true
+					});
+				}
+			}
+		});
+	});
 
 	// NOUVEAU: Ajouter le bouton "Ajouter Note" comme bouton principal
 	page.set_primary_action("Ajouter Note", () => {
@@ -716,14 +745,23 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			return [];
 		}
 
-		return events.filter((event) => {
+		const cleaned = events.filter((event) => {
 			// Filtrer les événements avec des données suspectes
 			if (!event || typeof event !== "object") {
+				console.log("Événement rejeté - pas un objet valide:", event);
 				return false;
 			}
 
-			// Vérifier que l'événement a un sujet valide
+			// Pour les notes, être plus permissif sur le sujet
+			if (event.is_note === true) {
+				console.log("Note trouvée et acceptée:", event.subject || event.name);
+				// Les notes peuvent avoir un sujet vide, on les garde
+				return true;
+			}
+
+			// Vérifier que l'événement a un sujet valide (seulement pour les vrais événements)
 			if (!event.subject || typeof event.subject !== "string") {
+				console.log("Événement rejeté - pas de sujet valide:", event);
 				return false;
 			}
 
@@ -743,6 +781,9 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 			return true;
 		});
+		
+		console.log(`cleanEvents: ${events.length} événements en entrée, ${cleaned.length} gardés`);
+		return cleaned;
 	}
 
 	// FONCTION AMÉLIORÉE: Nettoyer le texte avec limitation de longueur pour les commentaires
@@ -1079,6 +1120,20 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 						if (r.message && r.message.status === "success") {
 							const data = r.message;
 							let employees = data.employees || [];
+							
+							// Debug: afficher les événements par employé
+							console.log("Events by employee:", data.events_by_employee);
+							
+							// Debug: vérifier si des notes sont présentes
+							Object.keys(data.events_by_employee || {}).forEach(empId => {
+								const empData = data.events_by_employee[empId];
+								const hasNotes = (empData.all_day && empData.all_day.some(e => e.is_note)) ||
+								               (empData.morning && empData.morning.some(e => e.is_note)) ||
+								               (empData.afternoon && empData.afternoon.some(e => e.is_note));
+								if (hasNotes) {
+									console.log(`Notes trouvées pour employé ${empId}:`, empData);
+								}
+							});
 							const eventsByEmployee = data.events_by_employee || {};
 
 							console.log("Données brutes reçues:", data);

@@ -1322,45 +1322,56 @@ def get_day_events_by_employees(date, team_filter=None, territory=None, employee
         
         # NOUVEAU: Récupérer les notes pour chaque employé
         for emp_id in events_by_employee:
-            employee_notes = get_employee_notes(emp_id, date)
-            
-            # Organiser les notes par période
-            notes_by_period = {
-                "all_day": [],
-                "morning": [],
-                "afternoon": []
-            }
-            
-            for note in employee_notes:
-                time_slot = note.get("custom_time_slot", "")
-                note_obj = {
-                    "name": note["name"],
-                    "subject": note["title"],
-                    "content": note.get("content", ""),
-                    "is_note": True,  # Marqueur pour identifier les notes
-                    "created_by": note.get("created_by", ""),
-                    "creation": note.get("creation", ""),
-                    "custom_note_status": note.get("custom_note_status", "Open")
+            try:
+                employee_notes = get_employee_notes(emp_id, date)
+                
+                # Log pour debug
+                if employee_notes:
+                    frappe.log_error(f"Notes trouvées pour employé {emp_id} le {date}: {len(employee_notes)} notes", 
+                                   "Notes Debug")
+                
+                # Organiser les notes par période
+                notes_by_period = {
+                    "all_day": [],
+                    "morning": [],
+                    "afternoon": []
                 }
                 
-                if time_slot == "Matin":
-                    notes_by_period["morning"].append(note_obj)
-                elif time_slot == "Après-midi":
-                    notes_by_period["afternoon"].append(note_obj)
-                elif time_slot == "Journée complète":
-                    notes_by_period["all_day"].append(note_obj)
-                else:
-                    # Si pas de time_slot, mettre dans all_day par défaut
-                    notes_by_period["all_day"].append(note_obj)
-            
-            # Ajouter les notes aux événements de chaque période
-            if "employee_info" in events_by_employee[emp_id]:
-                events_by_employee[emp_id]["notes"] = notes_by_period
+                for note in employee_notes:
+                    time_slot = note.get("custom_time_slot", "")
+                    note_obj = {
+                        "name": note["name"],
+                        "subject": note["title"],
+                        "content": note.get("content", ""),
+                        "is_note": True,  # Marqueur pour identifier les notes
+                        "created_by": note.get("created_by", ""),
+                        "creation": note.get("creation", ""),
+                        "custom_note_status": note.get("custom_note_status", "Open"),
+                        "starts_on": note.get("creation", "")  # Ajouter starts_on pour le tri
+                    }
+                    
+                    if time_slot == "Matin":
+                        notes_by_period["morning"].append(note_obj)
+                    elif time_slot == "Après-midi":
+                        notes_by_period["afternoon"].append(note_obj)
+                    elif time_slot == "Journée complète":
+                        notes_by_period["all_day"].append(note_obj)
+                    else:
+                        # Si pas de time_slot, mettre dans all_day par défaut
+                        notes_by_period["all_day"].append(note_obj)
                 
-                # Intégrer les notes dans les listes d'événements pour un affichage unifié
-                events_by_employee[emp_id]["all_day"].extend(notes_by_period["all_day"])
-                events_by_employee[emp_id]["morning"].extend(notes_by_period["morning"])
-                events_by_employee[emp_id]["afternoon"].extend(notes_by_period["afternoon"])
+                # Ajouter les notes aux événements de chaque période
+                if emp_id in events_by_employee:
+                    events_by_employee[emp_id]["notes"] = notes_by_period
+                    
+                    # Intégrer les notes dans les listes d'événements pour un affichage unifié
+                    events_by_employee[emp_id]["all_day"].extend(notes_by_period["all_day"])
+                    events_by_employee[emp_id]["morning"].extend(notes_by_period["morning"])
+                    events_by_employee[emp_id]["afternoon"].extend(notes_by_period["afternoon"])
+                    
+            except Exception as e:
+                frappe.log_error(f"Erreur lors de la récupération des notes pour {emp_id}: {str(e)}", 
+                               "Notes Error")
         
         return {
             "status": "success",
@@ -1464,6 +1475,9 @@ def get_employee_notes(employee, date):
     try:
         notes = []
         
+        # Debug logging
+        frappe.log_error(f"get_employee_notes appelé pour employé {employee}, date {date}", "Notes Debug")
+        
         # Vérifier si les champs custom existent
         has_custom_fields = (
             frappe.db.has_column("Note", "custom_employee") and 
@@ -1471,6 +1485,8 @@ def get_employee_notes(employee, date):
         )
         
         has_status_field = frappe.db.has_column("Note", "custom_note_status")
+        
+        frappe.log_error(f"Champs custom: {has_custom_fields}, Champ statut: {has_status_field}", "Notes Debug")
         
         if has_custom_fields:
             # Requête directe si les champs existent
@@ -1484,22 +1500,28 @@ def get_employee_notes(employee, date):
             if has_status_field:
                 filters["custom_note_status"] = ["in", ["Open", ""]]  # Open ou vide (pour compatibilité)
             
+            frappe.log_error(f"Filtres utilisés: {filters}", "Notes Debug")
+            
             notes = frappe.get_all("Note",
                 filters=filters,
                 fields=["name", "title", "content", "custom_time_slot", "custom_note_status", "owner", "creation"]
             )
+            
+            frappe.log_error(f"Notes trouvées avec champs custom: {len(notes)}", "Notes Debug")
         else:
             # Recherche dans le contenu si les champs n'existent pas
             all_notes = frappe.get_all("Note",
                 filters={
-                    "public": 1,
-                    "content": ["like", f"%{employee}%"]
+                    "public": 1
                 },
                 fields=["name", "title", "content", "owner", "creation"]
             )
             
-            # Pour la compatibilité, on ne récupère plus les notes basées sur le contenu
-            # car on veut garder le contenu pur sans métadonnées
+            frappe.log_error(f"Toutes les notes publiques: {len(all_notes)}", "Notes Debug")
+            
+            # Pour tester, récupérer toutes les notes publiques d'abord
+            for note in all_notes:
+                notes.append(note)
         
         # Enrichir les notes avec le nom du créateur
         for note in notes:
@@ -1508,11 +1530,37 @@ def get_employee_notes(employee, date):
             if "custom_note_status" not in note:
                 note["custom_note_status"] = "Open"
         
+        frappe.log_error(f"Retour de {len(notes)} notes finales", "Notes Debug")
         return notes
         
     except Exception as e:
         frappe.log_error(f"Erreur lors de la récupération des notes: {str(e)}", "Get employee notes error")
         return []
+
+@frappe.whitelist()
+def test_notes_exist():
+    """
+    Fonction de test pour vérifier si des notes existent dans la base
+    """
+    try:
+        # Récupérer toutes les notes publiques
+        all_notes = frappe.get_all("Note", 
+            filters={"public": 1},
+            fields=["name", "title", "content", "owner", "creation", "custom_employee", "custom_note_date", "custom_note_status"]
+        )
+        
+        return {
+            "status": "success",
+            "total_notes": len(all_notes),
+            "notes": all_notes[:5],  # Retourner les 5 premières pour debug
+            "custom_fields_exist": frappe.db.has_column("Note", "custom_employee")
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
 
 @frappe.whitelist()
 def get_notes_for_day_view(date, employee=None):
