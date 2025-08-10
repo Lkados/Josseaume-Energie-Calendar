@@ -1655,13 +1655,19 @@ def setup_note_custom_fields():
         created_fields = []
         
         for field in custom_fields:
-            if not frappe.db.exists("Custom Field", {"dt": field["dt"], "fieldname": field["fieldname"]}):
-                cf = frappe.get_doc({
-                    "doctype": "Custom Field",
-                    **field
-                })
-                cf.insert()
-                created_fields.append(field["fieldname"])
+            try:
+                if not frappe.db.exists("Custom Field", {"dt": field["dt"], "fieldname": field["fieldname"]}):
+                    cf = frappe.get_doc({
+                        "doctype": "Custom Field",
+                        **field
+                    })
+                    cf.insert(ignore_permissions=True)
+                    created_fields.append(field["fieldname"])
+                    frappe.log_error(f"Champ créé: {field['fieldname']}", "Custom Fields Setup")
+                else:
+                    frappe.log_error(f"Champ existe déjà: {field['fieldname']}", "Custom Fields Setup")
+            except Exception as field_error:
+                frappe.log_error(f"Erreur création champ {field['fieldname']}: {str(field_error)}", "Custom Fields Setup")
         
         if created_fields:
             frappe.db.commit()

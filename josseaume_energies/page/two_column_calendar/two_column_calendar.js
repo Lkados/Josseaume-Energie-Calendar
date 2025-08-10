@@ -181,6 +181,33 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		});
 	};
 
+	// Bouton pour configurer les champs custom
+	page.add_action_item("🔧 Setup Notes", function() {
+		frappe.call({
+			method: "josseaume_energies.api.setup_note_custom_fields",
+			callback: function(r) {
+				if (r.message) {
+					console.log("Setup résultat:", r.message);
+					if (r.message.status === "success") {
+						frappe.show_alert({
+							message: r.message.message,
+							indicator: "green"
+						}, 5);
+						// Rafraîchir le calendrier après setup
+						setTimeout(() => {
+							refreshCalendar();
+						}, 1000);
+					} else {
+						frappe.show_alert({
+							message: "Erreur: " + r.message.message,
+							indicator: "red"
+						}, 5);
+					}
+				}
+			}
+		});
+	});
+
 	// Bouton de test pour diagnostiquer les notes  
 	page.add_action_item("Test Notes", function() {
 		frappe.call({
