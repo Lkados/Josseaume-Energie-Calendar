@@ -1325,10 +1325,7 @@ def get_day_events_by_employees(date, team_filter=None, territory=None, employee
             try:
                 employee_notes = get_employee_notes(emp_id, date)
                 
-                # Log pour debug
-                if employee_notes:
-                    frappe.log_error(f"Notes trouvées pour employé {emp_id} le {date}: {len(employee_notes)} notes", 
-                                   "Notes Debug")
+# Notes récupérées pour cet employé
                 
                 # Organiser les notes par période
                 notes_by_period = {
@@ -1475,9 +1472,6 @@ def get_employee_notes(employee, date):
     try:
         notes = []
         
-        # Debug logging
-        frappe.log_error(f"get_employee_notes appelé pour employé {employee}, date {date}", "Notes Debug")
-        
         # Vérifier si les champs custom existent
         has_custom_fields = (
             frappe.db.has_column("Note", "custom_employee") and 
@@ -1485,8 +1479,6 @@ def get_employee_notes(employee, date):
         )
         
         has_status_field = frappe.db.has_column("Note", "custom_note_status")
-        
-        frappe.log_error(f"Champs custom: {has_custom_fields}, Champ statut: {has_status_field}", "Notes Debug")
         
         if has_custom_fields:
             # Requête directe si les champs existent
@@ -1500,14 +1492,10 @@ def get_employee_notes(employee, date):
             if has_status_field:
                 filters["custom_note_status"] = ["in", ["Open", ""]]  # Open ou vide (pour compatibilité)
             
-            frappe.log_error(f"Filtres utilisés: {filters}", "Notes Debug")
-            
             notes = frappe.get_all("Note",
                 filters=filters,
                 fields=["name", "title", "content", "custom_time_slot", "custom_note_status", "owner", "creation"]
             )
-            
-            frappe.log_error(f"Notes trouvées avec champs custom: {len(notes)}", "Notes Debug")
         else:
             # Recherche dans le contenu si les champs n'existent pas
             all_notes = frappe.get_all("Note",
@@ -1516,8 +1504,6 @@ def get_employee_notes(employee, date):
                 },
                 fields=["name", "title", "content", "owner", "creation"]
             )
-            
-            frappe.log_error(f"Toutes les notes publiques: {len(all_notes)}", "Notes Debug")
             
             # Pour tester, récupérer toutes les notes publiques d'abord
             for note in all_notes:
@@ -1530,7 +1516,6 @@ def get_employee_notes(employee, date):
             if "custom_note_status" not in note:
                 note["custom_note_status"] = "Open"
         
-        frappe.log_error(f"Retour de {len(notes)} notes finales", "Notes Debug")
         return notes
         
     except Exception as e:
@@ -1663,11 +1648,8 @@ def setup_note_custom_fields():
                     })
                     cf.insert(ignore_permissions=True)
                     created_fields.append(field["fieldname"])
-                    frappe.log_error(f"Champ créé: {field['fieldname']}", "Custom Fields Setup")
-                else:
-                    frappe.log_error(f"Champ existe déjà: {field['fieldname']}", "Custom Fields Setup")
             except Exception as field_error:
-                frappe.log_error(f"Erreur création champ {field['fieldname']}: {str(field_error)}", "Custom Fields Setup")
+                continue
         
         if created_fields:
             frappe.db.commit()
