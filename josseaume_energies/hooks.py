@@ -185,6 +185,13 @@ fixtures = [
 ]
 
 # ========================================
+# MENU LATÉRAL ET NAVIGATION
+# ========================================
+
+# Configuration du module dans le Desk
+# Les éléments de bureau sont définis dans config/desktop.py
+
+# ========================================
 # PERMISSIONS PERSONNALISÉES
 # ========================================
 
