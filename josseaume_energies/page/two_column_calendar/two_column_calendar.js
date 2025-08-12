@@ -165,6 +165,33 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	
 
 
+	// Bouton temporaire pour installer le menu
+	page.add_action_item("📌 Installer Menu", function() {
+		frappe.call({
+			method: "josseaume_energies.api.install_calendar_menu",
+			callback: function(r) {
+				if (r.message) {
+					if (r.message.status === "success") {
+						frappe.show_alert({
+							message: r.message.message,
+							indicator: "green"
+						}, 5);
+					} else if (r.message.status === "info") {
+						frappe.show_alert({
+							message: r.message.message,
+							indicator: "blue"
+						}, 3);
+					} else {
+						frappe.show_alert({
+							message: "Erreur: " + r.message.message,
+							indicator: "red"
+						}, 5);
+					}
+				}
+			}
+		});
+	});
+
 	// NOUVEAU: Ajouter le bouton "Ajouter Note" comme bouton principal
 	page.set_primary_action("Ajouter Note", () => {
 		// Récupérer les filtres actuels pour pré-remplir le formulaire

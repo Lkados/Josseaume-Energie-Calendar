@@ -1523,6 +1523,56 @@ def get_employee_notes(employee, date):
 
 
 @frappe.whitelist()
+def install_calendar_menu():
+    """
+    Installe l'élément de menu pour le calendrier
+    """
+    try:
+        # Vider le cache d'abord
+        frappe.clear_cache()
+        
+        # Vérifier si l'élément de menu existe déjà
+        menu_exists = frappe.db.exists("Desktop Icon", {
+            "module_name": "Josseaume Energies",
+            "label": "Calendrier Interventions"
+        })
+        
+        if menu_exists:
+            return {
+                "status": "info",
+                "message": "Menu calendrier déjà existant"
+            }
+        
+        # Créer l'élément de menu
+        desktop_icon = frappe.get_doc({
+            "doctype": "Desktop Icon",
+            "module_name": "Josseaume Energies",
+            "label": "Calendrier Interventions",
+            "link": "two_column_calendar",
+            "type": "page",
+            "icon": "calendar",
+            "color": "#1976D2",
+            "standard": 1,
+            "_comment": "Calendrier des interventions par employé"
+        })
+        
+        desktop_icon.insert(ignore_permissions=True)
+        frappe.db.commit()
+        frappe.clear_cache()
+        
+        return {
+            "status": "success",
+            "message": "Menu calendrier installé avec succès !"
+        }
+        
+    except Exception as e:
+        frappe.log_error(f"Erreur installation menu: {str(e)}", "Install Menu Error")
+        return {
+            "status": "error", 
+            "message": str(e)
+        }
+
+@frappe.whitelist()
 def get_notes_for_day_view(date, employee=None):
     """
     Récupère toutes les notes pour une journée donnée (pour toutes les vues)
