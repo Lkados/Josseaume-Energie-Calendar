@@ -86,7 +86,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		default: "Employés", // Employés par défaut
 		change: function () {
 			const newViewType = this.get_value();
-			console.log("Changement vue:", newViewType);
 			debouncedRefresh();
 		},
 	});
@@ -97,7 +96,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		fieldname: "territory",
 		options: "Territory",
 		change: function () {
-			console.log("Changement zone:", this.get_value());
 			debouncedRefresh();
 		},
 	});
@@ -110,7 +108,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		options:
 			"\nLivraisons\nInstallations\nEntretiens/Ramonages\nDépannages Poêles\nDépannages Chauffage\nÉlectricité\nPhotovoltaïque\nBureau\nCommercial\nRénovation",
 		change: function () {
-			console.log("Changement équipe:", this.get_value());
 			debouncedRefresh();
 		},
 	});
@@ -121,7 +118,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		fieldname: "employee",
 		options: "Employee",
 		change: function () {
-			console.log("Changement employé:", this.get_value());
 			debouncedRefresh();
 		},
 	});
@@ -133,7 +129,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		fieldname: "event_type",
 		options: "\nEntretien\nInstallation\nLivraison Granule\nLivraison Fuel",
 		change: function () {
-			console.log("Changement type intervention:", this.get_value());
 			debouncedRefresh();
 		},
 	});
@@ -146,7 +141,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		default: frappe.datetime.get_today(),
 		change: function () {
 			const selectedDate = this.get_value();
-			console.log("Changement date:", selectedDate);
 
 			if (!selectedDate) return;
 
@@ -169,61 +163,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	// Conteneur de calendrier
 	let calendarContainer = $('<div class="custom-calendar-container"></div>').appendTo(page.body);
 	
-	// Fonction globale pour tester les notes (accessible via console)
-	window.testNotes = function() {
-		frappe.call({
-			method: "josseaume_energies.api.test_notes_exist",
-			callback: function(r) {
-				console.log("=== TEST NOTES RÉSULTAT ===");
-				console.log(r.message);
-				alert("Test terminé - voir console pour détails");
-			}
-		});
-	};
 
-	// Bouton pour configurer les champs custom
-	page.add_action_item("🔧 Setup Notes", function() {
-		frappe.call({
-			method: "josseaume_energies.api.setup_note_custom_fields",
-			callback: function(r) {
-				if (r.message) {
-					console.log("Setup résultat:", r.message);
-					if (r.message.status === "success") {
-						frappe.show_alert({
-							message: r.message.message,
-							indicator: "green"
-						}, 5);
-						// Rafraîchir le calendrier après setup
-						setTimeout(() => {
-							refreshCalendar();
-						}, 1000);
-					} else {
-						frappe.show_alert({
-							message: "Erreur: " + r.message.message,
-							indicator: "red"
-						}, 5);
-					}
-				}
-			}
-		});
-	});
-
-	// Bouton de test pour diagnostiquer les notes  
-	page.add_action_item("Test Notes", function() {
-		frappe.call({
-			method: "josseaume_energies.api.test_notes_exist",
-			callback: function(r) {
-				if (r.message) {
-					console.log("Test notes résultat:", r.message);
-					frappe.msgprint({
-						title: "Test Notes",
-						message: "<pre>" + JSON.stringify(r.message, null, 2) + "</pre>",
-						wide: true
-					});
-				}
-			}
-		});
-	});
 
 	// NOUVEAU: Ajouter le bouton "Ajouter Note" comme bouton principal
 	page.set_primary_action("Ajouter Note", () => {
@@ -312,7 +252,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 						}
 					},
 					error: function(err) {
-						console.error("Erreur API:", err);
 						frappe.msgprint({
 							title: "Erreur",
 							indicator: "red",
@@ -428,15 +367,10 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 							3
 						);
 
-						// Console log pour debug
-						console.log("Date de livraison définie:", cur_frm.doc.delivery_date);
-						console.log("Horaire défini:", cur_frm.doc.custom_horaire);
-						console.log("Employé défini:", cur_frm.doc.custom_intervenant);
 					}
 				}, 1000);
 			});
 		} catch (error) {
-			console.error("Erreur lors de l'ouverture du formulaire:", error);
 			frappe.msgprint({
 				title: __("Erreur"),
 				indicator: "red",
@@ -546,7 +480,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	function updateFieldVisibility() {
 		try {
 			const viewType = page.fields_dict.view_type.get_value();
-			console.log("Mise à jour visibilité des champs pour la vue:", viewType);
 
 			// Supprimer les anciens messages d'information
 			$(".view-info-message").remove();
@@ -636,15 +569,13 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				$(this).closest(".frappe-control").css("transition", "opacity 0.3s ease");
 			});
 		} catch (error) {
-			console.error("Erreur lors de la mise à jour de la visibilité des champs:", error);
 		}
 	}
 
 	// NOUVELLE FONCTION: Nettoyage forcé du conteneur
 	function forceCleanContainer() {
 		try {
-			console.log("Nettoyage forcé du conteneur");
-
+	
 			// Supprimer tous les écouteurs d'événements liés au calendrier
 			$(document).off("dblclick.calendar");
 			$(document).off("click.calendar");
@@ -663,7 +594,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				calendarContainer.removeClass().addClass("custom-calendar-container");
 			}, 10);
 		} catch (error) {
-			console.error("Erreur lors du nettoyage:", error);
 		}
 	}
 
@@ -677,8 +607,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 			// Empêcher les appels multiples simultanés
 			if (isRefreshing) {
-				console.log("Refresh en cours, appel ignoré");
-				return;
+					return;
 			}
 
 			// Débounce : attendre un court délai pour éviter les appels rapides
@@ -686,8 +615,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				performRefresh();
 			}, 100);
 		} catch (error) {
-			console.error("Erreur lors de l'initialisation du refresh:", error);
-			isRefreshing = false;
+				isRefreshing = false;
 		}
 	}
 
@@ -695,21 +623,13 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	function performRefresh() {
 		try {
 			isRefreshing = true;
-			console.log("=== DÉBUT REFRESH CALENDRIER ===");
-
+	
 			const viewType = page.fields_dict.view_type.get_value();
 			const territory = page.fields_dict.territory.get_value();
 			const employee = page.fields_dict.employee.get_value();
 			const event_type = page.fields_dict.event_type.get_value();
 			const team_filter = page.fields_dict.team_filter.get_value();
 
-			console.log("Paramètres refresh:", {
-				viewType,
-				territory,
-				employee,
-				event_type,
-				team_filter,
-			});
 
 			// Mettre à jour la visibilité des champs
 			updateFieldVisibility();
@@ -718,23 +638,17 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			forceCleanContainer();
 
 			if (viewType === "Employés") {
-				console.log("Rendu vue Employés");
 				// CORRECTION: Passer TOUS les filtres à la vue employés
 				renderEmployeeDayView(currentDate, territory, employee, event_type, team_filter);
 			} else if (viewType === "Jour") {
-				console.log("Rendu vue Jour");
 				renderTwoColumnDayView(currentDate, territory, employee, event_type);
 			} else if (viewType === "Semaine") {
-				console.log("Rendu vue Semaine");
 				renderWeekViewWithSections(currentDate, territory, employee, event_type);
 			} else {
-				console.log("Rendu vue Mois");
 				renderMonthView(currentYear, currentMonth, territory, employee, event_type);
 			}
 
-			console.log("=== FIN REFRESH CALENDRIER ===");
 		} catch (error) {
-			console.error("Erreur lors du rafraîchissement du calendrier:", error);
 			calendarContainer.empty();
 			$('<div class="error-message">Erreur lors du chargement du calendrier</div>').appendTo(
 				calendarContainer
@@ -759,7 +673,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				seen.set(key, true);
 				deduplicated.push(employee);
 			} else {
-				console.log("Doublon détecté et supprimé:", employee.name, employee.employee_name);
 			}
 		});
 
@@ -772,23 +685,20 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			return [];
 		}
 
-		const cleaned = events.filter((event) => {
+		return events.filter((event) => {
 			// Filtrer les événements avec des données suspectes
 			if (!event || typeof event !== "object") {
-				console.log("Événement rejeté - pas un objet valide:", event);
 				return false;
 			}
 
 			// Pour les notes, être plus permissif sur le sujet
 			if (event.is_note === true) {
-				console.log("Note trouvée et acceptée:", event.subject || event.name);
 				// Les notes peuvent avoir un sujet vide, on les garde
 				return true;
 			}
 
 			// Vérifier que l'événement a un sujet valide (seulement pour les vrais événements)
 			if (!event.subject || typeof event.subject !== "string") {
-				console.log("Événement rejeté - pas de sujet valide:", event);
 				return false;
 			}
 
@@ -801,16 +711,12 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 			for (const pattern of suspiciousPatterns) {
 				if (pattern.test(event.subject)) {
-					console.warn("Événement avec données suspectes filtré:", event.subject);
 					return false;
 				}
 			}
 
 			return true;
 		});
-		
-		console.log(`cleanEvents: ${events.length} événements en entrée, ${cleaned.length} gardés`);
-		return cleaned;
 	}
 
 	// FONCTION AMÉLIORÉE: Nettoyer le texte avec limitation de longueur pour les commentaires
@@ -946,8 +852,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			// 4. Fallback par défaut
 			return "event-default";
 		} catch (error) {
-			console.error("Erreur lors de la détermination du type d'événement:", error);
-			return "event-default";
+				return "event-default";
 		}
 	}
 
@@ -960,13 +865,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		let customerCamion = "";
 
 		try {
-			// DEBUG: Log des données reçues
-			console.log(
-				"getCleanEventInfo pour event:",
-				event.name,
-				"sales_order_info:",
-				event.sales_order_info
-			);
 
 			// Priorité 1: Utiliser les informations de la commande client si disponibles
 			if (event.sales_order_info) {
@@ -984,10 +882,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				customerAppareil = sanitizeText(event.sales_order_info.customer_appareil) || "";
 				customerCamion = sanitizeText(event.sales_order_info.customer_camion) || "";
 
-				console.log("Nouveaux champs client extraits:", {
-					customerAppareil: customerAppareil,
-					customerCamion: customerCamion,
-				});
 			} else if (event.event_participants && Array.isArray(event.event_participants)) {
 				// Priorité 2: Fallback sur les participants de l'événement
 				for (const participant of event.event_participants) {
@@ -1004,7 +898,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 								) || "";
 						}
 					} catch (participantError) {
-						console.warn("Erreur participant:", participantError);
 					}
 				}
 			}
@@ -1016,8 +909,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				);
 				if (descriptionMatch) {
 					comments = sanitizeText(descriptionMatch[1].trim());
-					console.log("Comments récupérés depuis description:", comments);
-				}
+					}
 			}
 
 			// NOUVEAU: Récupération alternative des champs client depuis la description
@@ -1045,8 +937,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 				for (const pattern of suspiciousPatterns) {
 					if (pattern.test(comments)) {
-						console.warn("Commentaire suspect nettoyé:", comments);
-						comments = ""; // Vider complètement si suspect
+							comments = ""; // Vider complètement si suspect
 						break;
 					}
 				}

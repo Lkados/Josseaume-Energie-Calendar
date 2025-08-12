@@ -1325,7 +1325,6 @@ def get_day_events_by_employees(date, team_filter=None, territory=None, employee
             try:
                 employee_notes = get_employee_notes(emp_id, date)
                 
-# Notes récupérées pour cet employé
                 
                 # Organiser les notes par période
                 notes_by_period = {
@@ -1522,30 +1521,6 @@ def get_employee_notes(employee, date):
         frappe.log_error(f"Erreur lors de la récupération des notes: {str(e)}", "Get employee notes error")
         return []
 
-@frappe.whitelist()
-def test_notes_exist():
-    """
-    Fonction de test pour vérifier si des notes existent dans la base
-    """
-    try:
-        # Récupérer toutes les notes publiques
-        all_notes = frappe.get_all("Note", 
-            filters={"public": 1},
-            fields=["name", "title", "content", "owner", "creation", "custom_employee", "custom_note_date", "custom_note_status"]
-        )
-        
-        return {
-            "status": "success",
-            "total_notes": len(all_notes),
-            "notes": all_notes[:5],  # Retourner les 5 premières pour debug
-            "custom_fields_exist": frappe.db.has_column("Note", "custom_employee")
-        }
-        
-    except Exception as e:
-        return {
-            "status": "error",
-            "message": str(e)
-        }
 
 @frappe.whitelist()
 def get_notes_for_day_view(date, employee=None):
