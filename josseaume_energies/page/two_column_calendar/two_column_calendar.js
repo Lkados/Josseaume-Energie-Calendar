@@ -706,11 +706,12 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			const suspiciousPatterns = [
 				/git\s+(reset|push|commit|pull)/i,
 				/--hard|--force/i,
-				/\b[a-f0-9]{7,40}\b/i, // Hash git
+				/^[a-f0-9]{40}$/i, // Hash git complet uniquement (40 caractères)
 			];
 
 			for (const pattern of suspiciousPatterns) {
 				if (pattern.test(event.subject)) {
+					console.log("Événement filtré car sujet suspect:", event.subject);
 					return false;
 				}
 			}
@@ -1173,9 +1174,9 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 			// CORRECTION 3: Nettoyer les événements corrompus
 			const cleanedEvents = {
-				all_day: cleanEvents(employeeEvents.all_day || []),
-				morning: cleanEvents(employeeEvents.morning || []),
-				afternoon: cleanEvents(employeeEvents.afternoon || []),
+				all_day: employeeEvents.all_day || [],
+				morning: employeeEvents.morning || [],
+				afternoon: employeeEvents.afternoon || [],
 			};
 			
 			// Log temporaire pour debug
