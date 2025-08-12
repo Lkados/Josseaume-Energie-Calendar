@@ -1038,21 +1038,17 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 						if (r.message && r.message.status === "success") {
 							const data = r.message;
 							let employees = data.employees || [];
-							
-							// Debug: afficher les événements par employé
-							console.log("Events by employee:", data.events_by_employee);
-							
-							// Debug: vérifier si des notes sont présentes
-							Object.keys(data.events_by_employee || {}).forEach(empId => {
-								const empData = data.events_by_employee[empId];
-								const hasNotes = (empData.all_day && empData.all_day.some(e => e.is_note)) ||
-								               (empData.morning && empData.morning.some(e => e.is_note)) ||
-								               (empData.afternoon && empData.afternoon.some(e => e.is_note));
-								if (hasNotes) {
-									console.log(`Notes trouvées pour employé ${empId}:`, empData);
-								}
-							});
 							const eventsByEmployee = data.events_by_employee || {};
+							
+							// Vérifier temporairement s'il y a des événements
+							let totalEvents = 0;
+							Object.keys(eventsByEmployee).forEach(empId => {
+								const emp = eventsByEmployee[empId];
+								totalEvents += (emp.all_day || []).length;
+								totalEvents += (emp.morning || []).length;
+								totalEvents += (emp.afternoon || []).length;
+							});
+							console.log("Total événements reçus:", totalEvents);
 
 							console.log("Données brutes reçues:", data);
 							console.log("Employés avant déduplication:", employees.length);
@@ -1181,6 +1177,13 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				morning: cleanEvents(employeeEvents.morning || []),
 				afternoon: cleanEvents(employeeEvents.afternoon || []),
 			};
+			
+			// Log temporaire pour debug
+			const totalBefore = (employeeEvents.all_day || []).length + (employeeEvents.morning || []).length + (employeeEvents.afternoon || []).length;
+			const totalAfter = cleanedEvents.all_day.length + cleanedEvents.morning.length + cleanedEvents.afternoon.length;
+			if (totalBefore > totalAfter) {
+				console.log(`Employé ${employee.name}: ${totalBefore} événements avant nettoyage, ${totalAfter} après`);
+			}
 
 			// Créer la colonne employé en utilisant les classes CSS existantes
 			const employeeColumn = $(`
