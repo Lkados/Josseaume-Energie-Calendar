@@ -77,6 +77,59 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	// Créer une version debouncée de refreshCalendar
 	const debouncedRefresh = debounce(() => refreshCalendar(), 300);
 
+	// NOUVEAU: Fonctions pour sauvegarder et restaurer les filtres
+	function saveFiltersToLocalStorage() {
+		const filters = {
+			view_type: page.fields_dict.view_type.get_value(),
+			territory: page.fields_dict.territory.get_value(),
+			team_filter: page.fields_dict.team_filter.get_value(),
+			employee: page.fields_dict.employee.get_value(),
+			event_type: page.fields_dict.event_type.get_value(),
+			select_date: page.fields_dict.select_date.get_value()
+		};
+		localStorage.setItem('calendar_filters', JSON.stringify(filters));
+	}
+
+	function restoreFiltersFromLocalStorage() {
+		const savedFilters = localStorage.getItem('calendar_filters');
+		if (savedFilters) {
+			try {
+				const filters = JSON.parse(savedFilters);
+				
+				// Restaurer chaque filtre s'il existe
+				if (filters.view_type) {
+					page.fields_dict.view_type.set_value(filters.view_type);
+				}
+				if (filters.territory) {
+					page.fields_dict.territory.set_value(filters.territory);
+				}
+				if (filters.team_filter) {
+					page.fields_dict.team_filter.set_value(filters.team_filter);
+				}
+				if (filters.employee) {
+					page.fields_dict.employee.set_value(filters.employee);
+				}
+				if (filters.event_type) {
+					page.fields_dict.event_type.set_value(filters.event_type);
+				}
+				if (filters.select_date) {
+					page.fields_dict.select_date.set_value(filters.select_date);
+					
+					// Mettre à jour les variables de date
+					const dateParts = filters.select_date.split("-");
+					const year = parseInt(dateParts[0]);
+					const month = parseInt(dateParts[1]) - 1;
+					const day = parseInt(dateParts[2]);
+					currentDate = new Date(year, month, day);
+					currentYear = year;
+					currentMonth = month;
+				}
+			} catch (e) {
+				console.error("Erreur lors de la restauration des filtres:", e);
+			}
+		}
+	}
+
 	// Ajouter des contrôles - MODIFIÉ pour mettre Employés par défaut
 	page.add_field({
 		fieldtype: "Select",
@@ -86,6 +139,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		default: "Employés", // Employés par défaut
 		change: function () {
 			const newViewType = this.get_value();
+			saveFiltersToLocalStorage();
 			debouncedRefresh();
 		},
 	});
@@ -96,6 +150,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		fieldname: "territory",
 		options: "Territory",
 		change: function () {
+			saveFiltersToLocalStorage();
 			debouncedRefresh();
 		},
 	});
@@ -108,6 +163,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		options:
 			"\nLivraisons\nInstallations\nEntretiens/Ramonages\nDépannages Poêles\nDépannages Chauffage\nÉlectricité\nPhotovoltaïque\nBureau\nCommercial\nRénovation",
 		change: function () {
+			saveFiltersToLocalStorage();
 			debouncedRefresh();
 		},
 	});
@@ -118,6 +174,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		fieldname: "employee",
 		options: "Employee",
 		change: function () {
+			saveFiltersToLocalStorage();
 			debouncedRefresh();
 		},
 	});
@@ -129,6 +186,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		fieldname: "event_type",
 		options: "\nEntretien\nInstallation\nLivraison Granule\nLivraison Fuel",
 		change: function () {
+			saveFiltersToLocalStorage();
 			debouncedRefresh();
 		},
 	});
@@ -155,7 +213,8 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			currentYear = year;
 			currentMonth = month;
 
-			// Rafraîchir le calendrier
+			// Sauvegarder les filtres et rafraîchir le calendrier
+			saveFiltersToLocalStorage();
 			debouncedRefresh();
 		},
 	});
@@ -164,6 +223,32 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	let calendarContainer = $('<div class="custom-calendar-container"></div>').appendTo(page.body);
 	
 
+
+	// Bouton pour réinitialiser les filtres
+	page.add_action_item("🔄 Réinitialiser filtres", function() {
+		// Réinitialiser tous les filtres
+		page.fields_dict.view_type.set_value("Employés");
+		page.fields_dict.territory.set_value("");
+		page.fields_dict.team_filter.set_value("");
+		page.fields_dict.employee.set_value("");
+		page.fields_dict.event_type.set_value("");
+		page.fields_dict.select_date.set_value(frappe.datetime.get_today());
+		
+		// Réinitialiser la date courante
+		currentDate = new Date();
+		currentYear = currentDate.getFullYear();
+		currentMonth = currentDate.getMonth();
+		
+		// Effacer le localStorage
+		localStorage.removeItem('calendar_filters');
+		
+		frappe.show_alert({
+			message: "Filtres réinitialisés",
+			indicator: "blue"
+		}, 3);
+		
+		refreshCalendar();
+	});
 
 	// Bouton temporaire pour installer le menu
 	page.add_action_item("📌 Installer Menu", function() {
@@ -1903,6 +1988,9 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		`).appendTo(calendarContainer);
 	}
 
+	// NOUVEAU: Restaurer les filtres sauvegardés avant de rafraîchir
+	restoreFiltersFromLocalStorage();
+	
 	// Initialiser le calendrier et les écouteurs
 	refreshCalendar();
 };
