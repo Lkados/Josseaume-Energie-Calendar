@@ -2003,32 +2003,67 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			if (field && field.$wrapper) {
 				// Vérifier si le bouton n'existe pas déjà
 				if (!field.$wrapper.find('.clear-filter-btn').length) {
+					// Trouver le bon conteneur selon le type de champ
+					let targetContainer;
+					let rightPosition = '10px';
+					
+					if (field.df.fieldtype === 'Link') {
+						// Pour les champs Link, le conteneur est différent
+						targetContainer = field.$wrapper.find('.link-field');
+						if (!targetContainer.length) {
+							targetContainer = field.$wrapper.find('.control-input-wrapper');
+						}
+						rightPosition = '35px'; // Plus d'espace pour l'icône de lien
+					} else if (field.df.fieldtype === 'Select') {
+						// Pour les champs Select
+						targetContainer = field.$wrapper.find('.control-input-wrapper');
+						if (!targetContainer.length) {
+							targetContainer = field.$wrapper.find('.control-input');
+						}
+						rightPosition = '30px'; // Espace pour la flèche du select
+					}
+					
+					if (!targetContainer || !targetContainer.length) {
+						targetContainer = field.$wrapper.find('.control-input');
+					}
+					
+					// S'assurer que le conteneur existe
+					if (!targetContainer.length) {
+						console.warn(`Conteneur non trouvé pour ${fieldname}`);
+						// Debug: afficher la structure pour comprendre
+						console.log(`Structure HTML pour ${fieldname}:`, field.$wrapper.html());
+						return;
+					}
+					
 					// Créer le bouton de suppression
 					const clearBtn = $(`
 						<span class="clear-filter-btn" style="
 							position: absolute;
-							right: 30px;
+							right: ${rightPosition};
 							top: 50%;
 							transform: translateY(-50%);
 							cursor: pointer;
 							color: #888;
-							font-size: 16px;
+							font-size: 14px;
 							padding: 5px;
 							display: none;
-							z-index: 10;
+							z-index: 100;
+							background: white;
+							border-radius: 3px;
 						" title="Effacer">
 							<i class="fa fa-times"></i>
 						</span>
 					`);
 					
 					// Positionner le parent en relatif
-					field.$wrapper.find('.control-input').css('position', 'relative');
+					targetContainer.css('position', 'relative');
 					
-					// Ajouter le bouton
-					field.$wrapper.find('.control-input').append(clearBtn);
+					// Ajouter le bouton au conteneur
+					targetContainer.append(clearBtn);
 					
 					// Gestionnaire de clic
 					clearBtn.on('click', function(e) {
+						e.preventDefault();
 						e.stopPropagation();
 						field.set_value('');
 						$(this).hide();
@@ -2046,13 +2081,24 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 						}
 					};
 					
-					// Écouter les changements
-					field.$input.on('change', updateClearButton);
-					field.$input.on('input', updateClearButton);
-					field.$input.on('awesomplete-selectcomplete', updateClearButton);
+					// Écouter les changements de différentes manières selon le type
+					if (field.df.fieldtype === 'Link') {
+						// Pour les champs Link
+						field.$input.on('change', updateClearButton);
+						field.$input.on('input', updateClearButton);
+						field.$wrapper.on('awesomplete-selectcomplete', updateClearButton);
+						// Vérifier aussi périodiquement pour les changements programmatiques
+						setInterval(updateClearButton, 500);
+					} else if (field.df.fieldtype === 'Select') {
+						// Pour les champs Select
+						field.$input.on('change', updateClearButton);
+						// Observer les changements du DOM pour les selects
+						const observer = new MutationObserver(updateClearButton);
+						observer.observe(field.$input[0], { attributes: true, attributeFilter: ['value'] });
+					}
 					
 					// Vérifier l'état initial
-					updateClearButton();
+					setTimeout(updateClearButton, 100);
 				}
 			}
 		});
@@ -2064,7 +2110,12 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	// Ajouter les boutons de suppression après un court délai pour s'assurer que les champs sont rendus
 	setTimeout(() => {
 		addClearButtonsToFilters();
-	}, 100);
+		
+		// Réessayer après un délai plus long au cas où
+		setTimeout(() => {
+			addClearButtonsToFilters();
+		}, 1000);
+	}, 500);
 	
 	// Initialiser le calendrier et les écouteurs
 	refreshCalendar();
