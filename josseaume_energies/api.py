@@ -342,7 +342,8 @@ def get_day_events(date, territory=None, employee=None, event_type=None):
     # Construire les filtres
     filters = [
         ["starts_on", ">=", start_date],
-        ["starts_on", "<", end_date]
+        ["starts_on", "<", end_date],
+        ["status", "=", "Open"]  # Filtrer uniquement les événements ouverts
     ]
     
     # Ajouter des filtres optionnels
@@ -502,7 +503,8 @@ def get_calendar_events(year, month, territory=None, employee=None, event_type=N
     # Construire les filtres
     filters = [
         ["starts_on", ">=", start_date],
-        ["starts_on", "<=", end_date]
+        ["starts_on", "<=", end_date],
+        ["status", "=", "Open"]  # Filtrer uniquement les événements ouverts
     ]
     
     # Ajouter le filtre de territoire si spécifié
@@ -629,7 +631,8 @@ def get_week_events(start_date, end_date, territory=None, employee=None, event_t
     # Construire les filtres
     filters = [
         ["starts_on", ">=", start_date],
-        ["starts_on", "<=", end_date]
+        ["starts_on", "<=", end_date],
+        ["status", "=", "Open"]  # Filtrer uniquement les événements ouverts
     ]
     
     # Ajouter le filtre de territoire si spécifié
