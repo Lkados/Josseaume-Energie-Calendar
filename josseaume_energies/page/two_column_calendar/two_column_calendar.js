@@ -124,6 +124,11 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					currentYear = year;
 					currentMonth = month;
 				}
+				
+				// Appeler addClearButtonsToFilters après la restauration
+				setTimeout(() => {
+					addClearButtonsToFilters();
+				}, 200);
 			} catch (e) {
 				console.error("Erreur lors de la restauration des filtres:", e);
 			}
@@ -1988,8 +1993,78 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		`).appendTo(calendarContainer);
 	}
 
+	// NOUVEAU: Fonction pour ajouter une croix de suppression à chaque filtre
+	function addClearButtonsToFilters() {
+		// Liste des champs qui doivent avoir un bouton clear
+		const filterFields = ['territory', 'team_filter', 'employee', 'event_type'];
+		
+		filterFields.forEach(fieldname => {
+			const field = page.fields_dict[fieldname];
+			if (field && field.$wrapper) {
+				// Vérifier si le bouton n'existe pas déjà
+				if (!field.$wrapper.find('.clear-filter-btn').length) {
+					// Créer le bouton de suppression
+					const clearBtn = $(`
+						<span class="clear-filter-btn" style="
+							position: absolute;
+							right: 30px;
+							top: 50%;
+							transform: translateY(-50%);
+							cursor: pointer;
+							color: #888;
+							font-size: 16px;
+							padding: 5px;
+							display: none;
+							z-index: 10;
+						" title="Effacer">
+							<i class="fa fa-times"></i>
+						</span>
+					`);
+					
+					// Positionner le parent en relatif
+					field.$wrapper.find('.control-input').css('position', 'relative');
+					
+					// Ajouter le bouton
+					field.$wrapper.find('.control-input').append(clearBtn);
+					
+					// Gestionnaire de clic
+					clearBtn.on('click', function(e) {
+						e.stopPropagation();
+						field.set_value('');
+						$(this).hide();
+						saveFiltersToLocalStorage();
+						debouncedRefresh();
+					});
+					
+					// Afficher/masquer le bouton selon la valeur
+					const updateClearButton = () => {
+						const value = field.get_value();
+						if (value && value !== '') {
+							clearBtn.show();
+						} else {
+							clearBtn.hide();
+						}
+					};
+					
+					// Écouter les changements
+					field.$input.on('change', updateClearButton);
+					field.$input.on('input', updateClearButton);
+					field.$input.on('awesomplete-selectcomplete', updateClearButton);
+					
+					// Vérifier l'état initial
+					updateClearButton();
+				}
+			}
+		});
+	}
+
 	// NOUVEAU: Restaurer les filtres sauvegardés avant de rafraîchir
 	restoreFiltersFromLocalStorage();
+	
+	// Ajouter les boutons de suppression après un court délai pour s'assurer que les champs sont rendus
+	setTimeout(() => {
+		addClearButtonsToFilters();
+	}, 100);
 	
 	// Initialiser le calendrier et les écouteurs
 	refreshCalendar();

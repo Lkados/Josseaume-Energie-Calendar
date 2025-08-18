@@ -104,6 +104,44 @@ body.dark {
 	border-left-color: var(--color-default) !important;
 }
 
+/* Boutons de suppression des filtres */
+.clear-filter-btn {
+    transition: all 0.2s ease;
+}
+
+.clear-filter-btn:hover {
+    color: #d9534f !important;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.clear-filter-btn:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+/* Ajuster la position pour les champs Link */
+.frappe-control[data-fieldtype="Link"] .clear-filter-btn {
+    right: 35px;
+}
+
+/* Ajuster la position pour les champs Select */
+.frappe-control[data-fieldtype="Select"] .clear-filter-btn {
+    right: 40px;
+}
+
+/* S'assurer que le bouton est au-dessus des autres éléments */
+.control-input {
+    position: relative;
+}
+
+.control-input .clear-filter-btn {
+    background-color: white;
+    border-radius: 3px;
+}
+
+body.dark .control-input .clear-filter-btn {
+    background-color: var(--bg-color);
+}
+
 /* NOUVEAUX STYLES POUR LES NOTES */
 .employee-note,
 .week-event.employee-note,
