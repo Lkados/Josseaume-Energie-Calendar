@@ -194,3 +194,75 @@ def is_event_sync_enabled():
     Vérifie si la synchronisation est activée
     """
     return not getattr(frappe.local, 'disable_event_sync', False)
+
+def on_cancel(doc, method):
+    """
+    Fonction appelée automatiquement lorsqu'une commande client est annulée
+    Ferme l'événement lié dans le calendrier
+    """
+    try:
+        # Vérifier si cette commande a un événement lié
+        if not doc.custom_calendar_event:
+            return
+            
+        # Vérifier si l'événement existe toujours
+        if not frappe.db.exists("Event", doc.custom_calendar_event):
+            # Nettoyer la référence si l'événement n'existe plus
+            doc.db_set("custom_calendar_event", "")
+            return
+            
+        # Récupérer l'événement
+        event_doc = frappe.get_doc("Event", doc.custom_calendar_event)
+        
+        # Fermer l'événement
+        if event_doc.status != "Closed":
+            event_doc.status = "Closed"
+            
+            # Ajouter un commentaire dans la description
+            current_description = event_doc.description or ""
+            cancel_note = f"\n\n---\n**Note:** Événement fermé automatiquement car la commande client {doc.name} a été annulée le {frappe.utils.now()}"
+            event_doc.description = current_description + cancel_note
+            
+            # Désactiver temporairement les hooks pour éviter une boucle
+            event_doc.flags.ignore_hooks = True
+            event_doc.save()
+            
+            frappe.msgprint(f"L'événement {event_doc.name} a été fermé car la commande a été annulée", indicator="orange")
+            
+            frappe.log_error(f"Événement {event_doc.name} fermé suite à l'annulation de la commande {doc.name}", 
+                           "Event closed on SO cancel")
+            
+    except Exception as e:
+        frappe.log_error(f"Erreur lors de la fermeture de l'événement suite à l'annulation: {str(e)}", 
+                       f"Event close error for {doc.name}")
+
+def before_update_after_submit(doc, method):
+    """
+    Fonction appelée lorsqu'une commande client annulée est modifiée et resoumise
+    Réouvre l'événement lié s'il était fermé
+    """
+    try:
+        # Vérifier si la commande passe de l'état annulé à soumis
+        if doc.docstatus == 1 and doc.custom_calendar_event:
+            # Vérifier si l'événement existe
+            if frappe.db.exists("Event", doc.custom_calendar_event):
+                event_doc = frappe.get_doc("Event", doc.custom_calendar_event)
+                
+                # Réouvrir l'événement s'il était fermé
+                if event_doc.status == "Closed":
+                    event_doc.status = "Open"
+                    
+                    # Ajouter un commentaire dans la description
+                    current_description = event_doc.description or ""
+                    reopen_note = f"\n\n---\n**Note:** Événement réouvert automatiquement car la commande client {doc.name} a été réactivée le {frappe.utils.now()}"
+                    event_doc.description = current_description + reopen_note
+                    
+                    # Désactiver temporairement les hooks pour éviter une boucle
+                    event_doc.flags.ignore_hooks = True
+                    event_doc.save()
+                    
+                    frappe.msgprint(f"L'événement {event_doc.name} a été réouvert", indicator="green")
+                    
+    except Exception as e:
+        frappe.log_error(f"Erreur lors de la réouverture de l'événement: {str(e)}", 
+                       f"Event reopen error for {doc.name}")

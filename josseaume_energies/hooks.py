@@ -138,7 +138,9 @@ doc_events = {
         # Création automatique d'événement lors de la soumission
         "on_submit": "josseaume_energies.sales_order.on_submit",
         # Synchronisation lors des modifications
-        "on_update": "josseaume_energies.sales_order.on_update"
+        "on_update": "josseaume_energies.sales_order.on_update",
+        # Fermeture de l'événement lors de l'annulation
+        "on_cancel": "josseaume_energies.sales_order.on_cancel"
     },
     
     # =====================================
