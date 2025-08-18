@@ -133,14 +133,6 @@ body.dark {
     position: relative;
 }
 
-.control-input .clear-filter-btn {
-    background-color: white;
-    border-radius: 3px;
-}
-
-body.dark .control-input .clear-filter-btn {
-    background-color: var(--bg-color);
-}
 
 /* NOUVEAUX STYLES POUR LES NOTES */
 .employee-note,

@@ -2048,8 +2048,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 							padding: 5px;
 							display: none;
 							z-index: 100;
-							background: white;
-							border-radius: 3px;
 						" title="Effacer">
 							<i class="fa fa-times"></i>
 						</span>
