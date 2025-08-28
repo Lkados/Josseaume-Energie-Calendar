@@ -1367,6 +1367,74 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		}
 	}
 
+	// FONCTION pour formater le titre avec le type et la zone
+	function formatEventTitle(event, cleanSubject, isNote) {
+		if (isNote) {
+			return cleanSubject;
+		}
+
+		let prefix = "";
+		let zone = "";
+
+		// Récupérer le type d'événement
+		if (event.sales_order_info) {
+			// Type de commande
+			const orderType = event.sales_order_info.type;
+			if (orderType) {
+				// Déterminer le préfixe selon le type
+				const typeLower = orderType.toLowerCase();
+				if (typeLower.includes("entretien")) {
+					prefix = "Entretien";
+				} else if (typeLower.includes("installation")) {
+					prefix = "Installation";
+				} else if (typeLower.includes("livraison")) {
+					prefix = "Livraison";
+				} else if (typeLower.includes("dépannage") || typeLower.includes("depannage")) {
+					prefix = "Dépannage";
+				} else if (typeLower === "epgz") {
+					prefix = "EPGZ";
+				} else {
+					prefix = orderType;
+				}
+			}
+
+			// Zone/Territory
+			if (event.sales_order_info.territory) {
+				zone = event.sales_order_info.territory;
+			}
+		}
+
+		// Si pas d'info dans sales_order, analyser le sujet
+		if (!prefix && cleanSubject) {
+			const subjectLower = cleanSubject.toLowerCase();
+			if (subjectLower.includes("entretien")) {
+				prefix = "Entretien";
+			} else if (subjectLower.includes("install")) {
+				prefix = "Installation";
+			} else if (subjectLower.includes("livraison")) {
+				prefix = "Livraison";
+			} else if (subjectLower.includes("dépannage") || subjectLower.includes("depannage")) {
+				prefix = "Dépannage";
+			} else if (subjectLower.includes("epgz")) {
+				prefix = "EPGZ";
+			}
+		}
+
+		// Construire le titre formaté
+		let formattedTitle = "";
+		if (prefix && zone) {
+			formattedTitle = `${prefix} - ${zone}`;
+		} else if (prefix) {
+			formattedTitle = `${prefix} - ${cleanSubject}`;
+		} else if (zone) {
+			formattedTitle = `${zone} - ${cleanSubject}`;
+		} else {
+			formattedTitle = cleanSubject;
+		}
+
+		return formattedTitle;
+	}
+
 	// FONCTION AMÉLIORÉE: renderEmployeeEventCard avec affichage des commentaires et nouveaux champs client
 	function renderEmployeeEventCard(event, container) {
 		try {
@@ -1380,6 +1448,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			
 			// Nettoyer et valider les données
 			const cleanSubject = sanitizeText(event.subject) || (isNote ? "Note sans titre" : "Événement sans titre");
+			const formattedTitle = formatEventTitle(event, cleanSubject, isNote);
 
 			let eventClass, borderColor, icon, docType;
 			
@@ -1414,7 +1483,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				
 				cardContent = `
 					<div style="font-weight: 600; margin-bottom: 5px; color: #9c27b0;">
-						${cleanSubject}
+						${formattedTitle}
 					</div>
 					${formattedContent ? `<div class="note-content">${formattedContent}</div>` : ""}
 					<div style="margin-top: 6px; display: flex; align-items: center; justify-content: space-between;">
@@ -1687,6 +1756,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	function renderTwoColumnEventCard(event, container) {
 		// Utiliser la même logique de détection que pour la vue employé
 		const cleanSubject = sanitizeText(event.subject) || "Événement sans titre";
+		const formattedTitle = formatEventTitle(event, cleanSubject, false);
 		let eventClass = determineEventClass(event, cleanSubject);
 
 		// Ajouter une classe spécifique pour les événements toute la journée
@@ -1702,7 +1772,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		const eventCard = $(`
 			<div class="${eventClass}" data-event-id="${event.name}">
 				<span class="event-id">${event.name}</span>
-				<span class="event-title">${cleanSubject}</span>
+				<span class="event-title">${formattedTitle}</span>
 				${
 					isAllDayEvent(event)
 						? '<span class="event-all-day-indicator"><i class="fa fa-calendar-day"></i> Toute la journée</span>'
@@ -1933,6 +2003,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	function renderWeekEvent(event, container) {
 		// Utiliser la même logique de détection que pour les autres vues
 		const cleanSubject = sanitizeText(event.subject) || "Événement sans titre";
+		const formattedTitle = formatEventTitle(event, cleanSubject, false);
 		let eventClass = "week-event " + determineEventClass(event, cleanSubject);
 
 		// Ajouter une classe spécifique pour les événements toute la journée
@@ -1947,7 +2018,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		// Créer l'élément d'événement avec les commentaires et nouveaux champs
 		const eventElement = $(`
 			<div class="${eventClass}" data-event-id="${event.name}">
-				<div class="event-title">${cleanSubject}</div>
+				<div class="event-title">${formattedTitle}</div>
 				${
 					isAllDayEvent(event)
 						? '<span class="event-all-day-indicator"><i class="fa fa-calendar-day"></i> Toute la journée</span>'
