@@ -1373,62 +1373,51 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			return cleanSubject;
 		}
 
-		let prefix = "";
+		let type = "";
 		let zone = "";
 
-		// Récupérer le type d'événement
+		// Récupérer UNIQUEMENT le type et la zone depuis sales_order_info
 		if (event.sales_order_info) {
-			// Type de commande
-			const orderType = event.sales_order_info.type;
-			if (orderType) {
-				// Déterminer le préfixe selon le type
-				const typeLower = orderType.toLowerCase();
+			// Type de commande depuis la description
+			if (event.sales_order_info.type) {
+				const rawType = event.sales_order_info.type;
+				
+				// Formater le type pour une meilleure lisibilité
+				const typeLower = rawType.toLowerCase();
 				if (typeLower.includes("entretien")) {
-					prefix = "Entretien";
+					type = "Entretien";
 				} else if (typeLower.includes("installation")) {
-					prefix = "Installation";
+					type = "Installation";
 				} else if (typeLower.includes("livraison")) {
-					prefix = "Livraison";
+					type = "Livraison";
 				} else if (typeLower.includes("dépannage") || typeLower.includes("depannage")) {
-					prefix = "Dépannage";
-				} else if (typeLower === "epgz") {
-					prefix = "EPGZ";
+					type = "Dépannage";
 				} else {
-					prefix = orderType;
+					// Garder le type original pour les autres cas
+					type = rawType;
 				}
 			}
 
-			// Zone/Territory
+			// Zone depuis le territoire de la fiche client
 			if (event.sales_order_info.territory) {
 				zone = event.sales_order_info.territory;
 			}
 		}
 
-		// Si pas d'info dans sales_order, analyser le sujet
-		if (!prefix && cleanSubject) {
-			const subjectLower = cleanSubject.toLowerCase();
-			if (subjectLower.includes("entretien")) {
-				prefix = "Entretien";
-			} else if (subjectLower.includes("install")) {
-				prefix = "Installation";
-			} else if (subjectLower.includes("livraison")) {
-				prefix = "Livraison";
-			} else if (subjectLower.includes("dépannage") || subjectLower.includes("depannage")) {
-				prefix = "Dépannage";
-			} else if (subjectLower.includes("epgz")) {
-				prefix = "EPGZ";
-			}
-		}
-
-		// Construire le titre formaté
+		// Construire le titre formaté simple
 		let formattedTitle = "";
-		if (prefix && zone) {
-			formattedTitle = `${prefix} - ${zone}`;
-		} else if (prefix) {
-			formattedTitle = `${prefix} - ${cleanSubject}`;
+		
+		if (type && zone) {
+			// Format simple: "Type - Zone"
+			formattedTitle = `${type} - ${zone}`;
+		} else if (type) {
+			// Seulement le type
+			formattedTitle = type;
 		} else if (zone) {
-			formattedTitle = `${zone} - ${cleanSubject}`;
+			// Seulement la zone
+			formattedTitle = zone;
 		} else {
+			// Si aucune info, garder le sujet original
 			formattedTitle = cleanSubject;
 		}
 
