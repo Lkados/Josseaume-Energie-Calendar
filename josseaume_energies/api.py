@@ -351,11 +351,11 @@ def get_day_events(date, territory=None, employee=None, event_type=None):
     start_date = frappe.utils.get_datetime(date)
     end_date = frappe.utils.add_days(start_date, 1)
     
-    # Construire les filtres
+    # Construire les filtres - Retourner TOUS les événements peu importe leur statut
     filters = [
         ["starts_on", ">=", start_date],
-        ["starts_on", "<", end_date],
-        ["status", "=", "Open"]  # Filtrer uniquement les événements ouverts
+        ["starts_on", "<", end_date]
+        # Retourner tous les événements (ouverts, fermés, terminés) pour affichage avec étiquettes
     ]
     
     # Ajouter des filtres optionnels
@@ -363,11 +363,11 @@ def get_day_events(date, territory=None, employee=None, event_type=None):
         # Pour le territoire, on cherche dans le sujet de l'événement
         filters.append(["subject", "like", f"%{territory}%"])
     
-    # Récupérer les événements avec les champs nécessaires
+    # Récupérer les événements avec les champs nécessaires (incluant le statut)
     events = frappe.get_all(
         "Event",
         filters=filters,
-        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day", "description"]
+        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day", "description", "status"]
     )
     
     # Filtrer par employé si spécifié
@@ -512,11 +512,11 @@ def get_calendar_events(year, month, territory=None, employee=None, event_type=N
     start_date = f"{year}-{month:02d}-01"
     end_date = f"{year}-{month:02d}-{num_days}"
     
-    # Construire les filtres
+    # Construire les filtres - Retourner TOUS les événements peu importe leur statut
     filters = [
         ["starts_on", ">=", start_date],
-        ["starts_on", "<=", end_date],
-        ["status", "=", "Open"]  # Filtrer uniquement les événements ouverts
+        ["starts_on", "<=", end_date]
+        # Retourner tous les événements (ouverts, fermés, terminés) pour affichage avec étiquettes
     ]
     
     # Ajouter le filtre de territoire si spécifié
@@ -640,11 +640,11 @@ def get_calendar_events(year, month, territory=None, employee=None, event_type=N
 def get_week_events(start_date, end_date, territory=None, employee=None, event_type=None):
     """Récupère les événements pour une semaine donnée"""
     
-    # Construire les filtres
+    # Construire les filtres - Retourner TOUS les événements peu importe leur statut
     filters = [
         ["starts_on", ">=", start_date],
-        ["starts_on", "<=", end_date],
-        ["status", "=", "Open"]  # Filtrer uniquement les événements ouverts
+        ["starts_on", "<=", end_date]
+        # Retourner tous les événements (ouverts, fermés, terminés) pour affichage avec étiquettes
     ]
     
     # Ajouter le filtre de territoire si spécifié

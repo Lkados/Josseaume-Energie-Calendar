@@ -1495,9 +1495,37 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				const { clientName, technicianName, comments, customerAppareil, customerCamion } =
 					getCleanEventInfo(event);
 
+				// Déterminer la couleur et le texte de l'étiquette de statut
+				const eventStatus = event.status || "Open";
+				let statusBadgeColor, statusText;
+				
+				if (eventStatus === "Open") {
+					statusBadgeColor = "#ff9800"; // Orange pour Ouvert
+					statusText = "Ouvert";
+				} else if (eventStatus === "Closed") {
+					statusBadgeColor = "#f44336"; // Rouge pour Fermé
+					statusText = "Fermé";
+				} else if (eventStatus === "Cancelled" || eventStatus === "Completed") {
+					statusBadgeColor = "#4caf50"; // Vert pour Terminé
+					statusText = "Terminé";
+				} else {
+					statusBadgeColor = "#9e9e9e"; // Gris par défaut
+					statusText = eventStatus;
+				}
+
 				cardContent = `
-					<div style="font-weight: 600; margin-bottom: 3px; color:rgb(165, 165, 165);">
-						<i class="fa ${icon}" style="margin-right: 4px;"></i>${cleanSubject}
+					<div style="font-weight: 600; margin-bottom: 3px; color:rgb(165, 165, 165); display: flex; justify-content: space-between; align-items: center;">
+						<span><i class="fa ${icon}" style="margin-right: 4px;"></i>${cleanSubject}</span>
+						<span class="event-status-badge" style="
+							font-size: 10px; 
+							padding: 2px 6px; 
+							background: ${statusBadgeColor}; 
+							color: white; 
+							border-radius: 3px;
+							font-weight: 500;
+						">
+							${statusText}
+						</span>
 					</div>
 					${
 						isAllDayEvent(event)
@@ -1757,10 +1785,40 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		const { clientName, technicianName, comments, customerAppareil, customerCamion } =
 			getCleanEventInfo(event);
 
+		// Déterminer la couleur et le texte de l'étiquette de statut
+		const eventStatus = event.status || "Open";
+		let statusBadgeColor, statusText;
+		
+		if (eventStatus === "Open") {
+			statusBadgeColor = "#ff9800"; // Orange pour Ouvert
+			statusText = "Ouvert";
+		} else if (eventStatus === "Closed") {
+			statusBadgeColor = "#f44336"; // Rouge pour Fermé
+			statusText = "Fermé";
+		} else if (eventStatus === "Cancelled" || eventStatus === "Completed") {
+			statusBadgeColor = "#4caf50"; // Vert pour Terminé
+			statusText = "Terminé";
+		} else {
+			statusBadgeColor = "#9e9e9e"; // Gris par défaut
+			statusText = eventStatus;
+		}
+
 		// Créer la carte d'événement avec les commentaires et nouveaux champs
 		const eventCard = $(`
 			<div class="${eventClass}" data-event-id="${event.name}">
-				<span class="event-id">${event.name}</span>
+				<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+					<span class="event-id">${event.name}</span>
+					<span class="event-status-badge" style="
+						font-size: 10px; 
+						padding: 2px 6px; 
+						background: ${statusBadgeColor}; 
+						color: white; 
+						border-radius: 3px;
+						font-weight: 500;
+					">
+						${statusText}
+					</span>
+				</div>
 				<span class="event-title">${formattedTitle}</span>
 				${
 					isAllDayEvent(event)
@@ -2004,10 +2062,42 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		const { clientName, technicianName, comments, customerAppareil, customerCamion } =
 			getCleanEventInfo(event);
 
+		// Déterminer la couleur et le texte de l'étiquette de statut
+		const eventStatus = event.status || "Open";
+		let statusBadgeColor, statusText;
+		
+		if (eventStatus === "Open") {
+			statusBadgeColor = "#ff9800"; // Orange pour Ouvert
+			statusText = "Ouvert";
+		} else if (eventStatus === "Closed") {
+			statusBadgeColor = "#f44336"; // Rouge pour Fermé
+			statusText = "Fermé";
+		} else if (eventStatus === "Cancelled" || eventStatus === "Completed") {
+			statusBadgeColor = "#4caf50"; // Vert pour Terminé
+			statusText = "Terminé";
+		} else {
+			statusBadgeColor = "#9e9e9e"; // Gris par défaut
+			statusText = eventStatus;
+		}
+
 		// Créer l'élément d'événement avec les commentaires et nouveaux champs
 		const eventElement = $(`
 			<div class="${eventClass}" data-event-id="${event.name}">
-				<div class="event-title">${formattedTitle}</div>
+				<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+					<div class="event-title" style="flex: 1;">${formattedTitle}</div>
+					<span class="event-status-badge" style="
+						font-size: 9px; 
+						padding: 2px 5px; 
+						background: ${statusBadgeColor}; 
+						color: white; 
+						border-radius: 3px;
+						font-weight: 500;
+						margin-left: 5px;
+						white-space: nowrap;
+					">
+						${statusText}
+					</span>
+				</div>
 				${
 					isAllDayEvent(event)
 						? '<span class="event-all-day-indicator"><i class="fa fa-calendar-day"></i> Toute la journée</span>'
