@@ -109,10 +109,22 @@ def create_event_from_sales_order(docname):
             main_item = doc.items[0].item_code or doc.items[0].item_name
 
         # Créer le sujet de l'événement
-        # Format simplifié comme demandé: "EPG - ZONE 103"
-        subject = main_item
+        # Format: "Type de commande - Article - Zone"
+        subject_parts = []
+        
+        # Ajouter le type de commande s'il existe
+        if type_commande:
+            subject_parts.append(type_commande)
+        
+        # Ajouter l'article principal
+        subject_parts.append(main_item)
+        
+        # Ajouter la zone/territoire
         if territory:
-            subject = subject + " - " + territory
+            subject_parts.append(territory)
+        
+        # Joindre avec " - "
+        subject = " - ".join(subject_parts)
 
         # Obtenir les détails des participants
         customer_name = frappe.db.get_value("Customer", doc.customer, "customer_name") if doc.customer else ""

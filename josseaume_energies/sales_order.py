@@ -127,16 +127,38 @@ def update_event_from_sales_order(sales_order_doc, event_doc):
         if items_updated > 0:
             updated_fields.append(f"items_dates({items_updated})")
     
-    # Mettre à jour le sujet si le territoire a changé
+    # Mettre à jour le sujet avec type de commande et territoire
+    # Reconstruire le sujet pour assurer la cohérence
+    subject_parts = []
+    
+    # Ajouter le type de commande s'il existe
+    type_commande = getattr(sales_order_doc, 'custom_type_de_commande', None) or ""
+    if type_commande:
+        subject_parts.append(type_commande)
+    
+    # Extraire l'article principal du sujet actuel ou utiliser une valeur par défaut
+    current_subject_parts = (event_doc.subject or "").split(" - ")
+    
+    # Si le sujet actuel a le format avec type de commande, récupérer l'article
+    if type_commande and len(current_subject_parts) > 1:
+        # Format avec type: Type - Article - Zone, donc l'article est en position 1
+        main_item = current_subject_parts[1] if len(current_subject_parts) > 1 else "Service"
+    elif len(current_subject_parts) > 0:
+        # Format sans type ou ancien format: Article - Zone
+        main_item = current_subject_parts[0]
+    else:
+        main_item = "Service"
+    
+    subject_parts.append(main_item)
+    
+    # Ajouter le territoire
     if sales_order_doc.territory:
-        # Extraire la partie avant le territoire actuel
-        subject_parts = (event_doc.subject or "").split(" - ")
-        main_item = subject_parts[0] if subject_parts else "Service"
-        
-        new_subject = f"{main_item} - {sales_order_doc.territory}"
-        if new_subject != event_doc.subject:
-            event_doc.subject = new_subject
-            updated_fields.append("subject")
+        subject_parts.append(sales_order_doc.territory)
+    
+    new_subject = " - ".join(subject_parts)
+    if new_subject != event_doc.subject:
+        event_doc.subject = new_subject
+        updated_fields.append("subject")
     
     # Sauvegarder les modifications
     if updated_fields:
