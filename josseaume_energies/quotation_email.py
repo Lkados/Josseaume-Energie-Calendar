@@ -53,3 +53,47 @@ def get_email_defaults_for_quotation(quotation):
         dict: Template d'email avec sujet et message
     """
     return get_quotation_email_template(quotation)
+
+def get_invoice_email_template(invoice_name):
+    """
+    Retourne le template d'email par défaut pour l'envoi d'une facture
+    
+    Args:
+        invoice_name: Nom/référence de la facture
+    
+    Returns:
+        dict: Contient le sujet et le message
+    """
+    return {
+        "subject": f"Facture N° {invoice_name} - JOSSEAUME ÉNERGIES",
+        "message": f"""Bonjour,
+
+Veuillez trouver ci-joint le document : Facture N° {invoice_name}.
+
+Nous restons à votre disposition pour tous renseignements complémentaires.
+
+Cordialement,
+
+JOSSEAUME ÉNERGIES
+210 IMPASSE DES TUILERIES - LE VIVIER DANGER
+60650 ONS EN BRAY
+03 44 80 53 75
+contact@josseaume-energies.com
+www.josseaume-energies.com
+
+🌱 N'imprimer que si nécessaire."""
+    }
+
+@frappe.whitelist()
+def get_email_defaults_for_invoice(invoice):
+    """
+    API pour récupérer les valeurs par défaut de l'email pour une facture
+    Peut être appelée depuis le frontend
+    
+    Args:
+        invoice: Nom de la facture
+    
+    Returns:
+        dict: Template d'email avec sujet et message
+    """
+    return get_invoice_email_template(invoice)
