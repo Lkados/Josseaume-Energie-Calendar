@@ -90,6 +90,9 @@ whitelist_methods = {
     "josseaume_energies.margin_calculation_simple.check_items_without_cost": True,
     "josseaume_energies.margin_calculation_simple.analyze_quotation_discounts": True,
     
+    # Template d'email pour les devis
+    "josseaume_energies.quotation_email.get_email_defaults_for_quotation": True,
+    
     # =====================================
     # API SOLDES CLIENTS
     # =====================================
@@ -121,7 +124,8 @@ doctype_js = {
     # Calcul de marges pour les devis
     "Quotation": [
         "public/js/quotation_margin_simple.js",    # Calcul des marges avec remises
-        "public/js/quotation_columns.js"           # Configuration des colonnes
+        "public/js/quotation_columns.js",          # Configuration des colonnes
+        "public/js/quotation_email.js"             # Template d'email par défaut
     ]
 }
 

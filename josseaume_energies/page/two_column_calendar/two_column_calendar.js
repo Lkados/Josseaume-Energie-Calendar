@@ -79,14 +79,20 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 	// NOUVEAU: Fonctions pour sauvegarder et restaurer les filtres
 	function saveFiltersToLocalStorage() {
+		const viewType = page.fields_dict.view_type.get_value();
 		const filters = {
-			view_type: page.fields_dict.view_type.get_value(),
+			view_type: viewType,
 			territory: page.fields_dict.territory.get_value(),
 			team_filter: page.fields_dict.team_filter.get_value(),
 			employee: page.fields_dict.employee.get_value(),
-			event_type: page.fields_dict.event_type.get_value(),
-			select_date: page.fields_dict.select_date.get_value()
+			event_type: page.fields_dict.event_type.get_value()
 		};
+		
+		// Ne sauvegarder la date que si ce n'est PAS la vue Employés
+		if (viewType !== "Employés") {
+			filters.select_date = page.fields_dict.select_date.get_value();
+		}
+		
 		localStorage.setItem('calendar_filters', JSON.stringify(filters));
 	}
 
@@ -112,7 +118,8 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				if (filters.event_type) {
 					page.fields_dict.event_type.set_value(filters.event_type);
 				}
-				if (filters.select_date) {
+				// Seulement restaurer la date si ce n'est pas la vue Employés
+				if (filters.select_date && filters.view_type !== "Employés") {
 					page.fields_dict.select_date.set_value(filters.select_date);
 					
 					// Mettre à jour les variables de date
