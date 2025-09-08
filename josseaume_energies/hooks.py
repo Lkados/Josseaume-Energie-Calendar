@@ -94,6 +94,11 @@ whitelist_methods = {
     "josseaume_energies.quotation_email.get_email_defaults_for_quotation": True,
     "josseaume_energies.quotation_email.get_email_defaults_for_invoice": True,
     
+    # Configuration des séries de nommage
+    "josseaume_energies.naming_series_setup.setup_naming_series": True,
+    "josseaume_energies.naming_series_setup.get_current_naming_series": True,
+    "josseaume_energies.naming_series_setup.reset_naming_series_counter": True,
+    
     # =====================================
     # API SOLDES CLIENTS
     # =====================================
