@@ -99,6 +99,12 @@ whitelist_methods = {
     "josseaume_energies.naming_series_setup.get_current_naming_series": True,
     "josseaume_energies.naming_series_setup.reset_naming_series_counter": True,
     
+    # Gestion des champs d'adresse séparés
+    "josseaume_energies.address_fields_setup.setup_address_fields": True,
+    "josseaume_energies.address_fields_setup.sync_customer_address_fields": True,
+    "josseaume_energies.address_fields_setup.parse_existing_address": True,
+    "josseaume_energies.address_fields_setup.bulk_parse_addresses": True,
+    
     # =====================================
     # API SOLDES CLIENTS
     # =====================================
@@ -124,8 +130,11 @@ doctype_js = {
     "Sales Order": "public/js/sales_order.js",
     "Event": "public/js/event.js",
     
-    # Affichage des soldes clients
-    "Customer": "public/js/customer.js",
+    # Affichage des soldes clients et gestion des adresses
+    "Customer": [
+        "public/js/customer.js",
+        "public/js/customer_address.js"    # Gestion des champs d'adresse séparés
+    ],
     
     # Calcul de marges pour les devis
     "Quotation": [
