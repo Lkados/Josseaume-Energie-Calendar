@@ -133,7 +133,8 @@ doctype_js = {
     # Affichage des soldes clients et gestion des adresses
     "Customer": [
         "public/js/customer.js",
-        "public/js/customer_address.js"    # Gestion des champs d'adresse séparés
+        "public/js/customer_address.js",   # Gestion des champs d'adresse séparés
+        "public/js/customer_list.js"       # Désactivation sauvegarde filtres liste
     ],
     
     # Calcul de marges pour les devis
