@@ -132,25 +132,13 @@ frappe.ui.form.on('Customer', {
 frappe.ui.form.on('Customer', {
     customer_primary_address: function(frm) {
         if (frm.doc.customer_primary_address && frm.doc.primary_address) {
-            // Nettoyer l'adresse des balises HTML
-            let cleanAddress = frm.doc.primary_address
-                .replace(/<br\s*\/?>/gi, '\n')  // Remplacer les <br> par des retours à la ligne
-                .replace(/<[^>]*>/g, '')         // Supprimer toutes les autres balises HTML
-                .replace(/&nbsp;/g, ' ')         // Remplacer les espaces insécables
-                .replace(/&amp;/g, '&')          // Décoder les entités HTML
-                .replace(/&lt;/g, '<')
-                .replace(/&gt;/g, '>')
-                .replace(/&quot;/g, '"')
-                .replace(/&#39;/g, "'");
-            
-            // Parser l'adresse nettoyée
-            const lines = cleanAddress.split('\n').filter(line => line.trim());
+            // Parser l'adresse affichée
+            const lines = frm.doc.primary_address.split('\n');
             
             // Essayer d'extraire les composants
             if (lines.length > 0) {
-                // Première ligne = rue (sans les balises HTML)
-                const streetAddress = lines[0].trim();
-                frm.set_value('custom_street_address', streetAddress);
+                // Première ligne = rue
+                frm.set_value('custom_street_address', lines[0].trim());
                 
                 // Chercher code postal et ville
                 for (let i = 1; i < lines.length; i++) {

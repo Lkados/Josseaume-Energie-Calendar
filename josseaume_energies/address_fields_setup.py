@@ -126,18 +126,8 @@ def parse_address(address_string):
             "city": ""
         }
     
-    # Nettoyer l'adresse des balises HTML
+    # Nettoyer l'adresse
     address = address_string.strip()
-    # Supprimer les balises HTML
-    address = re.sub(r'<br\s*/?>', '\n', address, flags=re.IGNORECASE)  # Remplacer <br> par newline
-    address = re.sub(r'<[^>]+>', '', address)  # Supprimer toutes les autres balises
-    address = address.replace('&nbsp;', ' ')  # Remplacer les espaces insécables
-    address = address.replace('&amp;', '&')
-    address = address.replace('&lt;', '<')
-    address = address.replace('&gt;', '>')
-    address = address.replace('&quot;', '"')
-    address = address.replace('&#39;', "'")
-    address = address.strip()
     lines = address.split('\n')
     
     result = {
