@@ -470,21 +470,21 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 							<div style="display: flex; gap: 20px; justify-content: center;">
 								<button class="btn btn-primary btn-lg creation-choice-btn" 
 									data-type="commande" 
-									style="padding: 20px 30px; min-width: 180px; height: 90px; white-space: nowrap; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-									<div style="display: flex; align-items: center; margin-bottom: 5px;">
-										<i class="fa fa-shopping-cart" style="margin-right: 8px; font-size: 16px;"></i>
-										<strong style="font-size: 14px;">Nouvelle commande client</strong>
+									style="padding: 18px 25px; min-width: 200px; height: 95px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+									<div style="display: flex; align-items: center; margin-bottom: 6px; flex-wrap: wrap; justify-content: center;">
+										<i class="fa fa-shopping-cart" style="margin-right: 6px; font-size: 15px;"></i>
+										<strong style="font-size: 13px; line-height: 1.2; word-break: break-word;">Nouvelle commande client</strong>
 									</div>
-									<small style="opacity: 0.8; font-size: 11px; line-height: 1.2;">Crée commande + rendez-vous</small>
+									<small style="opacity: 0.8; font-size: 10px; line-height: 1.1; text-align: center;">Crée commande + rendez-vous</small>
 								</button>
 								<button class="btn btn-success btn-lg creation-choice-btn" 
 									data-type="rendez-vous" 
-									style="padding: 20px 30px; min-width: 180px; height: 90px; white-space: nowrap; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-									<div style="display: flex; align-items: center; margin-bottom: 5px;">
-										<i class="fa fa-calendar" style="margin-right: 8px; font-size: 16px;"></i>
-										<strong style="font-size: 14px;">Rendez-vous devis</strong>
+									style="padding: 18px 25px; min-width: 200px; height: 95px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+									<div style="display: flex; align-items: center; margin-bottom: 6px; flex-wrap: wrap; justify-content: center;">
+										<i class="fa fa-calendar" style="margin-right: 6px; font-size: 15px;"></i>
+										<strong style="font-size: 13px; line-height: 1.2; word-break: break-word;">Rendez-vous devis</strong>
 									</div>
-									<small style="opacity: 0.8; font-size: 11px; line-height: 1.2;">Crée rendez-vous uniquement</small>
+									<small style="opacity: 0.8; font-size: 10px; line-height: 1.1; text-align: center;">Crée rendez-vous uniquement</small>
 								</button>
 							</div>
 						</div>
