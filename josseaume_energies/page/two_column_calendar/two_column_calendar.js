@@ -470,17 +470,21 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 							<div style="display: flex; gap: 20px; justify-content: center;">
 								<button class="btn btn-primary btn-lg creation-choice-btn" 
 									data-type="commande" 
-									style="padding: 15px 25px; min-width: 150px;">
-									<i class="fa fa-shopping-cart" style="margin-right: 8px;"></i>
-									<strong>Nouvelle Commande</strong>
-									<br><small style="opacity: 0.8;">Crée commande + rendez-vous</small>
+									style="padding: 20px 30px; min-width: 180px; height: 90px; white-space: nowrap; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+									<div style="display: flex; align-items: center; margin-bottom: 5px;">
+										<i class="fa fa-shopping-cart" style="margin-right: 8px; font-size: 16px;"></i>
+										<strong style="font-size: 14px;">Nouvelle commande client</strong>
+									</div>
+									<small style="opacity: 0.8; font-size: 11px; line-height: 1.2;">Crée commande + rendez-vous</small>
 								</button>
 								<button class="btn btn-success btn-lg creation-choice-btn" 
 									data-type="rendez-vous" 
-									style="padding: 15px 25px; min-width: 150px;">
-									<i class="fa fa-calendar" style="margin-right: 8px;"></i>
-									<strong>Simple Rendez-vous</strong>
-									<br><small style="opacity: 0.8;">Crée rendez-vous uniquement</small>
+									style="padding: 20px 30px; min-width: 180px; height: 90px; white-space: nowrap; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+									<div style="display: flex; align-items: center; margin-bottom: 5px;">
+										<i class="fa fa-calendar" style="margin-right: 8px; font-size: 16px;"></i>
+										<strong style="font-size: 14px;">Rendez-vous devis</strong>
+									</div>
+									<small style="opacity: 0.8; font-size: 11px; line-height: 1.2;">Crée rendez-vous uniquement</small>
 								</button>
 							</div>
 						</div>

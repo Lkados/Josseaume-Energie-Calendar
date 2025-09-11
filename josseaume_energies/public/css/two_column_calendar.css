@@ -1308,6 +1308,8 @@ body.dark .employee-column div[style*="color: #6c757d"] {
     border-radius: 8px;
     border: 2px solid transparent;
     font-family: inherit;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .creation-choice-btn:hover {
@@ -1325,17 +1327,40 @@ body.dark .employee-column div[style*="color: #6c757d"] {
     background-color: #155724 !important;
 }
 
+/* Assurer l'alignement du contenu des boutons */
+.creation-choice-btn strong {
+    font-weight: 600;
+}
+
+.creation-choice-btn small {
+    font-weight: 400;
+}
+
 /* Responsive pour mobile */
 @media (max-width: 768px) {
     .creation-choice-btn {
-        min-width: 120px;
-        padding: 12px 20px;
-        font-size: 14px;
+        min-width: 150px;
+        padding: 15px 20px;
+        font-size: 12px;
+        height: 80px;
+    }
+    
+    .creation-choice-btn strong {
+        font-size: 12px;
+    }
+    
+    .creation-choice-btn small {
+        font-size: 10px;
     }
     
     /* Réduire les icônes sur mobile */
     .event-item::before {
         font-size: 10px;
+    }
+    
+    /* Réduire l'espacement entre boutons sur mobile */
+    .creation-choice-btn + .creation-choice-btn {
+        margin-left: 10px;
     }
 }
 
