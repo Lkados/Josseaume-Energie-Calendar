@@ -187,12 +187,10 @@ doc_events = {
     },
     
     # =====================================
-    # CLIENTS (CUSTOMER)
+    # CLIENTS (CUSTOMER) - DÉSACTIVÉ POUR ÉVITER BLOCAGE FACTURES
     # =====================================
-    "Customer": {
-        # Optionnel : recalcul automatique du solde lors des modifications
-        "on_update": "josseaume_energies.customer_balance.customer_on_update"
-    }
+    # Hook Customer désactivé car il bloquait la validation des factures
+    # Les soldes clients restent calculables manuellement via l'interface
 }
 
 # ========================================

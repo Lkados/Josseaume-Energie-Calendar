@@ -384,14 +384,13 @@ def customer_on_update(doc, method):
     Peut être utilisé pour recalculer automatiquement le solde
     """
     try:
-        # Log de l'événement
-        frappe.log_error(f"Client {doc.name} mis à jour", "Customer Update")
-        
-        # Optionnel: Recalculer le solde immédiatement
-        # get_customer_balance(doc.name)
+        # Version sécurisée - ne pas logger ni faire d'opérations qui peuvent planter
+        # Juste ignorer silencieusement pour ne pas bloquer les factures
+        pass
         
     except Exception as e:
-        frappe.log_error(f"Erreur hook customer_on_update: {str(e)}")
+        # Ne jamais lever d'exception depuis un hook
+        pass
 
 # Fonction de test
 @frappe.whitelist()
