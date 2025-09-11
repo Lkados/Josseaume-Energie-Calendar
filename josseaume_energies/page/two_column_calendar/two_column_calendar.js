@@ -450,7 +450,63 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		refreshCalendar();
 	});
 
-	// NOUVELLE FONCTION: Ouvrir un nouveau formulaire de commande avec date, horaire et employé pré-remplis
+	// FONCTION: Afficher le menu contextuel pour choisir entre commande et rendez-vous
+	function showCreationMenu(date, timeSlot, employeeId = null) {
+		const formattedDate = frappe.datetime.obj_to_str(date).split(" ")[0];
+		const employeeName = employeeId ? $(`[data-employee="${employeeId}"]`).text() || 'Technicien' : 'Technicien';
+		
+		const dialog = new frappe.ui.Dialog({
+			title: `${timeSlot} - ${formattedDate} - ${employeeName}`,
+			size: 'small',
+			fields: [
+				{
+					fieldtype: 'HTML',
+					fieldname: 'creation_choice',
+					options: `
+						<div style="text-align: center; padding: 20px;">
+							<p style="margin-bottom: 20px; font-size: 16px; color: #555;">
+								Que voulez-vous créer ?
+							</p>
+							<div style="display: flex; gap: 20px; justify-content: center;">
+								<button class="btn btn-primary btn-lg creation-choice-btn" 
+									data-type="commande" 
+									style="padding: 15px 25px; min-width: 150px;">
+									<i class="fa fa-shopping-cart" style="margin-right: 8px;"></i>
+									<strong>Nouvelle Commande</strong>
+									<br><small style="opacity: 0.8;">Crée commande + rendez-vous</small>
+								</button>
+								<button class="btn btn-success btn-lg creation-choice-btn" 
+									data-type="rendez-vous" 
+									style="padding: 15px 25px; min-width: 150px;">
+									<i class="fa fa-calendar" style="margin-right: 8px;"></i>
+									<strong>Simple Rendez-vous</strong>
+									<br><small style="opacity: 0.8;">Crée rendez-vous uniquement</small>
+								</button>
+							</div>
+						</div>
+					`
+				}
+			],
+			primary_action_label: null,  // Pas de bouton primaire
+			secondary_action_label: 'Annuler'
+		});
+		
+		// Gérer les clics sur les boutons
+		dialog.$wrapper.on('click', '.creation-choice-btn', function() {
+			const choice = $(this).data('type');
+			dialog.hide();
+			
+			if (choice === 'commande') {
+				createNewSalesOrder(date, timeSlot, employeeId);
+			} else if (choice === 'rendez-vous') {
+				createSimpleAppointment(date, timeSlot, employeeId);
+			}
+		});
+		
+		dialog.show();
+	}
+
+	// FONCTION: Ouvrir un nouveau formulaire de commande avec date, horaire et employé pré-remplis
 	function createNewSalesOrder(date, timeSlot, employeeId = null) {
 		try {
 			// Obtenir les filtres actuels pour pré-remplir
@@ -503,6 +559,151 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		}
 	}
 
+	// FONCTION: Créer un simple rendez-vous
+	function createSimpleAppointment(date, timeSlot, employeeId = null) {
+		try {
+			const formattedDate = frappe.datetime.obj_to_str(date).split(" ")[0];
+			const employee = employeeId || page.fields_dict.employee.get_value();
+			
+			// Créer le dialogue pour le rendez-vous simple
+			const appointmentDialog = new frappe.ui.Dialog({
+				title: `Nouveau Rendez-vous - ${timeSlot} - ${formattedDate}`,
+				fields: [
+					{
+						fieldtype: 'Link',
+						fieldname: 'customer',
+						label: 'Client',
+						options: 'Customer',
+						reqd: 1,
+						onchange: function() {
+							const customer = this.get_value();
+							if (customer) {
+								// Récupérer automatiquement les infos client
+								frappe.call({
+									method: 'frappe.client.get',
+									args: {
+										doctype: 'Customer',
+										name: customer
+									},
+									callback: function(r) {
+										if (r.message) {
+											appointmentDialog.set_value('customer_phone', r.message.mobile_no || r.message.phone || '');
+											appointmentDialog.set_value('customer_address', r.message.primary_address || '');
+										}
+									}
+								});
+							}
+						}
+					},
+					{
+						fieldtype: 'Small Text',
+						fieldname: 'appointment_reason',
+						label: 'Motif du rendez-vous',
+						reqd: 1,
+						default: 'Devis'
+					},
+					{
+						fieldtype: 'Data',
+						fieldname: 'customer_phone',
+						label: 'Téléphone client',
+						read_only: 1
+					},
+					{
+						fieldtype: 'Small Text',
+						fieldname: 'customer_address',
+						label: 'Adresse',
+						read_only: 1
+					},
+					{
+						fieldtype: 'Select',
+						fieldname: 'duration',
+						label: 'Durée estimée',
+						options: '1 heure\n1h30\n2 heures\n2h30\n3 heures\nJournée complète',
+						default: '1h30'
+					}
+				],
+				primary_action_label: 'Créer Rendez-vous',
+				primary_action: function(values) {
+					createEventFromAppointment(values, date, timeSlot, employee);
+					appointmentDialog.hide();
+				},
+				secondary_action_label: 'Annuler'
+			});
+			
+			appointmentDialog.show();
+			appointmentDialog.get_field('customer').set_focus();
+			
+		} catch (error) {
+			console.error("Erreur lors de la création du rendez-vous:", error);
+			frappe.msgprint(`Erreur lors de la création du rendez-vous: ${error.message}`);
+		}
+	}
+
+	// FONCTION: Créer l'Event depuis les données du rendez-vous
+	function createEventFromAppointment(values, date, timeSlot, employee) {
+		// Calculer les heures de début et fin selon le créneau
+		let startTime, endTime;
+		const duration = values.duration || '1h30';
+		
+		switch (timeSlot) {
+			case 'Matin':
+				startTime = '09:00:00';
+				endTime = duration === 'Journée complète' ? '17:00:00' : 
+						 duration === '3 heures' ? '12:00:00' :
+						 duration === '2h30' ? '11:30:00' :
+						 duration === '2 heures' ? '11:00:00' :
+						 duration === '1h30' ? '10:30:00' : '10:00:00';
+				break;
+			case 'Après-midi':
+				startTime = '14:00:00';
+				endTime = duration === 'Journée complète' ? '17:00:00' :
+						 duration === '3 heures' ? '17:00:00' :
+						 duration === '2h30' ? '16:30:00' :
+						 duration === '2 heures' ? '16:00:00' :
+						 duration === '1h30' ? '15:30:00' : '15:00:00';
+				break;
+			default: // Journée complète
+				startTime = '09:00:00';
+				endTime = '17:00:00';
+		}
+		
+		const startDateTime = `${frappe.datetime.obj_to_str(date).split(" ")[0]} ${startTime}`;
+		const endDateTime = `${frappe.datetime.obj_to_str(date).split(" ")[0]} ${endTime}`;
+		
+		// Créer le rendez-vous via l'API
+		frappe.call({
+			method: 'frappe.client.insert',
+			args: {
+				doc: {
+					doctype: 'Event',
+					subject: `RDV: ${values.appointment_reason} - ${values.customer}`,
+					starts_on: startDateTime,
+					ends_on: endDateTime,
+					event_category: 'Event',
+					event_type: 'Public',
+					description: `Rendez-vous: ${values.appointment_reason}\nClient: ${values.customer}\nTéléphone: ${values.customer_phone || 'Non renseigné'}\nAdresse: ${values.customer_address || 'Non renseigné'}`,
+					custom_employee: employee,
+					custom_customer: values.customer,
+					custom_appointment_type: 'Rendez-vous Simple',
+					color: '#95a5a6'  // Couleur gris pour les rendez-vous simples
+				}
+			},
+			callback: function(r) {
+				if (r.message) {
+					frappe.show_alert({
+						message: 'Rendez-vous créé avec succès !',
+						indicator: 'green'
+					}, 3);
+					
+					// Rafraîchir le calendrier
+					refreshCalendar();
+				} else {
+					frappe.msgprint('Erreur lors de la création du rendez-vous');
+				}
+			}
+		});
+	}
+
 	// NOUVELLE FONCTION: Ajouter les écouteurs de double-clic pour la vue employés
 	function addDoubleClickListeners() {
 		// Supprimer les anciens écouteurs pour éviter les doublons
@@ -521,7 +722,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 					const sectionName = $(this).attr("data-name");
 					const employeeId = $(this).attr("data-employee");
-					createNewSalesOrder(currentDate, sectionName, employeeId);
+					showCreationMenu(currentDate, sectionName, employeeId);
 				}
 			);
 		} else {
@@ -529,19 +730,19 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			$(document).on("dblclick.calendar", '[data-name="Matin"]', function (e) {
 				e.preventDefault();
 				e.stopPropagation();
-				createNewSalesOrder(currentDate, "Matin");
+				showCreationMenu(currentDate, "Matin");
 			});
 
 			$(document).on("dblclick.calendar", '[data-name="Après-midi"]', function (e) {
 				e.preventDefault();
 				e.stopPropagation();
-				createNewSalesOrder(currentDate, "Après-midi");
+				showCreationMenu(currentDate, "Après-midi");
 			});
 
 			$(document).on("dblclick.calendar", '[data-name="Journée complète"]', function (e) {
 				e.preventDefault();
 				e.stopPropagation();
-				createNewSalesOrder(currentDate, "Journée complète");
+				showCreationMenu(currentDate, "Journée complète");
 			});
 
 			// Pour la vue semaine
@@ -562,7 +763,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					const monday = new Date(current.setDate(diff));
 					const targetDate = new Date(monday.setDate(monday.getDate() + dayIndex));
 
-					createNewSalesOrder(targetDate, sectionName);
+					showCreationMenu(targetDate, sectionName);
 				}
 			});
 		}

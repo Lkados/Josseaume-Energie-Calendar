@@ -1248,6 +1248,97 @@ body.dark .employee-column div[style*="color: #6c757d"] {
 	}
 }
 
+/* ========================================== */
+/* STYLES POUR DISTINGUER COMMANDES/RENDEZ-VOUS */
+/* ========================================== */
+
+/* Styles généraux pour tous les événements */
+.event-item {
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+/* Rendez-vous simples - Style gris avec bordure pointillée */
+.event-item[data-appointment-type="Rendez-vous Simple"],
+.event-item.simple-appointment {
+    background-color: #f8f9fa !important;
+    border: 2px dashed #95a5a6 !important;
+    color: #6c757d !important;
+    opacity: 0.85;
+}
+
+.event-item[data-appointment-type="Rendez-vous Simple"]:hover,
+.event-item.simple-appointment:hover {
+    opacity: 1;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(149, 165, 166, 0.3);
+}
+
+/* Icônes distinctives pour les rendez-vous simples */
+.event-item[data-appointment-type="Rendez-vous Simple"]::before,
+.event-item.simple-appointment::before {
+    content: "📅";
+    position: absolute;
+    top: 2px;
+    left: 4px;
+    font-size: 12px;
+    z-index: 5;
+}
+
+/* Commandes avec Sales Order - Icône panier */
+.event-item:not([data-appointment-type="Rendez-vous Simple"]):not(.simple-appointment)::before {
+    content: "🛒";
+    position: absolute;
+    top: 2px;
+    left: 4px;
+    font-size: 12px;
+    z-index: 5;
+}
+
+/* Animation au survol pour toutes les interventions */
+.event-item:hover {
+    cursor: pointer;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Styles pour les boutons du menu contextuel de création */
+.creation-choice-btn {
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    border: 2px solid transparent;
+    font-family: inherit;
+}
+
+.creation-choice-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.creation-choice-btn[data-type="commande"]:hover {
+    border-color: #0056b3;
+    background-color: #004085 !important;
+}
+
+.creation-choice-btn[data-type="rendez-vous"]:hover {
+    border-color: #1e7e34;
+    background-color: #155724 !important;
+}
+
+/* Responsive pour mobile */
+@media (max-width: 768px) {
+    .creation-choice-btn {
+        min-width: 120px;
+        padding: 12px 20px;
+        font-size: 14px;
+    }
+    
+    /* Réduire les icônes sur mobile */
+    .event-item::before {
+        font-size: 10px;
+    }
+}
+
 /* Effet hover pour les informations */
 .appareil-info:hover,
 .camion-info:hover {
