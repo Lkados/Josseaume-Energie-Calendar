@@ -51,33 +51,41 @@ frappe.listview_settings['Customer'] = {
     }
 };
 
-// Script alternatif plus agressif pour s'assurer que ça marche
-frappe.ready(function() {
-    // Attendre que la page soit complètement chargée
-    $(document).ready(function() {
-        // Vérifier si on est sur la liste des clients
-        if (frappe.get_route()[0] === 'List' && frappe.get_route()[1] === 'Customer') {
+// Script alternatif - vérifier périodiquement si on est sur la liste des clients
+$(document).ready(function() {
+    // Fonction pour désactiver la sauvegarde
+    function disableCustomerListSaving() {
+        if (typeof frappe !== 'undefined' && frappe.get_route && frappe.get_route()[0] === 'List' && frappe.get_route()[1] === 'Customer') {
             console.log("📋 Sur la liste des clients - Configuration anti-sauvegarde");
             
             // Désactiver la sauvegarde globalement pour cette page
-            if (cur_list) {
-                setTimeout(function() {
-                    if (cur_list.save_view_user_settings) {
-                        cur_list.save_view_user_settings = function() {
-                            console.log("🚫 Sauvegarde filtres bloquée globalement");
-                        };
-                    }
-                    
-                    // Surcharger la fonction de sauvegarde des paramètres utilisateur
-                    if (cur_list.list_view && cur_list.list_view.save_view_user_settings) {
-                        cur_list.list_view.save_view_user_settings = function() {
-                            console.log("🚫 Sauvegarde ListView bloquée");
-                        };
-                    }
-                }, 500);
+            if (typeof cur_list !== 'undefined' && cur_list) {
+                if (cur_list.save_view_user_settings) {
+                    cur_list.save_view_user_settings = function() {
+                        console.log("🚫 Sauvegarde filtres bloquée globalement");
+                    };
+                }
+                
+                // Surcharger la fonction de sauvegarde des paramètres utilisateur
+                if (cur_list.list_view && cur_list.list_view.save_view_user_settings) {
+                    cur_list.list_view.save_view_user_settings = function() {
+                        console.log("🚫 Sauvegarde ListView bloquée");
+                    };
+                }
             }
         }
-    });
+    }
+    
+    // Vérifier toutes les secondes pendant 5 secondes
+    let checkCount = 0;
+    const checkInterval = setInterval(function() {
+        checkCount++;
+        disableCustomerListSaving();
+        
+        if (checkCount >= 5) {
+            clearInterval(checkInterval);
+        }
+    }, 1000);
 });
 
 // Fonction pour effacer manuellement tous les filtres sauvegardés des clients
