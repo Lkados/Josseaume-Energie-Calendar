@@ -1314,7 +1314,7 @@ def get_day_events_by_employees(date, team_filter=None, territory=None, employee
                         employee_ids.append(emp["name"])
                         break
             
-            # Ajouter l'événement à tous les employés correspondants
+            # Ajouter l'événement aux employés correspondants
             if employee_ids:
                 # Événement assigné à des employés spécifiques
                 for employee_id in employee_ids:
@@ -1328,20 +1328,8 @@ def get_day_events_by_employees(date, team_filter=None, territory=None, employee
                                 events_by_employee[employee_id]["morning"].append(event)
                             else:
                                 events_by_employee[employee_id]["afternoon"].append(event)
-            else:
-                # NOUVEAU: Événement non assigné (rendez-vous manuel, etc.) - l'afficher pour TOUS les employés
-                # Marquer comme événement général
-                event["is_general_event"] = True
-                for emp_id in events_by_employee.keys():
-                    # Déterminer la période
-                    if event.get("all_day"):
-                        events_by_employee[emp_id]["all_day"].append(event)
-                    else:
-                        event_time = frappe.utils.get_datetime(event["starts_on"])
-                        if event_time.hour < 12:
-                            events_by_employee[emp_id]["morning"].append(event)
-                        else:
-                            events_by_employee[emp_id]["afternoon"].append(event)
+            # SUPPRIMÉ: La logique qui assignait tous les événements non assignés à tous les employés
+            # Les événements sans participants ne s'afficheront que s'ils ont des sales_order_info
         
         # Trier les événements par heure dans chaque catégorie
         for emp_id in events_by_employee:

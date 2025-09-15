@@ -1672,7 +1672,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			const cleanSubject = sanitizeText(event.subject) || (isNote ? "Note sans titre" : "Événement sans titre");
 			const formattedTitle = formatEventTitle(event, cleanSubject, isNote);
 
-			let eventClass, borderColor, icon, docType, eventStatus;
+			let eventClass, borderColor, icon, docType, eventStatus, noteStatus;
 
 			if (isNote) {
 				// Style pour les notes
@@ -1681,6 +1681,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				icon = "fa-sticky-note";
 				docType = "Note";
 				eventStatus = event.custom_note_status || "Open"; // Statut pour les notes
+				noteStatus = event.custom_note_status || "Open"; // Statut pour les notes
 			} else {
 				// Style pour les événements (code existant)
 				eventClass = "event-item " + determineEventClass(event, cleanSubject);
@@ -1693,6 +1694,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				icon = "fa-calendar";
 				docType = "Event";
 				eventStatus = event.status || "Open"; // Statut pour les événements
+				noteStatus = ""; // Pas de noteStatus pour les événements
 			}
 
 			let cardContent = "";
