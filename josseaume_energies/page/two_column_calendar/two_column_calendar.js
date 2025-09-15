@@ -1752,16 +1752,21 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					<div style="font-weight: 600; margin-bottom: 3px; color:rgb(165, 165, 165); display: flex; justify-content: space-between; align-items: center;">
 						<span><i class="fa ${icon}" style="margin-right: 4px;"></i>${cleanSubject}</span>
 						<span class="event-status-badge" style="
-							font-size: 10px; 
-							padding: 2px 6px; 
-							background: ${statusBadgeColor}; 
-							color: white; 
+							font-size: 10px;
+							padding: 2px 6px;
+							background: ${statusBadgeColor};
+							color: white;
 							border-radius: 3px;
 							font-weight: 500;
 						">
 							${statusText}
 						</span>
 					</div>
+					${
+						event.is_general_event
+							? '<div style="color: #ff9800; font-size: 9px; margin-bottom: 3px; font-style: italic;"><i class="fa fa-users"></i> Événement général</div>'
+							: ""
+					}
 					${
 						isAllDayEvent(event)
 							? '<div style="color: var(--color-allday); font-size: 10px; margin-bottom: 3px;"><i class="fa fa-calendar-day"></i> Toute la journée</div>'

@@ -1315,17 +1315,33 @@ def get_day_events_by_employees(date, team_filter=None, territory=None, employee
                         break
             
             # Ajouter l'événement à tous les employés correspondants
-            for employee_id in employee_ids:
-                if employee_id in events_by_employee:
+            if employee_ids:
+                # Événement assigné à des employés spécifiques
+                for employee_id in employee_ids:
+                    if employee_id in events_by_employee:
+                        # Déterminer la période
+                        if event.get("all_day"):
+                            events_by_employee[employee_id]["all_day"].append(event)
+                        else:
+                            event_time = frappe.utils.get_datetime(event["starts_on"])
+                            if event_time.hour < 12:
+                                events_by_employee[employee_id]["morning"].append(event)
+                            else:
+                                events_by_employee[employee_id]["afternoon"].append(event)
+            else:
+                # NOUVEAU: Événement non assigné (rendez-vous manuel, etc.) - l'afficher pour TOUS les employés
+                # Marquer comme événement général
+                event["is_general_event"] = True
+                for emp_id in events_by_employee.keys():
                     # Déterminer la période
                     if event.get("all_day"):
-                        events_by_employee[employee_id]["all_day"].append(event)
+                        events_by_employee[emp_id]["all_day"].append(event)
                     else:
                         event_time = frappe.utils.get_datetime(event["starts_on"])
                         if event_time.hour < 12:
-                            events_by_employee[employee_id]["morning"].append(event)
+                            events_by_employee[emp_id]["morning"].append(event)
                         else:
-                            events_by_employee[employee_id]["afternoon"].append(event)
+                            events_by_employee[emp_id]["afternoon"].append(event)
         
         # Trier les événements par heure dans chaque catégorie
         for emp_id in events_by_employee:
@@ -1340,9 +1356,6 @@ def get_day_events_by_employees(date, team_filter=None, territory=None, employee
         for emp_id in events_by_employee:
             try:
                 employee_notes = get_employee_notes(emp_id, date)
-
-                # DEBUG: Log du nombre de notes trouvées
-                frappe.log_error(f"DEBUG Notes pour employé {emp_id}: {len(employee_notes)}", "DEBUG Notes")
                 
                 
                 # Organiser les notes par période
@@ -1496,8 +1509,6 @@ def get_employee_notes(employee, date):
             frappe.db.has_column("Note", "custom_note_date")
         )
 
-        # DEBUG: Log pour vérifier l'existence des champs
-        frappe.log_error(f"DEBUG get_employee_notes: has_custom_fields={has_custom_fields}, employee={employee}, date={date}", "DEBUG Notes Fields")
         
         has_status_field = frappe.db.has_column("Note", "custom_note_status")
         
