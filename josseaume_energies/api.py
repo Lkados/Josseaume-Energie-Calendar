@@ -1305,7 +1305,7 @@ def get_day_events_by_employees(date, team_filter=None, territory=None, employee
                 for participant in event["event_participants"]:
                     if participant["reference_doctype"] == "Employee":
                         employee_ids.append(participant["reference_docname"])
-            
+
             # Si pas trouvé dans les participants, chercher dans sales_order_info
             if not employee_ids and event.get("sales_order_info") and event["sales_order_info"].get("employee_name"):
                 # Trouver l'employé par nom
@@ -1313,6 +1313,19 @@ def get_day_events_by_employees(date, team_filter=None, territory=None, employee
                     if emp["employee_name"] == event["sales_order_info"]["employee_name"]:
                         employee_ids.append(emp["name"])
                         break
+
+            # NOUVEAU: Si toujours pas trouvé, chercher dans les champs custom de l'événement
+            if not employee_ids:
+                # Vérifier s'il y a des champs custom employee sur l'événement
+                event_doc = frappe.get_doc("Event", event.name)
+
+                # Chercher dans les champs possibles
+                for field_name in ["custom_employee", "employee", "custom_assigned_to"]:
+                    if hasattr(event_doc, field_name) and getattr(event_doc, field_name):
+                        employee_id = getattr(event_doc, field_name)
+                        if employee_id in [emp["name"] for emp in employees]:
+                            employee_ids.append(employee_id)
+                            break
             
             # Ajouter l'événement aux employés correspondants
             if employee_ids:
