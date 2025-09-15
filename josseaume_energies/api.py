@@ -1312,8 +1312,6 @@ def get_day_events_by_employees(date, team_filter=None, territory=None, employee
                     if emp["employee_name"] == event["sales_order_info"]["employee_name"]:
                         employee_ids.append(emp["name"])
                         break
-<<<<<<< HEAD
-
             # Si toujours pas trouvé, chercher dans les champs custom de l'événement
             if not employee_ids:
                 # Vérifier s'il y a des champs custom employee sur l'événement
@@ -1326,8 +1324,6 @@ def get_day_events_by_employees(date, team_filter=None, territory=None, employee
                         if employee_id in [emp["name"] for emp in employees]:
                             employee_ids.append(employee_id)
                             break
-=======
->>>>>>> parent of cf4c2f7 (debug events)
             
             # Ajouter l'événement aux employés correspondants
             if employee_ids:

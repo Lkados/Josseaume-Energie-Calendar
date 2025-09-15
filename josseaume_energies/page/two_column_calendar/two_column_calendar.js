@@ -1292,13 +1292,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					}
 				}
 			}
-
-				clientName,
-				technicianName,
-				comments,
-				customerAppareil,
-				customerCamion,
-			});
 		} catch (error) {
 		}
 
