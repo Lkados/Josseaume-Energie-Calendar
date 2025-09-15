@@ -1693,3 +1693,136 @@ div[data-event-id*="panne" i] {
 .two_column_calendar-container div[class*="event-"]:not(:hover) {
 	will-change: auto;
 }
+
+/* ========================================= */
+/* STYLES POUR LES ÉVÉNEMENTS FERMÉS/TERMINÉS */
+/* ========================================= */
+
+/* Événements fermés - Style grisé avec opacité réduite */
+.event-item[data-status="Closed"],
+.event-item.status-closed,
+.employee-column .event-entretien[data-status="Closed"],
+.employee-column .event-epgz[data-status="Closed"],
+.employee-column .event-default[data-status="Closed"],
+.employee-column .event-installation[data-status="Closed"],
+.employee-column .event-livraison[data-status="Closed"],
+.employee-column .event-depannage[data-status="Closed"],
+.week-event[data-status="Closed"],
+.two_column_calendar-container .event-item[data-status="Closed"] {
+    opacity: 0.6 !important;
+    background-color: #f5f5f5 !important;
+    color: #6c757d !important;
+    text-decoration: line-through;
+    filter: grayscale(50%);
+    border-style: dashed !important;
+    position: relative;
+}
+
+/* Badge "Fermé" pour les événements fermés */
+.event-item[data-status="Closed"]::after,
+.event-item.status-closed::after {
+    content: "✓ Fermé";
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    background-color: #dc3545;
+    color: white;
+    font-size: 8px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-weight: 500;
+    z-index: 10;
+    text-decoration: none;
+}
+
+/* Événements terminés - Style vert avec checkmark */
+.event-item[data-status="Completed"],
+.event-item.status-completed {
+    opacity: 0.7 !important;
+    background-color: #d4edda !important;
+    color: #155724 !important;
+    border-left-color: #28a745 !important;
+    position: relative;
+}
+
+.event-item[data-status="Completed"]::after,
+.event-item.status-completed::after {
+    content: "✓ Terminé";
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    background-color: #28a745;
+    color: white;
+    font-size: 8px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-weight: 500;
+    z-index: 10;
+}
+
+/* Notes fermées */
+.event-item.note-closed,
+.event-item[data-note-status="Closed"] {
+    opacity: 0.5 !important;
+    background-color: #f8f9fa !important;
+    color: #6c757d !important;
+    text-decoration: line-through;
+    filter: grayscale(70%);
+    border: 2px dashed #dee2e6 !important;
+    position: relative;
+}
+
+.event-item.note-closed::after,
+.event-item[data-note-status="Closed"]::after {
+    content: "📝 Note fermée";
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    background-color: #6c757d;
+    color: white;
+    font-size: 8px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-weight: 500;
+    z-index: 10;
+    text-decoration: none;
+}
+
+/* Mode sombre pour les événements fermés */
+body.dark .event-item[data-status="Closed"],
+body.dark .event-item.status-closed,
+body.dark .employee-column .event-entretien[data-status="Closed"],
+body.dark .employee-column .event-epgz[data-status="Closed"],
+body.dark .employee-column .event-default[data-status="Closed"],
+body.dark .employee-column .event-installation[data-status="Closed"],
+body.dark .employee-column .event-livraison[data-status="Closed"],
+body.dark .employee-column .event-depannage[data-status="Closed"],
+body.dark .week-event[data-status="Closed"] {
+    background-color: #2d2d2d !important;
+    color: #aaa !important;
+}
+
+body.dark .event-item[data-status="Completed"],
+body.dark .event-item.status-completed {
+    background-color: #1e3a1e !important;
+    color: #66bb6a !important;
+}
+
+body.dark .event-item.note-closed,
+body.dark .event-item[data-note-status="Closed"] {
+    background-color: #2d2d2d !important;
+    color: #aaa !important;
+    border-color: #444 !important;
+}
+
+/* Hover pour les événements fermés - moins d'effet */
+.event-item[data-status="Closed"]:hover,
+.event-item.status-closed:hover,
+.event-item[data-status="Completed"]:hover,
+.event-item.status-completed:hover,
+.event-item.note-closed:hover,
+.event-item[data-note-status="Closed"]:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    opacity: 0.8 !important;
+}

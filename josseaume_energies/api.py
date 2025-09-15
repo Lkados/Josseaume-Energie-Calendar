@@ -363,7 +363,7 @@ def get_day_events(date, territory=None, employee=None, event_type=None):
         # Pour le territoire, on cherche dans le sujet de l'événement
         filters.append(["subject", "like", f"%{territory}%"])
     
-    # Récupérer les événements avec les champs nécessaires (incluant le statut)
+    # Récupérer TOUS les événements avec les champs nécessaires (incluant le statut)
     events = frappe.get_all(
         "Event",
         filters=filters,
@@ -523,11 +523,11 @@ def get_calendar_events(year, month, territory=None, employee=None, event_type=N
     if territory:
         filters.append(["subject", "like", f"%{territory}%"])
     
-    # Récupérer les événements
+    # Récupérer TOUS les événements (incluant fermés)
     events = frappe.get_all(
         "Event",
         filters=filters,
-        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day", "description"]
+        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day", "description", "status"]
     )
     
     # Filtrer par employé si spécifié
@@ -651,11 +651,11 @@ def get_week_events(start_date, end_date, territory=None, employee=None, event_t
     if territory:
         filters.append(["subject", "like", f"%{territory}%"])
     
-    # Récupérer les événements
+    # Récupérer TOUS les événements (incluant fermés)
     events = frappe.get_all(
         "Event",
         filters=filters,
-        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day", "description"]
+        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day", "description", "status"]
     )
     
     # Filtrer par employé si spécifié

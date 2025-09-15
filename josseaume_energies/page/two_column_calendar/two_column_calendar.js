@@ -503,7 +503,10 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				}
 			],
 			primary_action_label: null,  // Pas de bouton primaire
-			secondary_action_label: 'Annuler'
+			secondary_action_label: 'Annuler',
+			secondary_action: function() {
+				dialog.hide();
+			}
 		});
 		
 		// Gérer les clics sur les boutons
@@ -1666,13 +1669,13 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			
 			if (isNote) {
 				// Style pour les notes
-				eventClass = "employee-note";
+				eventClass = "event-item employee-note";
 				borderColor = "#9c27b0"; // Violet pour les notes
 				icon = "fa-sticky-note";
 				docType = "Note";
 			} else {
 				// Style pour les événements (code existant)
-				eventClass = determineEventClass(event, cleanSubject);
+				eventClass = "event-item " + determineEventClass(event, cleanSubject);
 				
 				// Ajouter une classe spécifique pour les événements toute la journée
 				if (isAllDayEvent(event)) {
@@ -1780,7 +1783,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 			// Créer la carte avec des styles appropriés
 			const eventCard = $(`
-				<div class="${eventClass}" data-event-id="${event.name}" data-doc-type="${docType}" style="
+				<div class="${eventClass}" data-event-id="${event.name}" data-doc-type="${docType}" data-status="${eventStatus}" ${isNote ? `data-note-status="${noteStatus}"` : ''} style="
 					margin-bottom: 6px;
 					padding: 8px 10px;
 					border-radius: 4px;
@@ -1997,7 +2000,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		// Utiliser la même logique de détection que pour la vue employé
 		const cleanSubject = sanitizeText(event.subject) || "Événement sans titre";
 		const formattedTitle = formatEventTitle(event, cleanSubject, false);
-		let eventClass = determineEventClass(event, cleanSubject);
+		let eventClass = "event-item " + determineEventClass(event, cleanSubject);
 
 		// Ajouter une classe spécifique pour les événements toute la journée
 		if (isAllDayEvent(event)) {
@@ -2028,7 +2031,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 		// Créer la carte d'événement avec les commentaires et nouveaux champs
 		const eventCard = $(`
-			<div class="${eventClass}" data-event-id="${event.name}">
+			<div class="${eventClass}" data-event-id="${event.name}" data-status="${eventStatus}">
 				<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
 					<span class="event-id">${event.name}</span>
 					<span class="event-status-badge" style="
@@ -2274,7 +2277,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		// Utiliser la même logique de détection que pour les autres vues
 		const cleanSubject = sanitizeText(event.subject) || "Événement sans titre";
 		const formattedTitle = formatEventTitle(event, cleanSubject, false);
-		let eventClass = "week-event " + determineEventClass(event, cleanSubject);
+		let eventClass = "event-item week-event " + determineEventClass(event, cleanSubject);
 
 		// Ajouter une classe spécifique pour les événements toute la journée
 		if (isAllDayEvent(event)) {
@@ -2305,7 +2308,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 		// Créer l'élément d'événement avec les commentaires et nouveaux champs
 		const eventElement = $(`
-			<div class="${eventClass}" data-event-id="${event.name}">
+			<div class="${eventClass}" data-event-id="${event.name}" data-status="${eventStatus}">
 				<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
 					<div class="event-title" style="flex: 1;">${formattedTitle}</div>
 					<span class="event-status-badge" style="
