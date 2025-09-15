@@ -1091,7 +1091,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 			for (const pattern of suspiciousPatterns) {
 				if (pattern.test(event.subject)) {
-					console.log("Événement filtré car sujet suspect:", event.subject);
 					return false;
 				}
 			}
@@ -1324,7 +1323,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				}
 			}
 
-			console.log("Résultat final getCleanEventInfo:", {
 				clientName,
 				technicianName,
 				comments,
@@ -1332,7 +1330,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				customerCamion,
 			});
 		} catch (error) {
-			console.warn("Erreur lors de l'extraction des infos événement:", error);
 		}
 
 		return { clientName, technicianName, comments, customerAppareil, customerCamion };
@@ -1351,13 +1348,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	// FONCTION CORRIGÉE: renderEmployeeDayView avec tous les filtres
 	function renderEmployeeDayView(date, territory, employee, event_type, team_filter) {
 		try {
-			console.log("=== DÉBUT renderEmployeeDayView ===", {
-				date,
-				territory,
-				employee,
-				event_type,
-				team_filter,
-			});
 
 			const formatDate = (d) => {
 				return `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1)
@@ -1367,8 +1357,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 			// Vérifier que le conteneur est bien vide
 			if (calendarContainer.children().length > 0) {
-				console.warn("Le conteneur n'était pas vide, nettoyage forcé");
-				forceCleanContainer();
+					forceCleanContainer();
 			}
 
 			// Créer l'en-tête avec tous les filtres actifs
@@ -1413,8 +1402,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				},
 				callback: function (r) {
 					try {
-						console.log("=== CALLBACK API ===");
-						loadingMessage.remove();
+							loadingMessage.remove();
 
 						if (r.message && r.message.status === "success") {
 							const data = r.message;
@@ -1429,14 +1417,9 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 								totalEvents += (emp.morning || []).length;
 								totalEvents += (emp.afternoon || []).length;
 							});
-							console.log("Total événements reçus:", totalEvents);
-
-							console.log("Données brutes reçues:", data);
-							console.log("Employés avant déduplication:", employees.length);
 
 							// CORRECTION 1: Dédupliquer les employés par ID
 							employees = deduplicateEmployees(employees);
-							console.log("Employés après déduplication:", employees.length);
 
 							if (employees.length === 0) {
 								let noEmployeesMessage = "Aucun employé trouvé";
@@ -1455,7 +1438,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 							// Vérifier si le conteneur a déjà une grille (protection contre double rendu)
 							if (calendarContainer.find(".employees-grid-responsive").length > 0) {
-								console.warn("Grille d'employés déjà présente, abandon du rendu");
 								return;
 							}
 
@@ -1472,20 +1454,10 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 								try {
 									// Éviter les doublons
 									if (processedEmployees.has(employee_data.name)) {
-										console.log(
-											"Employé déjà traité, ignoré:",
-											employee_data.name
-										);
 										return;
 									}
 									processedEmployees.add(employee_data.name);
 
-									console.log(
-										`Création colonne employé ${index + 1}/${
-											employees.length
-										}:`,
-										employee_data.employee_name
-									);
 									createEmployeeColumn(
 										employee_data,
 										eventsByEmployee,
@@ -1499,10 +1471,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 								}
 							});
 
-							console.log(
-								"Employés effectivement affichés:",
-								processedEmployees.size
-							);
 
 							// Ajouter les écouteurs APRÈS le rendu complet
 							setTimeout(() => {
@@ -1515,7 +1483,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 							).appendTo(calendarContainer);
 						}
 
-						console.log("=== FIN CALLBACK API ===");
 					} catch (callbackError) {
 						console.error("Erreur dans le callback:", callbackError);
 						loadingMessage.remove();
@@ -1533,7 +1500,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				},
 			});
 
-			console.log("=== FIN renderEmployeeDayView (appel API lancé) ===");
 		} catch (error) {
 			console.error("Erreur générale dans renderEmployeeDayView:", error);
 			calendarContainer.empty();
@@ -1563,7 +1529,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			const totalBefore = (employeeEvents.all_day || []).length + (employeeEvents.morning || []).length + (employeeEvents.afternoon || []).length;
 			const totalAfter = cleanedEvents.all_day.length + cleanedEvents.morning.length + cleanedEvents.afternoon.length;
 			if (totalBefore > totalAfter) {
-				console.log(`Employé ${employee.name}: ${totalBefore} événements avant nettoyage, ${totalAfter} après`);
 			}
 
 			// Créer la colonne employé en utilisant les classes CSS existantes
@@ -1691,7 +1656,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	function renderEmployeeEventCard(event, container) {
 		try {
 			if (!event || !container || !event.name) {
-				console.warn("Événement/Note invalide ou conteneur manquant");
 				return;
 			}
 
@@ -1950,7 +1914,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 				if (r.message) {
 					const events = r.message;
-					console.log("Événements reçus:", events);
 
 					const morningEvents = [];
 					const afternoonEvents = [];
@@ -1962,7 +1925,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					// Étape 1: Filtrer les événements toute la journée
 					events.forEach((event) => {
 						if (isAllDayEvent(event)) {
-							console.log("Événement toute journée:", event.subject);
 							allDayEvents.push(event);
 						} else {
 							// Si ce n'est pas un événement toute la journée, l'ajouter aux événements réguliers
@@ -2207,7 +2169,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 				if (r.message) {
 					const events = r.message;
-					console.log("Événements de la semaine reçus:", events);
 
 					// Organiser les événements par jour
 					const eventsByDay = {};
@@ -2451,9 +2412,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					
 					// S'assurer que le conteneur existe
 					if (!targetContainer.length) {
-						console.warn(`Conteneur non trouvé pour ${fieldname}`);
 						// Debug: afficher la structure pour comprendre
-						console.log(`Structure HTML pour ${fieldname}:`, field.$wrapper.html());
 						return;
 					}
 					

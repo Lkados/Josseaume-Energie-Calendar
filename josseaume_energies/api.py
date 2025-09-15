@@ -1260,11 +1260,10 @@ def get_day_events_by_employees(date, team_filter=None, territory=None, employee
         
         employees = employees_result["employees"]
         
-        # CORRECTION: Récupérer tous les événements du jour (sans filtrage par employé ici car on va les répartir après)
-        # Pour la vue employés, on veut TOUS les événements puis les répartir par employé
+        # Récupérer tous les événements du jour (sans filtrage par employé ici car on va les répartir après)
         events = get_day_events(date, territory, None, event_type)
         
-        # NOUVEAU: Si un employé spécifique est sélectionné, filtrer encore plus
+        # Si un employé spécifique est sélectionné, filtrer la liste des employés
         if employee:
             # Filtrer la liste des employés pour ne garder que celui sélectionné
             employees = [emp for emp in employees if emp["name"] == employee]
@@ -1314,7 +1313,7 @@ def get_day_events_by_employees(date, team_filter=None, territory=None, employee
                         employee_ids.append(emp["name"])
                         break
 
-            # NOUVEAU: Si toujours pas trouvé, chercher dans les champs custom de l'événement
+            # Si toujours pas trouvé, chercher dans les champs custom de l'événement
             if not employee_ids:
                 # Vérifier s'il y a des champs custom employee sur l'événement
                 event_doc = frappe.get_doc("Event", event.name)
@@ -1341,8 +1340,6 @@ def get_day_events_by_employees(date, team_filter=None, territory=None, employee
                                 events_by_employee[employee_id]["morning"].append(event)
                             else:
                                 events_by_employee[employee_id]["afternoon"].append(event)
-            # SUPPRIMÉ: La logique qui assignait tous les événements non assignés à tous les employés
-            # Les événements sans participants ne s'afficheront que s'ils ont des sales_order_info
         
         # Trier les événements par heure dans chaque catégorie
         for emp_id in events_by_employee:
@@ -1353,7 +1350,7 @@ def get_day_events_by_employees(date, team_filter=None, territory=None, employee
                 key=lambda x: frappe.utils.get_datetime(x["starts_on"])
             )
         
-        # NOUVEAU: Récupérer les notes pour chaque employé
+        # Récupérer les notes pour chaque employé
         for emp_id in events_by_employee:
             try:
                 employee_notes = get_employee_notes(emp_id, date)
@@ -1496,24 +1493,6 @@ def create_employee_note(employee, note_date, title, content, notify_user=None, 
             "message": str(e)
         }
 
-@frappe.whitelist()
-def debug_notes_formats():
-    """Fonction de debug pour voir les formats de date stockés dans les notes"""
-    try:
-        # Récupérer toutes les notes publiques avec les champs custom
-        all_notes = frappe.get_all("Note",
-            filters={"public": 1},
-            fields=["name", "title", "custom_employee", "custom_note_date", "custom_time_slot"],
-            limit=10
-        )
-
-        return {
-            "status": "success",
-            "notes_found": len(all_notes),
-            "sample_notes": all_notes
-        }
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
 
 @frappe.whitelist()
 def get_employee_notes(employee, date):
@@ -1558,7 +1537,7 @@ def get_employee_notes(employee, date):
                 if notes:  # Si on trouve des notes avec ce format, on s'arrête
                     break
 
-            # FALLBACK TEMPORAIRE: Si aucune note trouvée avec les filtres, chercher par employee seulement
+            # Fallback: Si aucune note trouvée avec les filtres, chercher par employee seulement
             if not notes:
                 notes = frappe.get_all("Note",
                     filters={
