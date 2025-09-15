@@ -1496,6 +1496,25 @@ def create_employee_note(employee, note_date, title, content, notify_user=None, 
         }
 
 @frappe.whitelist()
+def debug_notes_formats():
+    """Fonction de debug pour voir les formats de date stockés dans les notes"""
+    try:
+        # Récupérer toutes les notes publiques avec les champs custom
+        all_notes = frappe.get_all("Note",
+            filters={"public": 1},
+            fields=["name", "title", "custom_employee", "custom_note_date", "custom_time_slot"],
+            limit=10
+        )
+
+        return {
+            "status": "success",
+            "notes_found": len(all_notes),
+            "sample_notes": all_notes
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@frappe.whitelist()
 def get_employee_notes(employee, date):
     """
     Récupère toutes les notes d'un employé pour une date donnée (ouvertes ET fermées)
@@ -1513,22 +1532,40 @@ def get_employee_notes(employee, date):
         has_status_field = frappe.db.has_column("Note", "custom_note_status")
         
         if has_custom_fields:
-            # Requête directe si les champs existent
-            filters = {
-                "custom_employee": employee,
-                "custom_note_date": date,
-                "public": 1
-            }
-            
-            # MODIFIÉ: Inclure toutes les notes (ouvertes ET fermées)
-            # Ne pas filtrer par statut pour garder les notes fermées visibles
-            # if has_status_field:
-            #     filters["custom_note_status"] = ["in", ["Open", ""]]  # Commenté pour inclure les fermées
-            
-            notes = frappe.get_all("Note",
-                filters=filters,
-                fields=["name", "title", "content", "custom_time_slot", "custom_note_status", "owner", "creation"]
-            )
+            # Convertir la date au bon format pour la comparaison
+            # Le calendrier peut passer 2025-09-15 mais les notes peuvent être stockées comme 15/09/2025
+            date_formats_to_try = [
+                date,  # Format original (probablement 2025-09-15)
+                frappe.utils.formatdate(date, "dd/mm/yyyy"),  # Format 15/09/2025
+                frappe.utils.formatdate(date, "yyyy-mm-dd"),  # Format 2025-09-15
+            ]
+
+            notes = []
+            # Essayer différents formats de date
+            for date_format in date_formats_to_try:
+                filters = {
+                    "custom_employee": employee,
+                    "custom_note_date": date_format,
+                    "public": 1
+                }
+
+                notes = frappe.get_all("Note",
+                    filters=filters,
+                    fields=["name", "title", "content", "custom_time_slot", "custom_note_status", "owner", "creation"]
+                )
+
+                if notes:  # Si on trouve des notes avec ce format, on s'arrête
+                    break
+
+            # FALLBACK TEMPORAIRE: Si aucune note trouvée avec les filtres, chercher par employee seulement
+            if not notes:
+                notes = frappe.get_all("Note",
+                    filters={
+                        "custom_employee": employee,
+                        "public": 1
+                    },
+                    fields=["name", "title", "content", "custom_time_slot", "custom_note_status", "custom_note_date", "owner", "creation"]
+                )
         else:
             # Recherche dans le contenu si les champs n'existent pas
             all_notes = frappe.get_all("Note",
