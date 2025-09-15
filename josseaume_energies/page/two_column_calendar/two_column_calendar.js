@@ -453,10 +453,25 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	// FONCTION: Afficher le menu contextuel pour choisir entre commande et rendez-vous
 	function showCreationMenu(date, timeSlot, employeeId = null) {
 		const formattedDate = frappe.datetime.obj_to_str(date).split(" ")[0];
-		const employeeName = employeeId ? $(`[data-employee="${employeeId}"]`).text() || 'Technicien' : 'Technicien';
+		const employeeName = employeeId ? $(`[data-employee="${employeeId}"]`).text() || '' : '';
+		
+		// Formater la date en français
+		const dateObj = new Date(date);
+		const frenchDate = dateObj.toLocaleDateString('fr-FR', {
+			weekday: 'long',
+			day: 'numeric', 
+			month: 'long',
+			year: 'numeric'
+		});
+		
+		// Construire le titre plus lisible
+		let title = `${timeSlot} - ${frenchDate}`;
+		if (employeeName) {
+			title += ` - ${employeeName}`;
+		}
 		
 		const dialog = new frappe.ui.Dialog({
-			title: `${timeSlot} - ${formattedDate} - ${employeeName}`,
+			title: title,
 			size: 'small',
 			fields: [
 				{
@@ -464,8 +479,11 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					fieldname: 'creation_choice',
 					options: `
 						<div style="text-align: center; padding: 20px;">
-							<p style="margin-bottom: 20px; font-size: 16px; color: #555;">
+							<p style="margin-bottom: 8px; font-size: 16px; color: #555;">
 								Que voulez-vous créer ?
+							</p>
+							<p style="margin-bottom: 20px; font-size: 13px; color: #6c757d; font-style: italic;">
+								Créneau : ${timeSlot}
 							</p>
 							<div style="display: flex; gap: 20px; justify-content: center;">
 								<button class="btn btn-primary btn-lg creation-choice-btn" 
