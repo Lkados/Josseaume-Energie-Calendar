@@ -1481,7 +1481,7 @@ def create_employee_note(employee, note_date, title, content, notify_user=None, 
 @frappe.whitelist()
 def get_employee_notes(employee, date):
     """
-    Récupère les notes ouvertes d'un employé pour une date donnée
+    Récupère toutes les notes d'un employé pour une date donnée (ouvertes ET fermées)
     """
     try:
         notes = []
@@ -1502,9 +1502,10 @@ def get_employee_notes(employee, date):
                 "public": 1
             }
             
-            # Filtrer seulement les notes ouvertes
-            if has_status_field:
-                filters["custom_note_status"] = ["in", ["Open", ""]]  # Open ou vide (pour compatibilité)
+            # MODIFIÉ: Inclure toutes les notes (ouvertes ET fermées)
+            # Ne pas filtrer par statut pour garder les notes fermées visibles
+            # if has_status_field:
+            #     filters["custom_note_status"] = ["in", ["Open", ""]]  # Commenté pour inclure les fermées
             
             notes = frappe.get_all("Note",
                 filters=filters,
