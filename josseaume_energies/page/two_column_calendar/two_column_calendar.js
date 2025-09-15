@@ -1660,21 +1660,32 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				// Contenu spécifique aux notes - titre, contenu et statut seulement
 				const noteContent = event.content ? sanitizeText(event.content, null) : ""; // Pas de limite de longueur
 				const noteStatus = event.custom_note_status || "Open";
-				
+				const isAutoMoved = event.custom_auto_moved === 1 || event.custom_auto_moved === "1";
+				const movedFromDate = event.custom_moved_from_date;
+
 				// Formatter le contenu pour un meilleur affichage
 				const formattedContent = noteContent.replace(/\n/g, '<br>');
-				
+
+				// Indicateur de déplacement automatique
+				const autoMoveIndicator = isAutoMoved ? `
+					<div style="color: #ff9800; font-size: 9px; margin-bottom: 3px; font-style: italic; display: flex; align-items: center;" title="Note déplacée automatiquement depuis le ${movedFromDate || 'jour précédent'}">
+						<i class="fa fa-history" style="margin-right: 4px;"></i>
+						Déplacée auto${movedFromDate ? ` (${movedFromDate})` : ''}
+					</div>
+				` : "";
+
 				cardContent = `
 					<div style="font-weight: 600; margin-bottom: 5px; color: #9c27b0;">
 						${formattedTitle}
 					</div>
+					${autoMoveIndicator}
 					${formattedContent ? `<div class="note-content">${formattedContent}</div>` : ""}
 					<div style="margin-top: 6px; display: flex; align-items: center; justify-content: space-between;">
 						<span class="note-status-badge" data-note-id="${event.name}" data-current-status="${noteStatus}" style="
-							font-size: 11px; 
-							padding: 3px 8px; 
-							background: ${noteStatus === 'Open' ? '#4caf50' : '#f44336'}; 
-							color: white; 
+							font-size: 11px;
+							padding: 3px 8px;
+							background: ${noteStatus === 'Open' ? '#4caf50' : '#f44336'};
+							color: white;
 							border-radius: 3px;
 							cursor: pointer;
 							user-select: none;

@@ -64,6 +64,10 @@ whitelist_methods = {
     "josseaume_energies.api.get_employees_with_team_filter": True,
     "josseaume_energies.api.get_day_events_by_employees": True,
     "josseaume_energies.api.get_team_options": True,
+    "josseaume_energies.api.get_employee_notes": True,
+    "josseaume_energies.api.move_open_notes_to_today": True,
+    "josseaume_energies.api.setup_note_auto_move_fields": True,
+    "josseaume_energies.api.test_move_notes_manually": True,
     
     # =====================================
     # API CALCUL DE MARGES
@@ -232,4 +236,16 @@ has_permission = {
     # Soldes clients
     "get_customer_balance": "all",
     "get_customer_transactions": "all"
+}
+
+# ========================================
+# TÂCHES PLANIFIÉES (SCHEDULER)
+# ========================================
+
+# Tâches exécutées automatiquement par le scheduler
+scheduler_events = {
+    # Tâches quotidiennes (exécutées à 00:01)
+    "daily": [
+        "josseaume_energies.api.move_open_notes_to_today"  # Déplacement automatique des notes ouvertes
+    ]
 }

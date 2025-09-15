@@ -1494,6 +1494,131 @@ def create_employee_note(employee, note_date, title, content, notify_user=None, 
 
 
 @frappe.whitelist()
+def setup_note_auto_move_fields():
+    """
+    Configure les champs custom nécessaires pour le déplacement automatique des notes
+    """
+    try:
+        result = []
+
+        # Champ pour marquer si une note a été déplacée automatiquement
+        if not frappe.db.exists("Custom Field", {"dt": "Note", "fieldname": "custom_auto_moved"}):
+            custom_field = frappe.get_doc({
+                "doctype": "Custom Field",
+                "dt": "Note",
+                "fieldname": "custom_auto_moved",
+                "label": "Déplacée automatiquement",
+                "fieldtype": "Check",
+                "default": "0",
+                "read_only": 1,
+                "hidden": 1,
+                "insert_after": "custom_note_status"
+            })
+            custom_field.insert()
+            result.append("custom_auto_moved ajouté")
+
+        # Champ pour stocker la date d'origine avant déplacement
+        if not frappe.db.exists("Custom Field", {"dt": "Note", "fieldname": "custom_moved_from_date"}):
+            custom_field = frappe.get_doc({
+                "doctype": "Custom Field",
+                "dt": "Note",
+                "fieldname": "custom_moved_from_date",
+                "label": "Déplacée depuis le",
+                "fieldtype": "Date",
+                "read_only": 1,
+                "hidden": 1,
+                "insert_after": "custom_auto_moved"
+            })
+            custom_field.insert()
+            result.append("custom_moved_from_date ajouté")
+
+        if result:
+            frappe.db.commit()
+            return {
+                "status": "success",
+                "message": f"Champs créés: {', '.join(result)}"
+            }
+        else:
+            return {
+                "status": "success",
+                "message": "Tous les champs existent déjà"
+            }
+
+    except Exception as e:
+        frappe.log_error(f"Erreur lors de la création des champs custom pour notes: {str(e)}", "Setup Note Fields Error")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+@frappe.whitelist()
+def move_open_notes_to_today():
+    """
+    Déplace automatiquement les notes ouvertes de la veille vers aujourd'hui
+    Exécuté quotidiennement à 00:01 via le scheduler
+    """
+    try:
+        yesterday = frappe.utils.add_days(frappe.utils.today(), -1)
+        today = frappe.utils.today()
+
+        # Trouver toutes les notes ouvertes d'hier avec les champs custom
+        if frappe.db.has_column("Note", "custom_note_date") and frappe.db.has_column("Note", "custom_note_status"):
+            open_notes = frappe.get_all("Note",
+                filters={
+                    "custom_note_date": yesterday,
+                    "custom_note_status": "Open",
+                    "public": 1
+                },
+                fields=["name", "title", "custom_employee"]
+            )
+
+            moved_count = 0
+            for note in open_notes:
+                try:
+                    # Déplacer la note vers aujourd'hui
+                    frappe.db.set_value("Note", note.name, "custom_note_date", today)
+
+                    # Marquer comme déplacée automatiquement
+                    frappe.db.set_value("Note", note.name, "custom_auto_moved", 1)
+                    frappe.db.set_value("Note", note.name, "custom_moved_from_date", yesterday)
+
+                    moved_count += 1
+
+                except Exception as note_error:
+                    frappe.log_error(f"Erreur lors du déplacement de la note {note.name}: {str(note_error)}", "Move Notes Error")
+
+            if moved_count > 0:
+                frappe.log_error(f"Auto-déplacement: {moved_count} notes ouvertes déplacées de {yesterday} vers {today}", "Notes Auto-Move")
+
+            return {
+                "status": "success",
+                "moved_count": moved_count,
+                "date_from": yesterday,
+                "date_to": today,
+                "message": f"{moved_count} notes déplacées vers {today}"
+            }
+        else:
+            return {
+                "status": "error",
+                "message": "Champs custom des notes non trouvés"
+            }
+
+    except Exception as e:
+        frappe.log_error(f"Erreur générale lors du déplacement automatique des notes: {str(e)}", "Move Notes Error")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+@frappe.whitelist()
+def test_move_notes_manually():
+    """
+    Fonction de test pour déplacer manuellement les notes d'hier vers aujourd'hui
+    Utile pour tester la fonctionnalité sans attendre le scheduler
+    """
+    return move_open_notes_to_today()
+
+@frappe.whitelist()
 def get_employee_notes(employee, date):
     """
     Récupère toutes les notes d'un employé pour une date donnée (ouvertes ET fermées)
@@ -1530,7 +1655,7 @@ def get_employee_notes(employee, date):
 
                 notes = frappe.get_all("Note",
                     filters=filters,
-                    fields=["name", "title", "content", "custom_time_slot", "custom_note_status", "owner", "creation"]
+                    fields=["name", "title", "content", "custom_time_slot", "custom_note_status", "custom_auto_moved", "custom_moved_from_date", "owner", "creation"]
                 )
 
                 if notes:  # Si on trouve des notes avec ce format, on s'arrête
@@ -1543,7 +1668,7 @@ def get_employee_notes(employee, date):
                         "custom_employee": employee,
                         "public": 1
                     },
-                    fields=["name", "title", "content", "custom_time_slot", "custom_note_status", "custom_note_date", "owner", "creation"]
+                    fields=["name", "title", "content", "custom_time_slot", "custom_note_status", "custom_note_date", "custom_auto_moved", "custom_moved_from_date", "owner", "creation"]
                 )
         else:
             # Recherche dans le contenu si les champs n'existent pas
