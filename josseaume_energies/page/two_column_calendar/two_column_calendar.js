@@ -1672,25 +1672,27 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			const cleanSubject = sanitizeText(event.subject) || (isNote ? "Note sans titre" : "Événement sans titre");
 			const formattedTitle = formatEventTitle(event, cleanSubject, isNote);
 
-			let eventClass, borderColor, icon, docType;
-			
+			let eventClass, borderColor, icon, docType, eventStatus;
+
 			if (isNote) {
 				// Style pour les notes
 				eventClass = "event-item employee-note";
 				borderColor = "#9c27b0"; // Violet pour les notes
 				icon = "fa-sticky-note";
 				docType = "Note";
+				eventStatus = event.custom_note_status || "Open"; // Statut pour les notes
 			} else {
 				// Style pour les événements (code existant)
 				eventClass = "event-item " + determineEventClass(event, cleanSubject);
-				
+
 				// Ajouter une classe spécifique pour les événements toute la journée
 				if (isAllDayEvent(event)) {
 					eventClass += " event-all-day";
 				}
-				
+
 				icon = "fa-calendar";
 				docType = "Event";
+				eventStatus = event.status || "Open"; // Statut pour les événements
 			}
 
 			let cardContent = "";
@@ -1729,7 +1731,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					getCleanEventInfo(event);
 
 				// Déterminer la couleur et le texte de l'étiquette de statut
-				const eventStatus = event.status || "Open";
+				// eventStatus est déjà défini plus haut
 				let statusBadgeColor, statusText;
 				
 				if (eventStatus === "Open") {
