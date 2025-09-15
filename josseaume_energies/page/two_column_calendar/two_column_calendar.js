@@ -452,16 +452,23 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 	// FONCTION: Afficher le menu contextuel pour choisir entre commande et rendez-vous
 	function showCreationMenu(date, timeSlot, employeeId = null) {
-		// Formater la date simplement
+		const formattedDate = frappe.datetime.obj_to_str(date).split(" ")[0];
+		const employeeName = employeeId ? $(`[data-employee="${employeeId}"]`).text() || '' : '';
+		
+		// Formater la date en français
 		const dateObj = new Date(date);
-		const formattedDate = dateObj.toLocaleDateString('fr-FR', {
+		const frenchDate = dateObj.toLocaleDateString('fr-FR', {
+			weekday: 'long',
 			day: 'numeric', 
-			month: 'short',
+			month: 'long',
 			year: 'numeric'
 		});
 		
-		// Titre court et simple
-		const title = `${timeSlot} - ${formattedDate}`;
+		// Construire le titre plus lisible
+		let title = `${timeSlot} - ${frenchDate}`;
+		if (employeeName) {
+			title += ` - ${employeeName}`;
+		}
 		
 		const dialog = new frappe.ui.Dialog({
 			title: title,
