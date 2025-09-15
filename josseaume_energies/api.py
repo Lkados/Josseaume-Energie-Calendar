@@ -1260,8 +1260,9 @@ def get_day_events_by_employees(date, team_filter=None, territory=None, employee
         
         employees = employees_result["employees"]
         
-        # CORRECTION: Récupérer tous les événements du jour avec TOUS les filtres
-        events = get_day_events(date, territory, employee, event_type)
+        # CORRECTION: Récupérer tous les événements du jour (sans filtrage par employé ici car on va les répartir après)
+        # Pour la vue employés, on veut TOUS les événements puis les répartir par employé
+        events = get_day_events(date, territory, None, event_type)
         
         # NOUVEAU: Si un employé spécifique est sélectionné, filtrer encore plus
         if employee:
@@ -1339,6 +1340,9 @@ def get_day_events_by_employees(date, team_filter=None, territory=None, employee
         for emp_id in events_by_employee:
             try:
                 employee_notes = get_employee_notes(emp_id, date)
+
+                # DEBUG: Log du nombre de notes trouvées
+                frappe.log_error(f"DEBUG Notes pour employé {emp_id}: {len(employee_notes)}", "DEBUG Notes")
                 
                 
                 # Organiser les notes par période
@@ -1488,9 +1492,12 @@ def get_employee_notes(employee, date):
         
         # Vérifier si les champs custom existent
         has_custom_fields = (
-            frappe.db.has_column("Note", "custom_employee") and 
+            frappe.db.has_column("Note", "custom_employee") and
             frappe.db.has_column("Note", "custom_note_date")
         )
+
+        # DEBUG: Log pour vérifier l'existence des champs
+        frappe.log_error(f"DEBUG get_employee_notes: has_custom_fields={has_custom_fields}, employee={employee}, date={date}", "DEBUG Notes Fields")
         
         has_status_field = frappe.db.has_column("Note", "custom_note_status")
         
