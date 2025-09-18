@@ -363,11 +363,11 @@ def get_day_events(date, territory=None, employee=None, event_type=None):
         # Pour le territoire, on cherche dans le sujet de l'événement
         filters.append(["subject", "like", f"%{territory}%"])
     
-    # Récupérer TOUS les événements avec les champs nécessaires (incluant le statut et custom_employee)
+    # Récupérer TOUS les événements avec les champs nécessaires (incluant le statut)
     events = frappe.get_all(
         "Event",
         filters=filters,
-        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day", "description", "status", "custom_employee"]
+        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day", "description", "status"]
     )
     
     # Filtrer par employé si spécifié
