@@ -714,14 +714,51 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				}
 			},
 			callback: function(r) {
-				if (r.message) {
-					frappe.show_alert({
-						message: 'Rendez-vous créé avec succès !',
-						indicator: 'green'
-					}, 3);
-					
-					// Rafraîchir le calendrier
-					refreshCalendar();
+				if (r.message && r.message.name) {
+					// Ajouter l'employé comme participant après la création
+					if (employee) {
+						frappe.call({
+							method: 'frappe.client.insert',
+							args: {
+								doc: {
+									doctype: 'Event Participants',
+									parent: r.message.name,
+									parenttype: 'Event',
+									parentfield: 'event_participants',
+									reference_doctype: 'Employee',
+									reference_docname: employee
+								}
+							},
+							callback: function(participant_result) {
+								if (participant_result.message) {
+									frappe.show_alert({
+										message: 'Rendez-vous créé et assigné avec succès !',
+										indicator: 'green'
+									}, 3);
+								} else {
+									frappe.show_alert({
+										message: 'Rendez-vous créé mais erreur d\'assignation',
+										indicator: 'orange'
+									}, 3);
+								}
+								// Rafraîchir le calendrier dans tous les cas
+								refreshCalendar();
+							},
+							error: function(err) {
+								frappe.show_alert({
+									message: 'Rendez-vous créé mais erreur d\'assignation',
+									indicator: 'orange'
+								}, 3);
+								refreshCalendar();
+							}
+						});
+					} else {
+						frappe.show_alert({
+							message: 'Rendez-vous créé avec succès !',
+							indicator: 'green'
+						}, 3);
+						refreshCalendar();
+					}
 				} else {
 					frappe.msgprint('Erreur lors de la création du rendez-vous');
 				}

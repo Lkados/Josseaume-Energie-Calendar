@@ -363,11 +363,11 @@ def get_day_events(date, territory=None, employee=None, event_type=None):
         # Pour le territoire, on cherche dans le sujet de l'événement
         filters.append(["subject", "like", f"%{territory}%"])
     
-    # Récupérer TOUS les événements avec les champs nécessaires (incluant le statut)
+    # Récupérer TOUS les événements avec les champs nécessaires (incluant le statut et custom_employee)
     events = frappe.get_all(
         "Event",
         filters=filters,
-        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day", "description", "status"]
+        fields=["name", "subject", "starts_on", "ends_on", "color", "all_day", "description", "status", "custom_employee"]
     )
     
     # Filtrer par employé si spécifié
@@ -1313,17 +1313,11 @@ def get_day_events_by_employees(date, team_filter=None, territory=None, employee
                         employee_ids.append(emp["name"])
                         break
             # Si toujours pas trouvé, chercher dans les champs custom de l'événement
-            if not employee_ids:
-                # Vérifier s'il y a des champs custom employee sur l'événement
-                event_doc = frappe.get_doc("Event", event.name)
-
-                # Chercher dans les champs possibles
-                for field_name in ["custom_employee", "employee", "custom_assigned_to"]:
-                    if hasattr(event_doc, field_name) and getattr(event_doc, field_name):
-                        employee_id = getattr(event_doc, field_name)
-                        if employee_id in [emp["name"] for emp in employees]:
-                            employee_ids.append(employee_id)
-                            break
+            if not employee_ids and event.get("custom_employee"):
+                # Utiliser directement le champ custom_employee si présent
+                employee_id = event.get("custom_employee")
+                if employee_id in [emp["name"] for emp in employees]:
+                    employee_ids.append(employee_id)
             
             # Ajouter l'événement aux employés correspondants
             if employee_ids:
