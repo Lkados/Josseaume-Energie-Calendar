@@ -595,6 +595,36 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				title: `Nouveau Rendez-vous - ${timeSlot} - ${formattedDate}`,
 				fields: [
 					{
+						fieldtype: 'Autocomplete',
+						fieldname: 'commune',
+						label: 'Commune',
+						options: [], // Sera rempli dynamiquement
+						onchange: function() {
+							const commune = this.get_value();
+							const customerField = appointmentDialog.get_field('customer');
+
+							if (commune) {
+								// Filtrer les clients par commune
+								customerField.get_query = function() {
+									return {
+										filters: {
+											'custom_city': commune
+										}
+									};
+								};
+								// Vider le client sélectionné si une nouvelle commune est choisie
+								appointmentDialog.set_value('customer', '');
+								appointmentDialog.set_value('customer_phone', '');
+								appointmentDialog.set_value('customer_address', '');
+							} else {
+								// Supprimer le filtre si commune est vide
+								customerField.get_query = function() {
+									return {};
+								};
+							}
+						}
+					},
+					{
 						fieldtype: 'Link',
 						fieldname: 'customer',
 						label: 'Client',
@@ -614,6 +644,10 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 										if (r.message) {
 											appointmentDialog.set_value('customer_phone', r.message.mobile_no || r.message.phone || '');
 											appointmentDialog.set_value('customer_address', r.message.primary_address || '');
+											// Remplir automatiquement la commune si pas encore remplie
+											if (!appointmentDialog.get_value('commune') && r.message.custom_city) {
+												appointmentDialog.set_value('commune', r.message.custom_city);
+											}
 										}
 									}
 								});
@@ -655,8 +689,30 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				secondary_action_label: 'Annuler'
 			});
 			
+			// Charger les communes disponibles
+			frappe.call({
+				method: 'frappe.client.get_list',
+				args: {
+					doctype: 'Customer',
+					fields: ['custom_city'],
+					filters: [['custom_city', '!=', '']],
+					order_by: 'custom_city asc',
+					limit_page_length: 0
+				},
+				callback: function(r) {
+					if (r.message) {
+						// Extraire les communes uniques
+						const communes = [...new Set(r.message.map(item => item.custom_city).filter(city => city))];
+						const communeField = appointmentDialog.get_field('commune');
+						if (communeField && communeField.set_data) {
+							communeField.set_data(communes);
+						}
+					}
+				}
+			});
+
 			appointmentDialog.show();
-			appointmentDialog.get_field('customer').set_focus();
+			appointmentDialog.get_field('commune').set_focus();
 			
 		} catch (error) {
 			console.error("Erreur lors de la création du rendez-vous:", error);
