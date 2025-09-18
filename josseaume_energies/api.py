@@ -1930,7 +1930,7 @@ def search_customers_by_commune(doctype, txt, searchfield, start, page_len, filt
     commune = filters.get("custom_city") if filters else None
 
     if not commune:
-        # Si pas de commune spécifiée, recherche normale
+        # Si pas de commune spécifiée, recherche normale (commence par)
         return frappe.db.sql("""
             SELECT name, customer_name, custom_city
             FROM `tabCustomer`
@@ -1939,12 +1939,12 @@ def search_customers_by_commune(doctype, txt, searchfield, start, page_len, filt
             ORDER BY customer_name
             LIMIT %(start)s, %(page_len)s
         """, {
-            "txt": "%" + txt + "%",
+            "txt": txt + "%",
             "start": start,
             "page_len": page_len
         })
     else:
-        # Recherche avec filtre commune
+        # Recherche avec filtre commune (commence par)
         return frappe.db.sql("""
             SELECT name, customer_name, custom_city
             FROM `tabCustomer`
@@ -1954,7 +1954,7 @@ def search_customers_by_commune(doctype, txt, searchfield, start, page_len, filt
             LIMIT %(start)s, %(page_len)s
         """, {
             "commune": commune,
-            "txt": "%" + txt + "%",
+            "txt": txt + "%",
             "start": start,
             "page_len": page_len
         })
