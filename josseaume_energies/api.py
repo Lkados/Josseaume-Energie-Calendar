@@ -1921,3 +1921,40 @@ def update_note_status(note_id, status):
             "status": "error",
             "message": str(e)
         }
+
+@frappe.whitelist()
+def search_customers_by_commune(doctype, txt, searchfield, start, page_len, filters):
+    """
+    Recherche personnalisée de clients par commune avec filtrage textuel
+    """
+    commune = filters.get("custom_city") if filters else None
+
+    if not commune:
+        # Si pas de commune spécifiée, recherche normale
+        return frappe.db.sql("""
+            SELECT name, customer_name, custom_city
+            FROM `tabCustomer`
+            WHERE name LIKE %(txt)s
+               OR customer_name LIKE %(txt)s
+            ORDER BY customer_name
+            LIMIT %(start)s, %(page_len)s
+        """, {
+            "txt": "%" + txt + "%",
+            "start": start,
+            "page_len": page_len
+        })
+    else:
+        # Recherche avec filtre commune
+        return frappe.db.sql("""
+            SELECT name, customer_name, custom_city
+            FROM `tabCustomer`
+            WHERE custom_city = %(commune)s
+              AND (name LIKE %(txt)s OR customer_name LIKE %(txt)s)
+            ORDER BY customer_name
+            LIMIT %(start)s, %(page_len)s
+        """, {
+            "commune": commune,
+            "txt": "%" + txt + "%",
+            "start": start,
+            "page_len": page_len
+        })

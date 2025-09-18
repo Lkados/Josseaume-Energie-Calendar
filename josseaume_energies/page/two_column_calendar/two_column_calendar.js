@@ -604,9 +604,10 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 							const customerField = appointmentDialog.get_field('customer');
 
 							if (commune) {
-								// Filtrer les clients par commune
-								customerField.get_query = function() {
+								// Filtrer les clients par commune avec recherche personnalisée
+								customerField.get_query = function(doc, cdt, cdn) {
 									return {
+										query: "josseaume_energies.api.search_customers_by_commune",
 										filters: {
 											'custom_city': commune
 										}

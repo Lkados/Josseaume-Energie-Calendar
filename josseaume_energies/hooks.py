@@ -122,6 +122,9 @@ whitelist_methods = {
     
     # Tests et debug
     "josseaume_energies.customer_balance.test_customer_balance": True,
+
+    # Recherche personnalisée
+    "josseaume_energies.api.search_customers_by_commune": True,
 }
 
 # ========================================
