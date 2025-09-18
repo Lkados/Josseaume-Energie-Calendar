@@ -656,11 +656,12 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 						}
 					},
 					{
-						fieldtype: 'Small Text',
-						fieldname: 'appointment_reason',
-						label: 'Motif du rendez-vous',
+						fieldtype: 'Select',
+						fieldname: 'appointment_type',
+						label: 'Type de rendez-vous',
 						reqd: 1,
-						default: 'Devis'
+						options: '\nDevis poêle granulés\nDevis poêle bois\nDevis tubage\nDevis chaudière granulés\nDevis chaudière fioul\nDevis photovoltaique\nDevis électricité\nPrévisite Technique',
+						default: 'Devis poêle granulés'
 					},
 					{
 						fieldtype: 'Data',
@@ -673,13 +674,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 						fieldname: 'customer_address',
 						label: 'Adresse',
 						read_only: 1
-					},
-					{
-						fieldtype: 'Select',
-						fieldname: 'duration',
-						label: 'Durée estimée',
-						options: '1 heure\n1h30\n2 heures\n2h30\n3 heures\nJournée complète',
-						default: '1h30'
 					}
 				],
 				primary_action_label: 'Créer Rendez-vous',
