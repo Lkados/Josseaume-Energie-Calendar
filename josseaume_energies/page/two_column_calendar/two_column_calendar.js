@@ -674,6 +674,12 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 						fieldname: 'customer_address',
 						label: 'Adresse',
 						read_only: 1
+					},
+					{
+						fieldtype: 'Small Text',
+						fieldname: 'description',
+						label: 'Description / Commentaires',
+						description: 'Informations complémentaires sur le rendez-vous'
 					}
 				],
 				primary_action_label: 'Créer Rendez-vous',
