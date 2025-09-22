@@ -645,6 +645,8 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 										if (r.message) {
 											appointmentDialog.set_value('customer_phone', r.message.mobile_no || r.message.phone || '');
 											appointmentDialog.set_value('customer_address', r.message.primary_address || '');
+											// Stocker la zone du client (territory)
+											appointmentDialog.set_value('customer_territory', r.message.territory || '');
 											// Remplir automatiquement la commune si pas encore remplie
 											if (!appointmentDialog.get_value('commune') && r.message.custom_city) {
 												appointmentDialog.set_value('commune', r.message.custom_city);
@@ -680,6 +682,12 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 						fieldname: 'description',
 						label: 'Description / Commentaires',
 						description: 'Informations complémentaires sur le rendez-vous'
+					},
+					{
+						fieldtype: 'Data',
+						fieldname: 'customer_territory',
+						label: 'Zone',
+						hidden: 1
 					}
 				],
 				primary_action_label: 'Créer Rendez-vous',
@@ -723,47 +731,67 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 	// FONCTION: Créer l'Event depuis les données du rendez-vous
 	function createEventFromAppointment(values, date, timeSlot, employee) {
+		// Mapper les types de rendez-vous aux abréviations
+		const appointmentTypeAbbreviations = {
+			'Devis poêle granulés': 'DPG',
+			'Devis poêle bois': 'DPB',
+			'Devis tubage': 'DTUB',
+			'Devis chaudière granulés': 'DCG',
+			'Devis chaudière fioul': 'DCF',
+			'Devis photovoltaique': 'DPV',
+			'Devis électricité': 'DELEC',
+			'Prévisite Technique': 'PREV'
+		};
+
+		// Obtenir l'abréviation du type de rendez-vous
+		const typeAbbreviation = appointmentTypeAbbreviations[values.appointment_type] || values.appointment_type;
+
+		// Construire le titre avec abréviation et zone
+		const zone = values.customer_territory || '';
+		const titleParts = [typeAbbreviation];
+		if (zone) {
+			titleParts.push(zone);
+		}
+		const eventTitle = titleParts.join(' - ');
+
 		// Calculer les heures de début et fin selon le créneau
 		let startTime, endTime;
-		const duration = values.duration || '1h30';
-		
+
 		switch (timeSlot) {
 			case 'Matin':
 				startTime = '09:00:00';
-				endTime = duration === 'Journée complète' ? '17:00:00' : 
-						 duration === '3 heures' ? '12:00:00' :
-						 duration === '2h30' ? '11:30:00' :
-						 duration === '2 heures' ? '11:00:00' :
-						 duration === '1h30' ? '10:30:00' : '10:00:00';
+				endTime = '12:00:00';
 				break;
 			case 'Après-midi':
 				startTime = '14:00:00';
-				endTime = duration === 'Journée complète' ? '17:00:00' :
-						 duration === '3 heures' ? '17:00:00' :
-						 duration === '2h30' ? '16:30:00' :
-						 duration === '2 heures' ? '16:00:00' :
-						 duration === '1h30' ? '15:30:00' : '15:00:00';
+				endTime = '17:00:00';
 				break;
 			default: // Journée complète
 				startTime = '09:00:00';
 				endTime = '17:00:00';
 		}
-		
+
 		const startDateTime = `${frappe.datetime.obj_to_str(date).split(" ")[0]} ${startTime}`;
 		const endDateTime = `${frappe.datetime.obj_to_str(date).split(" ")[0]} ${endTime}`;
-		
+
+		// Construire la description complète
+		let fullDescription = `Client: ${values.customer}\nTéléphone: ${values.customer_phone || 'Non renseigné'}\nAdresse: ${values.customer_address || 'Non renseigné'}`;
+		if (values.description) {
+			fullDescription += `\n\nCommentaires: ${values.description}`;
+		}
+
 		// Créer le rendez-vous via l'API
 		frappe.call({
 			method: 'frappe.client.insert',
 			args: {
 				doc: {
 					doctype: 'Event',
-					subject: `RDV: ${values.appointment_reason} - ${values.customer}`,
+					subject: eventTitle,
 					starts_on: startDateTime,
 					ends_on: endDateTime,
 					event_category: 'Event',
 					event_type: 'Public',
-					description: `Rendez-vous: ${values.appointment_reason}\nClient: ${values.customer}\nTéléphone: ${values.customer_phone || 'Non renseigné'}\nAdresse: ${values.customer_address || 'Non renseigné'}`,
+					description: fullDescription,
 					custom_employee: employee,
 					custom_customer: values.customer,
 					custom_appointment_type: 'Rendez-vous Simple',
