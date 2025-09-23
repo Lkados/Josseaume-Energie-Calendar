@@ -859,7 +859,6 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					frappe.msgprint('Erreur lors de la création du rendez-vous');
 				}
 			}
-			});
 		});
 	}
 
