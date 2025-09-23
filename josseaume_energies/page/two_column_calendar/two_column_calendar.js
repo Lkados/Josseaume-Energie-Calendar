@@ -774,79 +774,92 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		const startDateTime = `${frappe.datetime.obj_to_str(date).split(" ")[0]} ${startTime}`;
 		const endDateTime = `${frappe.datetime.obj_to_str(date).split(" ")[0]} ${endTime}`;
 
-		// Construire la description complète
-		let fullDescription = `Client: ${values.customer}\nTéléphone: ${values.customer_phone || 'Non renseigné'}\nAdresse: ${values.customer_address || 'Non renseigné'}`;
-		if (values.description) {
-			fullDescription += `\n\nCommentaires: ${values.description}`;
-		}
-
-		// Créer le rendez-vous via l'API
+		// Récupérer le nom du client au lieu de l'ID
 		frappe.call({
-			method: 'frappe.client.insert',
+			method: 'frappe.client.get_value',
 			args: {
-				doc: {
-					doctype: 'Event',
-					subject: eventTitle,
-					starts_on: startDateTime,
-					ends_on: endDateTime,
-					event_category: 'Event',
-					event_type: 'Public',
-					description: fullDescription,
-					custom_employee: employee,
-					custom_customer: values.customer,
-					custom_appointment_type: 'Rendez-vous Simple',
-					color: '#95a5a6'  // Couleur gris pour les rendez-vous simples
-				}
+				doctype: 'Customer',
+				name: values.customer,
+				fieldname: 'customer_name'
 			},
 			callback: function(r) {
-				if (r.message && r.message.name) {
-					// Ajouter l'employé comme participant après la création
-					if (employee) {
-						frappe.call({
-							method: 'frappe.client.insert',
-							args: {
-								doc: {
-									doctype: 'Event Participants',
-									parent: r.message.name,
-									parenttype: 'Event',
-									parentfield: 'event_participants',
-									reference_doctype: 'Employee',
-									reference_docname: employee
-								}
-							},
-							callback: function(participant_result) {
-								if (participant_result.message) {
-									frappe.show_alert({
-										message: 'Rendez-vous créé et assigné avec succès !',
-										indicator: 'green'
-									}, 3);
-								} else {
-									frappe.show_alert({
-										message: 'Rendez-vous créé mais erreur d\'assignation',
-										indicator: 'orange'
-									}, 3);
-								}
-								// Rafraîchir le calendrier dans tous les cas
-								refreshCalendar();
-							},
-							error: function(err) {
+				const customerName = r.message ? r.message.customer_name : values.customer;
+
+				// Construire la description complète avec le nom du client
+				let fullDescription = `Client: ${customerName}\nTéléphone: ${values.customer_phone || 'Non renseigné'}\nAdresse: ${values.customer_address || 'Non renseigné'}`;
+				if (values.description) {
+					fullDescription += `\n\nCommentaires: ${values.description}`;
+				}
+
+				// Créer le rendez-vous via l'API
+				frappe.call({
+					method: 'frappe.client.insert',
+					args: {
+						doc: {
+							doctype: 'Event',
+							subject: eventTitle,
+							starts_on: startDateTime,
+							ends_on: endDateTime,
+							event_category: 'Event',
+							event_type: 'Public',
+							description: fullDescription,
+							custom_employee: employee,
+							custom_customer: values.customer,
+							custom_appointment_type: 'Rendez-vous Simple',
+							color: '#95a5a6'  // Couleur gris pour les rendez-vous simples
+						}
+					},
+					callback: function(r) {
+						if (r.message && r.message.name) {
+							// Ajouter l'employé comme participant après la création
+							if (employee) {
+								frappe.call({
+									method: 'frappe.client.insert',
+									args: {
+										doc: {
+											doctype: 'Event Participants',
+											parent: r.message.name,
+											parenttype: 'Event',
+											parentfield: 'event_participants',
+											reference_doctype: 'Employee',
+											reference_docname: employee
+										}
+									},
+									callback: function(participant_result) {
+										if (participant_result.message) {
+											frappe.show_alert({
+												message: 'Rendez-vous créé et assigné avec succès !',
+												indicator: 'green'
+											}, 3);
+										} else {
+											frappe.show_alert({
+												message: 'Rendez-vous créé mais erreur d\'assignation',
+												indicator: 'orange'
+											}, 3);
+										}
+										// Rafraîchir le calendrier dans tous les cas
+										refreshCalendar();
+									},
+									error: function(err) {
+										frappe.show_alert({
+											message: 'Rendez-vous créé mais erreur d\'assignation',
+											indicator: 'orange'
+										}, 3);
+										refreshCalendar();
+									}
+								});
+							} else {
 								frappe.show_alert({
-									message: 'Rendez-vous créé mais erreur d\'assignation',
-									indicator: 'orange'
+									message: 'Rendez-vous créé avec succès !',
+									indicator: 'green'
 								}, 3);
 								refreshCalendar();
 							}
-						});
-					} else {
-						frappe.show_alert({
-							message: 'Rendez-vous créé avec succès !',
-							indicator: 'green'
-						}, 3);
-						refreshCalendar();
+						} else {
+							frappe.msgprint('Erreur lors de la création du rendez-vous');
+						}
 					}
-				} else {
-					frappe.msgprint('Erreur lors de la création du rendez-vous');
-				}
+				});
 			}
 		});
 	}
