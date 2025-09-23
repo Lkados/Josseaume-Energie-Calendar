@@ -644,7 +644,17 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 									callback: function(r) {
 										if (r.message) {
 											appointmentDialog.set_value('customer_phone', r.message.mobile_no || r.message.phone || '');
-											appointmentDialog.set_value('customer_address', r.message.primary_address || '');
+
+											// Construire l'adresse complète avec rue, code postal et commune
+											let fullAddress = r.message.custom_street_address || r.message.primary_address || '';
+											if (r.message.custom_postal_code) {
+												fullAddress += fullAddress ? ', ' + r.message.custom_postal_code : r.message.custom_postal_code;
+											}
+											if (r.message.custom_city) {
+												fullAddress += fullAddress ? ' ' + r.message.custom_city : r.message.custom_city;
+											}
+											appointmentDialog.set_value('customer_address', fullAddress);
+
 											// Stocker la zone du client (territory)
 											appointmentDialog.set_value('customer_territory', r.message.territory || '');
 											// Stocker le nom du client
@@ -1366,6 +1376,21 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				customerAppareil = sanitizeText(event.sales_order_info.customer_appareil) || "";
 				customerCamion = sanitizeText(event.sales_order_info.customer_camion) || "";
 
+				// Construire l'adresse complète depuis les champs sales_order_info
+				let addressParts = [];
+				if (event.sales_order_info.customer_street_address) {
+					addressParts.push(sanitizeText(event.sales_order_info.customer_street_address));
+				}
+				if (event.sales_order_info.customer_postal_code) {
+					addressParts.push(sanitizeText(event.sales_order_info.customer_postal_code));
+				}
+				if (event.sales_order_info.customer_city) {
+					addressParts.push(sanitizeText(event.sales_order_info.customer_city));
+				}
+				if (addressParts.length > 0) {
+					customerAddress = addressParts.join(", ");
+				}
+
 			} else if (event.event_participants && Array.isArray(event.event_participants)) {
 				// Priorité 2: Fallback sur les participants de l'événement
 				for (const participant of event.event_participants) {
@@ -1413,7 +1438,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					}
 				}
 
-				// Extraire l'adresse
+				// Extraire l'adresse (elle peut déjà contenir rue, CP et ville)
 				if (!customerAddress) {
 					const addressMatch = event.description.match(/Adresse:\s*(.+?)(?:\n|$)/i);
 					if (addressMatch) {

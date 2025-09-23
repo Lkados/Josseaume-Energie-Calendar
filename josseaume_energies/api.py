@@ -613,8 +613,11 @@ def get_calendar_events(year, month, territory=None, employee=None, event_type=N
                     customer_extra_data = {}
                     if sales_order_data.customer:
                         customer_extra_data = frappe.db.get_value("Customer", sales_order_data.customer, [
-                            "custom_appareil", 
-                            "custom_camion"
+                            "custom_appareil",
+                            "custom_camion",
+                            "custom_street_address",
+                            "custom_postal_code",
+                            "custom_city"
                         ], as_dict=True) or {}
                     
                     event["sales_order_info"] = {
@@ -626,7 +629,10 @@ def get_calendar_events(year, month, territory=None, employee=None, event_type=N
                         "territory": sales_order_data.territory or "",
                         # NOUVEAUX CHAMPS CLIENT
                         "customer_appareil": customer_extra_data.get("custom_appareil") or "",
-                        "customer_camion": customer_extra_data.get("custom_camion") or ""
+                        "customer_camion": customer_extra_data.get("custom_camion") or "",
+                        "customer_street_address": customer_extra_data.get("custom_street_address") or "",
+                        "customer_postal_code": customer_extra_data.get("custom_postal_code") or "",
+                        "customer_city": customer_extra_data.get("custom_city") or ""
                     }
             except Exception as e:
                 # Si la commande n'existe plus ou erreur, continuer sans les infos
@@ -741,8 +747,11 @@ def get_week_events(start_date, end_date, territory=None, employee=None, event_t
                     customer_extra_data = {}
                     if sales_order_data.customer:
                         customer_extra_data = frappe.db.get_value("Customer", sales_order_data.customer, [
-                            "custom_appareil", 
-                            "custom_camion"
+                            "custom_appareil",
+                            "custom_camion",
+                            "custom_street_address",
+                            "custom_postal_code",
+                            "custom_city"
                         ], as_dict=True) or {}
                     
                     event["sales_order_info"] = {
@@ -754,7 +763,10 @@ def get_week_events(start_date, end_date, territory=None, employee=None, event_t
                         "territory": sales_order_data.territory or "",
                         # NOUVEAUX CHAMPS CLIENT
                         "customer_appareil": customer_extra_data.get("custom_appareil") or "",
-                        "customer_camion": customer_extra_data.get("custom_camion") or ""
+                        "customer_camion": customer_extra_data.get("custom_camion") or "",
+                        "customer_street_address": customer_extra_data.get("custom_street_address") or "",
+                        "customer_postal_code": customer_extra_data.get("custom_postal_code") or "",
+                        "customer_city": customer_extra_data.get("custom_city") or ""
                     }
             except Exception as e:
                 # Si la commande n'existe plus ou erreur, continuer sans les infos
