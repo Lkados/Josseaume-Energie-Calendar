@@ -1346,6 +1346,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		let comments = "";
 		let customerAppareil = "";
 		let customerCamion = "";
+		let customerAddress = "";
 
 		try {
 
@@ -1411,6 +1412,14 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 						comments = sanitizeText(descriptionMatch[1].trim());
 					}
 				}
+
+				// Extraire l'adresse
+				if (!customerAddress) {
+					const addressMatch = event.description.match(/Adresse:\s*(.+?)(?:\n|$)/i);
+					if (addressMatch) {
+						customerAddress = sanitizeText(addressMatch[1].trim());
+					}
+				}
 			}
 
 			// NOUVEAU: Récupération alternative des champs client depuis la description
@@ -1446,7 +1455,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		} catch (error) {
 		}
 
-		return { clientName, technicianName, comments, customerAppareil, customerCamion };
+		return { clientName, technicianName, comments, customerAppareil, customerCamion, customerAddress };
 	}
 
 	// Fonction pour vérifier si un événement est toute la journée
@@ -1848,7 +1857,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				`;
 			} else {
 				// Contenu spécifique aux événements (code existant)
-				const { clientName, technicianName, comments, customerAppareil, customerCamion } =
+				const { clientName, technicianName, comments, customerAppareil, customerCamion, customerAddress } =
 					getCleanEventInfo(event);
 
 				// Déterminer la couleur et le texte de l'étiquette de statut
@@ -1913,6 +1922,14 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 							? `<div style="color: #6c757d; font-size: 10px; margin-top: 3px; font-style: italic; line-height: 1.3; word-wrap: break-word;"><i class="fa fa-comment" style="margin-right: 4px;"></i> ${comments}</div>`
 							: ""
 					}
+					${
+						customerAddress && customerAddress !== "Non renseigné"
+							? `<div class="map-link" data-address="${customerAddress}" style="color: #2196f3; font-size: 10px; margin-top: 3px; cursor: pointer; display: inline-flex; align-items: center;" title="Ouvrir dans Maps">
+								<i class="fa fa-map-marker" style="margin-right: 4px;"></i>
+								<span style="text-decoration: underline;">Ouvrir dans Maps</span>
+							</div>`
+							: ""
+					}
 				`;
 			}
 
@@ -1936,13 +1953,40 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			// Ajouter l'interaction au clic
 			eventCard.on("click", function (e) {
 				try {
+					// Si c'est un clic sur le lien map
+					if ($(e.target).closest('.map-link').length > 0) {
+						e.stopPropagation();
+						const address = $(e.target).closest('.map-link').data('address');
+						if (address && address !== "Non renseigné") {
+							// Encoder l'adresse pour l'URL
+							const encodedAddress = encodeURIComponent(address);
+
+							// Détecter si on est sur mobile/tablette
+							const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+							if (isMobile) {
+								// Sur mobile, essayer d'ouvrir dans l'app native (Google Maps ou plan)
+								// Format universel qui fonctionne avec Google Maps, Apple Plans, Waze, etc.
+								window.open(`geo:0,0?q=${encodedAddress}`, '_blank');
+								// Fallback vers Google Maps web si l'app ne s'ouvre pas
+								setTimeout(() => {
+									window.open(`https://maps.google.com/maps?q=${encodedAddress}`, '_blank');
+								}, 500);
+							} else {
+								// Sur desktop, ouvrir Google Maps dans un nouvel onglet
+								window.open(`https://maps.google.com/maps?q=${encodedAddress}`, '_blank');
+							}
+						}
+						return;
+					}
+
 					// Si c'est un clic sur le badge de statut d'une note
 					if ($(e.target).hasClass("note-status-badge")) {
 						e.stopPropagation();
 						const noteId = $(e.target).data("note-id");
 						const currentStatus = $(e.target).data("current-status");
 						const newStatus = currentStatus === "Open" ? "Closed" : "Open";
-						
+
 						// Mettre à jour le statut
 						frappe.call({
 							method: "josseaume_energies.api.update_note_status",
@@ -2141,7 +2185,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		}
 
 		// Récupérer les informations depuis les données directes de la commande client
-		const { clientName, technicianName, comments, customerAppareil, customerCamion } =
+		const { clientName, technicianName, comments, customerAppareil, customerCamion, customerAddress } =
 			getCleanEventInfo(event);
 
 		// Déterminer la couleur et le texte de l'étiquette de statut
@@ -2201,12 +2245,38 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 						: ""
 				}
 				${comments ? `<div class="event-comments"><i class="fa fa-comment"></i> ${comments}</div>` : ""}
+				${
+					customerAddress && customerAddress !== "Non renseigné"
+						? `<div class="map-link" data-address="${customerAddress}" style="color: #2196f3; font-size: 10px; margin-top: 3px; cursor: pointer;" title="Ouvrir dans Maps">
+							<i class="fa fa-map-marker"></i> Ouvrir dans Maps
+						</div>`
+						: ""
+				}
 			</div>
 		`).appendTo(container);
 
 		// Ajouter l'interaction au clic
-		eventCard.on("click", function () {
-			frappe.set_route("Form", "Event", event.name);
+		eventCard.on("click", function (e) {
+			// Si c'est un clic sur le lien map
+			if ($(e.target).closest('.map-link').length > 0) {
+				e.stopPropagation();
+				const address = $(e.target).closest('.map-link').data('address');
+				if (address && address !== "Non renseigné") {
+					const encodedAddress = encodeURIComponent(address);
+					const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+					if (isMobile) {
+						window.open(`geo:0,0?q=${encodedAddress}`, '_blank');
+						setTimeout(() => {
+							window.open(`https://maps.google.com/maps?q=${encodedAddress}`, '_blank');
+						}, 500);
+					} else {
+						window.open(`https://maps.google.com/maps?q=${encodedAddress}`, '_blank');
+					}
+				}
+			} else {
+				frappe.set_route("Form", "Event", event.name);
+			}
 		});
 	}
 
@@ -2417,7 +2487,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		}
 
 		// Récupérer les informations depuis les données directes de la commande client
-		const { clientName, technicianName, comments, customerAppareil, customerCamion } =
+		const { clientName, technicianName, comments, customerAppareil, customerCamion, customerAddress } =
 			getCleanEventInfo(event);
 
 		// Déterminer la couleur et le texte de l'étiquette de statut
@@ -2478,12 +2548,38 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 						: ""
 				}
 				${comments ? `<div class="event-comments"><i class="fa fa-comment"></i> ${comments}</div>` : ""}
+				${
+					customerAddress && customerAddress !== "Non renseigné"
+						? `<div class="map-link" data-address="${customerAddress}" style="color: #2196f3; font-size: 10px; margin-top: 3px; cursor: pointer;" title="Ouvrir dans Maps">
+							<i class="fa fa-map-marker"></i> Ouvrir dans Maps
+						</div>`
+						: ""
+				}
 			</div>
 		`).appendTo(container);
 
 		// Ajouter l'interaction au clic
-		eventElement.on("click", function () {
-			frappe.set_route("Form", "Event", event.name);
+		eventElement.on("click", function (e) {
+			// Si c'est un clic sur le lien map
+			if ($(e.target).closest('.map-link').length > 0) {
+				e.stopPropagation();
+				const address = $(e.target).closest('.map-link').data('address');
+				if (address && address !== "Non renseigné") {
+					const encodedAddress = encodeURIComponent(address);
+					const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+					if (isMobile) {
+						window.open(`geo:0,0?q=${encodedAddress}`, '_blank');
+						setTimeout(() => {
+							window.open(`https://maps.google.com/maps?q=${encodedAddress}`, '_blank');
+						}, 500);
+					} else {
+						window.open(`https://maps.google.com/maps?q=${encodedAddress}`, '_blank');
+					}
+				}
+			} else {
+				frappe.set_route("Form", "Event", event.name);
+			}
 		});
 	}
 
