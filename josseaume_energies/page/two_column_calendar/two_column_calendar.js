@@ -1374,14 +1374,32 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				}
 			}
 
-			// AMÉLIORATION: Récupération alternative des commentaires depuis la description de l'événement
-			if (!comments && event.description) {
-				const descriptionMatch = event.description.match(
-					/<strong>Commentaires:<\/strong>\s*([^<]+)/i
-				);
-				if (descriptionMatch) {
-					comments = sanitizeText(descriptionMatch[1].trim());
+			// AMÉLIORATION: Récupération alternative depuis la description de l'événement
+			if (event.description) {
+				// Extraire le nom du client si pas déjà trouvé
+				if (!clientName) {
+					const clientMatch = event.description.match(/Client:\s*(.+?)(?:\n|$)/i);
+					if (clientMatch) {
+						clientName = sanitizeText(clientMatch[1].trim());
 					}
+				}
+
+				// Extraire les commentaires
+				if (!comments) {
+					// Chercher d'abord avec balises HTML
+					let descriptionMatch = event.description.match(
+						/<strong>Commentaires:<\/strong>\s*([^<]+)/i
+					);
+					// Si pas trouvé, chercher sans balises HTML
+					if (!descriptionMatch) {
+						descriptionMatch = event.description.match(
+							/Commentaires:\s*(.+?)(?:\n|$)/i
+						);
+					}
+					if (descriptionMatch) {
+						comments = sanitizeText(descriptionMatch[1].trim());
+					}
+				}
 			}
 
 			// NOUVEAU: Récupération alternative des champs client depuis la description
