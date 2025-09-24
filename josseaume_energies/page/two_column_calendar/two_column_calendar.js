@@ -1848,6 +1848,11 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			const formattedTitle = formatEventTitle(event, cleanSubject, isNote);
 		console.log('formattedTitle from formatEventTitle:', formattedTitle);
 
+		// Convertir l'objet en texte simple pour l'instant (sera remplacé par HTML après)
+		const titleText = typeof formattedTitle === 'object' && formattedTitle.type ?
+			(formattedTitle.zone ? `${formattedTitle.type} - ${formattedTitle.zone}` : formattedTitle.type) :
+			formattedTitle;
+
 			let eventClass, borderColor, icon, docType, eventStatus, noteStatus;
 
 			if (isNote) {
@@ -1893,9 +1898,12 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					</div>
 				` : "";
 
+				// Créer le HTML du titre (pour les notes, c'est juste le texte)
+				const titleHtml = createTitleHTML(formattedTitle);
+
 				cardContent = `
 					<div style="font-weight: 600; margin-bottom: 5px; color: #9c27b0;">
-						${formattedTitle}
+						${titleHtml}
 					</div>
 					${autoMoveIndicator}
 					${formattedContent ? `<div class="note-content">${formattedContent}</div>` : ""}
@@ -1937,9 +1945,12 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					statusText = eventStatus;
 				}
 
+				// Créer le HTML du titre avec la zone en bleu
+				const titleHtml = createTitleHTML(formattedTitle);
+
 				cardContent = `
 					<div style="font-weight: 600; margin-bottom: 3px; color:rgb(165, 165, 165); display: flex; justify-content: space-between; align-items: center;">
-						<span><i class="fa ${icon}" style="margin-right: 4px;"></i>${cleanSubject}</span>
+						<span><i class="fa ${icon}" style="margin-right: 4px;"></i>${titleHtml}</span>
 						<span class="event-status-badge" style="
 							font-size: 10px;
 							padding: 2px 6px;
@@ -2547,6 +2558,13 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		// Utiliser la même logique de détection que pour les autres vues
 		const cleanSubject = sanitizeText(event.subject) || "Événement sans titre";
 		const formattedTitle = formatEventTitle(event, cleanSubject, false);
+		console.log('formattedTitle from formatEventTitle:', formattedTitle);
+
+		// Convertir l'objet en texte simple pour l'instant (sera remplacé par HTML après)
+		const titleText = typeof formattedTitle === 'object' && formattedTitle.type ?
+			(formattedTitle.zone ? `${formattedTitle.type} - ${formattedTitle.zone}` : formattedTitle.type) :
+			formattedTitle;
+
 		let eventClass = "event-item week-event " + determineEventClass(event, cleanSubject);
 
 		// Ajouter une classe spécifique pour les événements toute la journée
