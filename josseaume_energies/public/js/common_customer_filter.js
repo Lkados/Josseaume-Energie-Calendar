@@ -137,6 +137,7 @@ josseaume.customer_filter = {
 
                         // Événement de changement
                         frm.commune_input.on('input change', function() {
+                            console.log('📝 Commune input changed, valeur:', $(this).val());
                             setTimeout(() => {
                                 josseaume.customer_filter.on_commune_change(frm, config);
                             }, 300);
@@ -193,10 +194,14 @@ josseaume.customer_filter = {
 
         frm.set_query(config.customer_field, function(doc, cdt, cdn) {
             const commune = frm.commune_field ? frm.commune_field.get_value() : null;
-            console.log('set_query appelée - commune actuelle:', commune);
+            console.log('🔍 set_query EXECUTÉE - commune actuelle:', commune);
+            console.log('🔍 frm.commune_field exists:', !!frm.commune_field);
+            console.log('🔍 doc:', doc);
+            console.log('🔍 cdt:', cdt);
+            console.log('🔍 cdn:', cdn);
 
             if (commune && commune.trim()) {
-                console.log('Filtrage par commune activé:', commune.trim());
+                console.log('✅ Filtrage par commune ACTIVÉ:', commune.trim());
                 // Filtrage par commune avec recherche par préfixe comme dans le calendrier
                 const queryConfig = {
                     query: 'josseaume_energies.api.search_customers_by_commune',
@@ -204,16 +209,30 @@ josseaume.customer_filter = {
                         'custom_city': commune.trim() // Utiliser exactement le même nom que dans le calendrier
                     }
                 };
-                console.log('Configuration de la query:', queryConfig);
+                console.log('✅ Configuration de la query retournée:', JSON.stringify(queryConfig));
                 return queryConfig;
             } else {
-                console.log('Pas de filtre commune, affichage de tous les clients');
+                console.log('❌ Pas de filtre commune, affichage de tous les clients');
                 // Pas de filtre spécifique - retourner tous les clients
                 return {};
             }
         });
 
         console.log('set_query configurée pour:', config.customer_field);
+
+        // AJOUT: Fonction de test pour vérifier le filtrage
+        window.test_commune_filtering = function() {
+            console.log('🧪 Test manuel du filtrage');
+            console.log('🧪 Commune field exists:', !!frm.commune_field);
+            console.log('🧪 Commune current value:', frm.commune_field ? frm.commune_field.get_value() : 'N/A');
+            console.log('🧪 Input element value:', frm.commune_input ? frm.commune_input.val() : 'N/A');
+
+            // Tester la query directement
+            if (frm.commune_field) {
+                const testQuery = frm.get_query ? frm.get_query(config.customer_field) : 'frm.get_query not found';
+                console.log('🧪 Current query for customer field:', testQuery);
+            }
+        };
     },
 
     /**
@@ -242,19 +261,24 @@ josseaume.customer_filter = {
      */
     on_commune_change: function(frm, config) {
         const commune = frm.commune_field ? frm.commune_field.get_value() : null;
+        console.log('🔄 on_commune_change appelée - commune:', commune);
+        console.log('🔄 frm.commune_field:', frm.commune_field);
+        console.log('🔄 config:', config);
 
         if (config.auto_clear && commune !== this.last_commune) {
             // Effacer la sélection de client si la commune a changé
+            console.log('🗑️ Clearing customer field, commune changed from', this.last_commune, 'to', commune);
             frm.set_value(config.customer_field, null);
             this.last_commune = commune;
         }
 
         // Rafraîchir le champ client pour appliquer le nouveau filtre
-        console.log('Tentative de rafraîchissement du champ:', config.customer_field);
+        console.log('🔄 Tentative de rafraîchissement du champ:', config.customer_field);
+        console.log('🔄 Current commune value for filtering:', commune);
 
         // La query est maintenant mise à jour automatiquement lors du prochain clic sur le champ
         // Pas besoin de forcer le refresh, ERPNext le fera automatiquement
-        console.log('Filtre de commune mis à jour, la query sera appliquée au prochain clic sur le champ client');
+        console.log('✅ Filtre de commune mis à jour, la query sera appliquée au prochain clic sur le champ client');
     },
 
     /**

@@ -2017,7 +2017,9 @@ def search_customers_by_commune(doctype, txt, searchfield, start, page_len, filt
     Recherche personnalisée de clients par commune avec filtrage textuel
     Fonctionne exactement comme dans la création de rendez-vous
     """
+    frappe.logger().info(f"🔍 search_customers_by_commune called with txt='{txt}', filters='{filters}'")
     commune = filters.get("custom_city") if filters else None
+    frappe.logger().info(f"🔍 Extracted commune: '{commune}'")
 
     if not commune:
         # Si pas de commune spécifiée, recherche normale (commence par)
