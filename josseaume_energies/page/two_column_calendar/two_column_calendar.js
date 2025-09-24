@@ -1767,7 +1767,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			// Type de commande depuis la description
 			if (event.sales_order_info.type) {
 				const rawType = event.sales_order_info.type;
-				
+
 				// Formater le type pour une meilleure lisibilité
 				const typeLower = rawType.toLowerCase();
 				if (typeLower.includes("entretien")) {
@@ -1790,24 +1790,41 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			}
 		}
 
-		// Construire le titre formaté simple avec zone en bleu
+		// Construire le titre formaté simple
 		let formattedTitle = "";
 
 		if (type && zone) {
-			// Type en couleur neutre, zone en bleu
-			formattedTitle = `${type} - <span style="color: #2196f3; font-weight: 600;">${zone}</span>`;
+			// Retourner un objet avec type et zone séparés pour le formatage HTML
+			return { type: type, zone: zone, hasZone: true };
 		} else if (type) {
-			// Seulement le type en couleur neutre
-			formattedTitle = type;
+			// Seulement le type
+			return { type: type, zone: null, hasZone: false };
 		} else if (zone) {
-			// Seulement la zone en bleu
-			formattedTitle = `<span style="color: #2196f3; font-weight: 600;">${zone}</span>`;
+			// Seulement la zone
+			return { type: null, zone: zone, hasZone: true };
 		} else {
 			// Si aucune info, garder le sujet original
-			formattedTitle = cleanSubject;
+			return { type: cleanSubject, zone: null, hasZone: false };
+		}
+	}
+
+	// FONCTION pour créer le HTML du titre avec zone en bleu
+	function createTitleHTML(titleObj) {
+		if (typeof titleObj === 'string') {
+			return titleObj;
 		}
 
-		return formattedTitle;
+		if (titleObj.type && titleObj.zone) {
+			// Type en gris, zone en bleu
+			return `${titleObj.type} - <span style="color: #2196f3; font-weight: 600;">${titleObj.zone}</span>`;
+		} else if (titleObj.zone) {
+			// Seulement la zone en bleu
+			return `<span style="color: #2196f3; font-weight: 600;">${titleObj.zone}</span>`;
+		} else if (titleObj.type) {
+			// Seulement le type
+			return titleObj.type;
+		}
+		return '';
 	}
 
 	// FONCTION AMÉLIORÉE: renderEmployeeEventCard avec affichage des commentaires et nouveaux champs client
@@ -2247,17 +2264,17 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
 					<span class="event-id">${event.name}</span>
 					<span class="event-status-badge" style="
-						font-size: 10px; 
-						padding: 2px 6px; 
-						background: ${statusBadgeColor}; 
-						color: white; 
+						font-size: 10px;
+						padding: 2px 6px;
+						background: ${statusBadgeColor};
+						color: white;
 						border-radius: 3px;
 						font-weight: 500;
 					">
 						${statusText}
 					</span>
 				</div>
-				<span class="event-title">${formattedTitle}</span>
+				<span class="event-title"></span>
 				${
 					isAllDayEvent(event)
 						? '<span class="event-all-day-indicator"><i class="fa fa-calendar-day"></i> Toute la journée</span>'
@@ -2289,6 +2306,10 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				}
 			</div>
 		`).appendTo(container);
+
+		// Insérer le titre formaté avec HTML pour la zone bleue
+		const titleHtml = createTitleHTML(formattedTitle);
+		eventCard.find('.event-title').html(titleHtml);
 
 		// Ajouter l'interaction au clic
 		eventCard.on("click", function (e) {
@@ -2547,7 +2568,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		const eventElement = $(`
 			<div class="${eventClass}" data-event-id="${event.name}" data-status="${eventStatus}">
 				<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
-					<div class="event-title" style="flex: 1;">${formattedTitle}</div>
+					<div class="event-title" style="flex: 1;"></div>
 					<span class="event-status-badge" style="
 						font-size: 9px; 
 						padding: 2px 5px; 
@@ -2592,6 +2613,10 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				}
 			</div>
 		`).appendTo(container);
+
+		// Insérer le titre formaté avec HTML pour la zone bleue
+		const titleHtml = createTitleHTML(formattedTitle);
+		eventElement.find('.event-title').html(titleHtml);
 
 		// Ajouter l'interaction au clic
 		eventElement.on("click", function (e) {
