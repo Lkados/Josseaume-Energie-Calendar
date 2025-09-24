@@ -39,7 +39,7 @@ josseaume.customer_filter = {
      */
     add_commune_field: function(frm, config) {
         // Vérifier si le champ existe déjà
-        if (frm.fields_dict[config.commune_field]) {
+        if (frm.commune_container || frm.commune_field) {
             return;
         }
 
@@ -50,26 +50,43 @@ josseaume.customer_filter = {
             return;
         }
 
-        // Créer le champ commune
-        const commune_field = frappe.ui.form.make_control({
-            df: {
-                fieldtype: 'Autocomplete',
-                fieldname: config.commune_field,
-                label: 'Filtrer par Commune',
-                placeholder: 'Tapez pour rechercher une commune...',
-                options: [], // Sera rempli dynamiquement
-                description: 'Sélectionnez une commune pour filtrer les clients'
+        // Créer un conteneur pour le champ commune
+        const commune_container = $(`
+            <div class="frappe-control" style="margin-bottom: 15px;">
+                <div class="form-group">
+                    <label class="control-label" style="padding-right: 0px;">Filtrer par Commune</label>
+                    <div class="control-input-wrapper">
+                        <div class="control-input" style="position: relative;">
+                            <input type="text" class="input-with-feedback form-control"
+                                   placeholder="Tapez pour rechercher une commune..."
+                                   autocomplete="off"
+                                   data-fieldname="${config.commune_field}"
+                                   style="padding-right: 30px;">
+                        </div>
+                    </div>
+                    <p class="help-box small text-muted">Sélectionnez une commune pour filtrer les clients</p>
+                </div>
+            </div>
+        `);
+
+        // Insérer le conteneur avant le champ client
+        commune_container.insertBefore(target_field.wrapper);
+
+        // Stocker les références
+        frm.commune_container = commune_container;
+        frm.commune_input = commune_container.find('input[data-fieldname="' + config.commune_field + '"]');
+
+        // Créer un objet commune_field compatible
+        frm.commune_field = {
+            input: frm.commune_input[0],
+            wrapper: commune_container[0],
+            get_value: function() {
+                return frm.commune_input.val() || '';
             },
-            parent: target_field.wrapper.parent(),
-            only_input: false
-        });
-
-        // Insérer le champ avant le champ client
-        $(commune_field.wrapper).insertBefore(target_field.wrapper);
-        commune_field.make_input();
-
-        // Stocker la référence
-        frm.commune_field = commune_field;
+            set_value: function(value) {
+                frm.commune_input.val(value || '');
+            }
+        };
 
         // Charger les communes disponibles
         this.load_communes(frm, config);
@@ -96,8 +113,8 @@ josseaume.customer_filter = {
                         .sort();
 
                     // Mettre à jour les options du champ autocomplete
-                    if (frm.commune_field && frm.commune_field.input) {
-                        $(frm.commune_field.input).autocomplete({
+                    if (frm.commune_input && frm.commune_input.length) {
+                        frm.commune_input.autocomplete({
                             source: communes,
                             minLength: 1,
                             select: function(event, ui) {
@@ -144,8 +161,8 @@ josseaume.customer_filter = {
         const self = this;
 
         // Événement sur changement de commune
-        if (frm.commune_field) {
-            frm.commune_field.input.addEventListener('input', function() {
+        if (frm.commune_input && frm.commune_input.length) {
+            frm.commune_input.on('input', function() {
                 setTimeout(() => {
                     self.on_commune_change(frm, config);
                 }, 300); // Délai pour éviter trop d'appels
@@ -180,7 +197,7 @@ josseaume.customer_filter = {
      * Ajoute un bouton pour effacer le filtre
      */
     add_clear_button: function(frm, config) {
-        if (!frm.commune_field || !frm.commune_field.wrapper) return;
+        if (!frm.commune_container) return;
 
         const clear_btn = $(`
             <button class="btn btn-xs btn-default" title="Effacer le filtre commune"
@@ -189,7 +206,7 @@ josseaume.customer_filter = {
             </button>
         `);
 
-        $(frm.commune_field.wrapper).append(clear_btn);
+        frm.commune_container.find('.control-input').append(clear_btn);
 
         clear_btn.on('click', function() {
             frm.commune_field.set_value('');
