@@ -1810,13 +1810,17 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 	// FONCTION pour créer le HTML du titre avec zone en bleu
 	function createTitleHTML(titleObj) {
+		console.log('createTitleHTML called with:', titleObj);
+
 		if (typeof titleObj === 'string') {
 			return titleObj;
 		}
 
 		if (titleObj.type && titleObj.zone) {
 			// Type en gris, zone en bleu
-			return `${titleObj.type} - <span style="color: #2196f3; font-weight: 600;">${titleObj.zone}</span>`;
+			const htmlResult = `${titleObj.type} - <span style="color: #2196f3; font-weight: 600;">${titleObj.zone}</span>`;
+			console.log('Generated HTML:', htmlResult);
+			return htmlResult;
 		} else if (titleObj.zone) {
 			// Seulement la zone en bleu
 			return `<span style="color: #2196f3; font-weight: 600;">${titleObj.zone}</span>`;
@@ -2309,7 +2313,11 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 		// Insérer le titre formaté avec HTML pour la zone bleue
 		const titleHtml = createTitleHTML(formattedTitle);
-		eventCard.find('.event-title').html(titleHtml);
+		console.log('Inserting titleHtml into eventCard:', titleHtml);
+		const titleElement = eventCard.find('.event-title');
+		console.log('Title element found:', titleElement.length);
+		titleElement.html(titleHtml);
+		console.log('Title element after html():', titleElement.html());
 
 		// Ajouter l'interaction au clic
 		eventCard.on("click", function (e) {
@@ -2616,7 +2624,11 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 		// Insérer le titre formaté avec HTML pour la zone bleue
 		const titleHtml = createTitleHTML(formattedTitle);
-		eventElement.find('.event-title').html(titleHtml);
+		console.log('Inserting titleHtml into eventElement:', titleHtml);
+		const titleElement = eventElement.find('.event-title');
+		console.log('Title element found:', titleElement.length);
+		titleElement.html(titleHtml);
+		console.log('Title element after html():', titleElement.html());
 
 		// Ajouter l'interaction au clic
 		eventElement.on("click", function (e) {
