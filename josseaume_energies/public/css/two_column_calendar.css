@@ -648,7 +648,7 @@ body.dark .event-comments {
 /* Thème clair */
 .client-info,
 .customer {
-	color: #2196f3;
+	color: #666;
 }
 
 .technician-info,
@@ -659,7 +659,7 @@ body.dark .event-comments {
 /* Thème sombre */
 body.dark .client-info,
 body.dark .customer {
-	color: #64b5f6;
+	color: #aaa;
 }
 
 body.dark .technician-info,

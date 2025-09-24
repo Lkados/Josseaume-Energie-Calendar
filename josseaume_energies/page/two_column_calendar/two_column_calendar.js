@@ -1974,7 +1974,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					}
 					${
 						clientName
-							? `<div style="color: #2196f3; font-size: 11px; margin-bottom: 2px;"><i class="fa fa-user" style="margin-right: 4px;"></i> ${clientName}</div>`
+							? `<div style="color: #666; font-size: 11px; margin-bottom: 2px;"><i class="fa fa-user" style="margin-right: 4px;"></i> ${clientName}</div>`
 							: ""
 					}
 					${
@@ -1994,7 +1994,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 					}
 					${
 						customerAddress && customerAddress !== "Non renseigné"
-							? `<div class="map-link" data-address="${customerAddress}" style="color: #2196f3; font-size: 10px; margin-top: 3px; cursor: pointer; display: inline-flex; align-items: center;" title="Ouvrir dans Maps">
+							? `<div class="map-link" data-address="${customerAddress}" style="color: #666; font-size: 10px; margin-top: 3px; cursor: pointer; display: inline-flex; align-items: center;" title="Ouvrir dans Maps">
 								<i class="fa fa-map-marker" style="margin-right: 4px;"></i>
 								<span style="text-decoration: underline;">Ouvrir dans Maps</span>
 							</div>`
@@ -2317,7 +2317,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				${comments ? `<div class="event-comments"><i class="fa fa-comment"></i> ${comments}</div>` : ""}
 				${
 					customerAddress && customerAddress !== "Non renseigné"
-						? `<div class="map-link" data-address="${customerAddress}" style="color: #2196f3; font-size: 10px; margin-top: 3px; cursor: pointer;" title="Ouvrir dans Maps">
+						? `<div class="map-link" data-address="${customerAddress}" style="color: #666; font-size: 10px; margin-top: 3px; cursor: pointer;" title="Ouvrir dans Maps">
 							<i class="fa fa-map-marker"></i> Ouvrir dans Maps
 						</div>`
 						: ""
@@ -2636,7 +2636,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				${comments ? `<div class="event-comments"><i class="fa fa-comment"></i> ${comments}</div>` : ""}
 				${
 					customerAddress && customerAddress !== "Non renseigné"
-						? `<div class="map-link" data-address="${customerAddress}" style="color: #2196f3; font-size: 10px; margin-top: 3px; cursor: pointer;" title="Ouvrir dans Maps">
+						? `<div class="map-link" data-address="${customerAddress}" style="color: #666; font-size: 10px; margin-top: 3px; cursor: pointer;" title="Ouvrir dans Maps">
 							<i class="fa fa-map-marker"></i> Ouvrir dans Maps
 						</div>`
 						: ""
