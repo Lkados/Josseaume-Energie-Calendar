@@ -1,6 +1,13 @@
 // josseaume_energies/public/js/quotation_margin_simple.js - VERSION AMÉLIORÉE AVEC REMISES
 
 frappe.ui.form.on("Quotation", {
+	onload: function (frm) {
+		// Configurer le filtrage par commune
+		if (typeof josseaume !== 'undefined' && josseaume.customer_filter) {
+			josseaume.customer_filter.setup_for_doctype('Quotation', frm);
+		}
+	},
+
 	refresh: function (frm) {
 		// Attendre que les boutons standards soient chargés
 		setTimeout(function () {
@@ -19,6 +26,13 @@ frappe.ui.form.on("Quotation", {
 				console.error("Erreur dans les fonctions de marge (non-critique):", error);
 			}
 		}, 200);
+	},
+
+	party_name: function(frm) {
+		// Pré-remplir la commune quand un client est sélectionné
+		if (typeof josseaume !== 'undefined' && josseaume.customer_filter) {
+			josseaume.customer_filter.prefill_commune_from_customer(frm, {customer_field: 'party_name'});
+		}
 	},
 
 	validate: function (frm) {

@@ -28,7 +28,8 @@ app_include_css = [
 
 # Fichiers JavaScript inclus dans toute l'application
 app_include_js = [
-    "/assets/josseaume_energies/js/quotation_margin_simple.js"    # Script global pour les marges
+    "/assets/josseaume_energies/js/quotation_margin_simple.js",   # Script global pour les marges
+    "/assets/josseaume_energies/js/common_customer_filter.js"     # Module de filtrage par commune
 ]
 
 # ========================================
@@ -152,8 +153,11 @@ doctype_js = {
         "public/js/quotation_email.js"             # Template d'email par défaut
     ],
     
-    # Template d'email pour les factures
-    "Sales Invoice": "public/js/invoice_email.js"
+    # Scripts pour les factures (template d'email + filtrage commune)
+    "Sales Invoice": [
+        "public/js/invoice_email.js",     # Template d'email par défaut
+        "public/js/sales_invoice.js"      # Filtrage par commune
+    ]
 }
 
 # ========================================

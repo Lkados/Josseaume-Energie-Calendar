@@ -1,6 +1,13 @@
 // josseaume_energies/public/js/sales_order.js
 
 frappe.ui.form.on("Sales Order", {
+	onload: function (frm) {
+		// Configurer le filtrage par commune
+		if (typeof josseaume !== 'undefined' && josseaume.customer_filter) {
+			josseaume.customer_filter.setup_for_doctype('Sales Order', frm);
+		}
+	},
+
 	refresh: function (frm) {
 		if (frm.doc.docstatus === 1) {
 			// Bouton pour créer un événement calendrier (existant)
@@ -144,6 +151,13 @@ frappe.ui.form.on("Sales Order", {
 			);
 		}
 	},
+
+	customer: function(frm) {
+		// Pré-remplir la commune quand un client est sélectionné
+		if (typeof josseaume !== 'undefined' && josseaume.customer_filter) {
+			josseaume.customer_filter.prefill_commune_from_customer(frm, {customer_field: 'customer'});
+		}
+	}
 });
 
 // Fonction existante pour créer un événement
