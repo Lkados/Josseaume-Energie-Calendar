@@ -356,8 +356,14 @@ josseaume.customer_filter = {
     add_clear_button: function(frm, config) {
         if (!frm.commune_container) return;
 
+        // Vérifier si le bouton existe déjà pour éviter les doublons
+        if (frm.commune_container.find('.clear-commune-btn').length > 0) {
+            console.log('Bouton "Tous les clients" déjà présent, pas de doublon');
+            return;
+        }
+
         const clear_btn = $(`
-            <button class="btn btn-xs btn-default" title="Effacer le filtre commune"
+            <button class="btn btn-xs btn-default clear-commune-btn" title="Effacer le filtre commune"
                     style="margin-left: 5px; margin-top: 5px;">
                 <i class="fa fa-times"></i> Tous les clients
             </button>
