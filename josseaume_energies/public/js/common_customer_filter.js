@@ -192,33 +192,38 @@ josseaume.customer_filter = {
     setup_customer_filtering: function(frm, config) {
         console.log('Configuration du filtrage pour le champ:', config.customer_field);
 
-        frm.set_query(config.customer_field, function(doc, cdt, cdn) {
-            const commune = frm.commune_field ? frm.commune_field.get_value() : null;
-            console.log('🔍 set_query EXECUTÉE - commune actuelle:', commune);
-            console.log('🔍 frm.commune_field exists:', !!frm.commune_field);
-            console.log('🔍 doc:', doc);
-            console.log('🔍 cdt:', cdt);
-            console.log('🔍 cdn:', cdn);
+        // NOUVELLE APPROCHE: Configurer la query après que le formulaire soit complètement chargé
+        setTimeout(() => {
+            console.log('⏰ Configuration retardée de la query...');
 
-            if (commune && commune.trim()) {
-                console.log('✅ Filtrage par commune ACTIVÉ:', commune.trim());
-                // Filtrage par commune avec recherche par préfixe comme dans le calendrier
-                const queryConfig = {
-                    query: 'josseaume_energies.api.search_customers_by_commune',
-                    filters: {
-                        'custom_city': commune.trim() // Utiliser exactement le même nom que dans le calendrier
-                    }
-                };
-                console.log('✅ Configuration de la query retournée:', JSON.stringify(queryConfig));
-                return queryConfig;
-            } else {
-                console.log('❌ Pas de filtre commune, affichage de tous les clients');
-                // Pas de filtre spécifique - retourner tous les clients
-                return {};
-            }
-        });
+            frm.set_query(config.customer_field, function(doc, cdt, cdn) {
+                const commune = frm.commune_field ? frm.commune_field.get_value() : null;
+                console.log('🔍 set_query EXECUTÉE - commune actuelle:', commune);
+                console.log('🔍 frm.commune_field exists:', !!frm.commune_field);
+                console.log('🔍 doc:', doc);
+                console.log('🔍 cdt:', cdt);
+                console.log('🔍 cdn:', cdn);
 
-        console.log('set_query configurée pour:', config.customer_field);
+                if (commune && commune.trim()) {
+                    console.log('✅ Filtrage par commune ACTIVÉ:', commune.trim());
+                    // Filtrage par commune avec recherche par préfixe comme dans le calendrier
+                    const queryConfig = {
+                        query: 'josseaume_energies.api.search_customers_by_commune',
+                        filters: {
+                            'custom_city': commune.trim() // Utiliser exactement le même nom que dans le calendrier
+                        }
+                    };
+                    console.log('✅ Configuration de la query retournée:', JSON.stringify(queryConfig));
+                    return queryConfig;
+                } else {
+                    console.log('❌ Pas de filtre commune, affichage de tous les clients');
+                    // Pas de filtre spécifique - retourner tous les clients
+                    return {};
+                }
+            });
+
+            console.log('⏰ set_query configurée pour:', config.customer_field);
+        }, 1000);
 
         // AJOUT: Fonction de test pour vérifier le filtrage
         window.test_commune_filtering = function() {
@@ -227,11 +232,56 @@ josseaume.customer_filter = {
             console.log('🧪 Commune current value:', frm.commune_field ? frm.commune_field.get_value() : 'N/A');
             console.log('🧪 Input element value:', frm.commune_input ? frm.commune_input.val() : 'N/A');
 
-            // Tester la query directement
-            if (frm.commune_field) {
-                const testQuery = frm.get_query ? frm.get_query(config.customer_field) : 'frm.get_query not found';
-                console.log('🧪 Current query for customer field:', testQuery);
+            // Tester la query sur le champ directement
+            console.log('🧪 Testing field query...');
+            const customerField = frm.fields_dict[config.customer_field];
+            console.log('🧪 Customer field object:', customerField);
+
+            if (customerField) {
+                console.log('🧪 Field type:', customerField.df.fieldtype);
+                console.log('🧪 Field has get_query:', typeof customerField.get_query);
+
+                // Vérifier si une query est définie
+                console.log('🧪 frm._queries:', frm._queries);
+                console.log('🧪 Query for customer field:', frm._queries ? frm._queries[config.customer_field] : 'No _queries');
             }
+
+            // NOUVEAU: Forcer un test de la query
+            console.log('🧪 Force testing query execution...');
+            if (frm._queries && frm._queries[config.customer_field]) {
+                try {
+                    const testResult = frm._queries[config.customer_field](frm.doc, null, null);
+                    console.log('🧪 FORCED query result:', testResult);
+                } catch (e) {
+                    console.log('🧪 Query execution error:', e);
+                }
+            }
+
+            // NOUVEAU: Test direct de l'API
+            window.test_api_directly = function() {
+                console.log('🧪 Testing API directly...');
+                const commune = frm.commune_field.get_value();
+                if (commune) {
+                    frappe.call({
+                        method: 'josseaume_energies.api.search_customers_by_commune',
+                        args: {
+                            doctype: 'Customer',
+                            txt: '',
+                            searchfield: 'name',
+                            start: 0,
+                            page_len: 10,
+                            filters: {
+                                'custom_city': commune
+                            }
+                        },
+                        callback: function(r) {
+                            console.log('🧪 API Direct Result:', r);
+                        }
+                    });
+                } else {
+                    console.log('🧪 No commune selected for API test');
+                }
+            };
         };
     },
 
@@ -276,9 +326,28 @@ josseaume.customer_filter = {
         console.log('🔄 Tentative de rafraîchissement du champ:', config.customer_field);
         console.log('🔄 Current commune value for filtering:', commune);
 
-        // La query est maintenant mise à jour automatiquement lors du prochain clic sur le champ
-        // Pas besoin de forcer le refresh, ERPNext le fera automatiquement
-        console.log('✅ Filtre de commune mis à jour, la query sera appliquée au prochain clic sur le champ client');
+        // Re-configurer la query immédiatement avec la nouvelle commune
+        console.log('🔄 Re-configuration immédiate de la query avec nouvelle commune...');
+
+        frm.set_query(config.customer_field, function(doc, cdt, cdn) {
+            const currentCommune = frm.commune_field ? frm.commune_field.get_value() : null;
+            console.log('🔍 IMMEDIATE set_query - commune:', currentCommune);
+
+            if (currentCommune && currentCommune.trim()) {
+                const queryConfig = {
+                    query: 'josseaume_energies.api.search_customers_by_commune',
+                    filters: {
+                        'custom_city': currentCommune.trim()
+                    }
+                };
+                console.log('✅ IMMEDIATE query config:', JSON.stringify(queryConfig));
+                return queryConfig;
+            } else {
+                return {};
+            }
+        });
+
+        console.log('✅ Filtre de commune mis à jour et query reconfigurée immédiatement');
     },
 
     /**
