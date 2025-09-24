@@ -96,28 +96,24 @@ josseaume.customer_filter = {
      * Charge la liste des communes disponibles
      */
     load_communes: function(frm, config) {
-        frappe.call({
-            method: 'frappe.client.get_list',
-            args: {
-                doctype: 'Customer',
-                fields: ['custom_city'],
-                filters: [['custom_city', '!=', '']],
-                distinct: true,
-                limit_page_length: 0
-            },
-            callback: function(r) {
-                if (r.message) {
-                    const communes = r.message
-                        .map(item => item.custom_city)
-                        .filter(city => city && city.trim())
-                        .sort();
+        console.log('Chargement des communes...');
 
-                    // Mettre à jour les options du champ autocomplete
+        frappe.call({
+            method: 'josseaume_energies.api.get_communes_list',
+            callback: function(r) {
+                console.log('Réponse communes:', r);
+                if (r.message && r.message.status === 'success' && r.message.communes && r.message.communes.length > 0) {
+                    const communes = r.message.communes;
+
+                    console.log('Communes trouvées:', communes.length, communes);
+
+                    // Configurer l'autocomplete
                     if (frm.commune_input && frm.commune_input.length) {
                         frm.commune_input.autocomplete({
                             source: communes,
                             minLength: 1,
                             select: function(event, ui) {
+                                console.log('Commune sélectionnée:', ui.item.value);
                                 frm.commune_field.set_value(ui.item.value);
                                 // Déclencher le filtrage
                                 setTimeout(() => {
@@ -126,8 +122,48 @@ josseaume.customer_filter = {
                                 return false;
                             }
                         });
+
+                        // Stocker les communes pour référence
+                        frm.available_communes = communes;
+                        console.log('Autocomplete configuré avec', communes.length, 'communes');
+                    } else {
+                        console.error('commune_input non trouvé');
                     }
+                } else {
+                    console.warn('Aucune commune trouvée ou erreur dans la requête');
+                    // Fallback : essayer avec une requête SQL directe
+                    frappe.call({
+                        method: 'frappe.db.sql',
+                        args: {
+                            query: 'SELECT DISTINCT custom_city FROM tabCustomer WHERE custom_city IS NOT NULL AND custom_city != "" ORDER BY custom_city'
+                        },
+                        callback: function(r2) {
+                            console.log('Fallback SQL result:', r2);
+                            if (r2.message && r2.message.length > 0) {
+                                const communes = r2.message.map(row => row[0]).filter(city => city && city.trim());
+                                if (frm.commune_input && frm.commune_input.length && communes.length > 0) {
+                                    frm.commune_input.autocomplete({
+                                        source: communes,
+                                        minLength: 1,
+                                        select: function(event, ui) {
+                                            console.log('Commune sélectionnée (fallback):', ui.item.value);
+                                            frm.commune_field.set_value(ui.item.value);
+                                            setTimeout(() => {
+                                                josseaume.customer_filter.on_commune_change(frm, config);
+                                            }, 100);
+                                            return false;
+                                        }
+                                    });
+                                    frm.available_communes = communes;
+                                    console.log('Fallback autocomplete configuré avec', communes.length, 'communes');
+                                }
+                            }
+                        }
+                    });
                 }
+            },
+            error: function(err) {
+                console.error('Erreur lors du chargement des communes:', err);
             }
         });
     },

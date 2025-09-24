@@ -2047,3 +2047,36 @@ def search_customers_by_commune(doctype, txt, searchfield, start, page_len, filt
             "start": start,
             "page_len": page_len
         })
+
+@frappe.whitelist()
+def get_communes_list():
+    """
+    Retourne la liste des communes disponibles pour le filtrage
+    """
+    try:
+        # Récupérer toutes les communes distinctes
+        communes = frappe.db.sql("""
+            SELECT DISTINCT custom_city
+            FROM tabCustomer
+            WHERE custom_city IS NOT NULL
+            AND custom_city != ''
+            AND custom_city != 'null'
+            ORDER BY custom_city
+        """, as_list=True)
+
+        # Extraire les valeurs et nettoyer
+        commune_list = [commune[0] for commune in communes if commune[0] and commune[0].strip()]
+
+        return {
+            "status": "success",
+            "communes": commune_list,
+            "count": len(commune_list)
+        }
+
+    except Exception as e:
+        frappe.log_error(f"Erreur lors de la récupération des communes: {str(e)}", "Get Communes Error")
+        return {
+            "status": "error",
+            "message": str(e),
+            "communes": []
+        }

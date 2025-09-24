@@ -127,6 +127,7 @@ whitelist_methods = {
 
     # Recherche personnalisée
     "josseaume_energies.api.search_customers_by_commune": True,
+    "josseaume_energies.api.get_communes_list": True,
 }
 
 # ========================================
