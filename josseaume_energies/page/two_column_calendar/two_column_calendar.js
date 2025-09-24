@@ -1752,7 +1752,17 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		let type = "";
 		let zone = "";
 
-		// Récupérer UNIQUEMENT le type et la zone depuis sales_order_info
+		// D'abord essayer de détecter le pattern TYPE - ZONE dans le sujet lui-même (pour les rendez-vous manuels)
+		const titlePattern = /^([A-Z]+(?:\s+[A-Z]+)*)\s*-\s*(.+)$/;
+		const match = cleanSubject.match(titlePattern);
+
+		if (match) {
+			// Si on trouve le pattern, extraire type et zone
+			type = match[1];
+			zone = match[2];
+		}
+
+		// Récupérer UNIQUEMENT le type et la zone depuis sales_order_info (priorité si disponible)
 		if (event.sales_order_info) {
 			// Type de commande depuis la description
 			if (event.sales_order_info.type) {
@@ -1780,18 +1790,18 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			}
 		}
 
-		// Construire le titre formaté simple
+		// Construire le titre formaté simple avec zone en bleu
 		let formattedTitle = "";
-		
+
 		if (type && zone) {
-			// Format simple: "Type - Zone"
-			formattedTitle = `${type} - ${zone}`;
+			// Type en couleur neutre, zone en bleu
+			formattedTitle = `${type} - <span style="color: #2196f3; font-weight: 600;">${zone}</span>`;
 		} else if (type) {
-			// Seulement le type
+			// Seulement le type en couleur neutre
 			formattedTitle = type;
 		} else if (zone) {
-			// Seulement la zone
-			formattedTitle = zone;
+			// Seulement la zone en bleu
+			formattedTitle = `<span style="color: #2196f3; font-weight: 600;">${zone}</span>`;
 		} else {
 			// Si aucune info, garder le sujet original
 			formattedTitle = cleanSubject;
