@@ -68,6 +68,7 @@ whitelist_methods = {
     "josseaume_energies.api.move_open_notes_to_today": True,
     "josseaume_energies.api.setup_note_auto_move_fields": True,
     "josseaume_energies.api.test_move_notes_manually": True,
+    "josseaume_energies.api.cleanup_duplicate_notes": True,
     
     # =====================================
     # API CALCUL DE MARGES

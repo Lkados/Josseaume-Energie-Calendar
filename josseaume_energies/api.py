@@ -1560,7 +1560,8 @@ def setup_note_auto_move_fields():
 @frappe.whitelist()
 def move_open_notes_to_today():
     """
-    Déplace automatiquement les notes ouvertes de la veille vers aujourd'hui
+    Crée de nouvelles notes pour aujourd'hui à partir des notes ouvertes d'hier
+    et archive les anciennes notes
     Exécuté quotidiennement à 00:01 via le scheduler
     """
     try:
@@ -1575,33 +1576,55 @@ def move_open_notes_to_today():
                     "custom_note_status": "Open",
                     "public": 1
                 },
-                fields=["name", "title", "custom_employee"]
+                fields=["name", "title", "content", "custom_employee", "custom_time_slot", "owner"]
             )
 
             moved_count = 0
-            for note in open_notes:
-                try:
-                    # Déplacer la note vers aujourd'hui
-                    frappe.db.set_value("Note", note.name, "custom_note_date", today)
+            archived_notes = []
+            created_notes = []
 
-                    # Marquer comme déplacée automatiquement
-                    frappe.db.set_value("Note", note.name, "custom_auto_moved", 1)
-                    frappe.db.set_value("Note", note.name, "custom_moved_from_date", yesterday)
+            for old_note in open_notes:
+                try:
+                    # Créer une nouvelle note pour aujourd'hui
+                    new_note = frappe.get_doc({
+                        "doctype": "Note",
+                        "title": old_note.title,
+                        "content": old_note.content or "",
+                        "public": 1,
+                        "notify_on_login": 0,
+                        "custom_employee": old_note.custom_employee,
+                        "custom_note_date": today,
+                        "custom_time_slot": old_note.get("custom_time_slot"),
+                        "custom_note_status": "Open",
+                        "custom_auto_moved": 1,
+                        "custom_moved_from_date": yesterday
+                    })
+
+                    new_note.insert(ignore_permissions=True)
+                    created_notes.append(new_note.name)
+
+                    # Archiver l'ancienne note en changeant son statut
+                    frappe.db.set_value("Note", old_note.name, "custom_note_status", "Archived")
+                    frappe.db.set_value("Note", old_note.name, "title", f"[Archivée {yesterday}] {old_note.title}")
+                    archived_notes.append(old_note.name)
 
                     moved_count += 1
 
                 except Exception as note_error:
-                    frappe.log_error(f"Erreur lors du déplacement de la note {note.name}: {str(note_error)}", "Move Notes Error")
+                    frappe.log_error(f"Erreur lors du déplacement de la note {old_note.name}: {str(note_error)}", "Move Notes Error")
 
             if moved_count > 0:
-                frappe.log_error(f"Auto-déplacement: {moved_count} notes ouvertes déplacées de {yesterday} vers {today}", "Notes Auto-Move")
+                frappe.log_error(f"Auto-déplacement: {moved_count} notes créées pour {today}, {len(archived_notes)} notes archivées de {yesterday}", "Notes Auto-Move")
+                frappe.db.commit()
 
             return {
                 "status": "success",
                 "moved_count": moved_count,
+                "created_notes": created_notes,
+                "archived_notes": archived_notes,
                 "date_from": yesterday,
                 "date_to": today,
-                "message": f"{moved_count} notes déplacées vers {today}"
+                "message": f"{moved_count} nouvelles notes créées pour {today}, anciennes notes archivées"
             }
         else:
             return {
@@ -1623,6 +1646,65 @@ def test_move_notes_manually():
     Utile pour tester la fonctionnalité sans attendre le scheduler
     """
     return move_open_notes_to_today()
+
+@frappe.whitelist()
+def cleanup_duplicate_notes():
+    """
+    Nettoie les notes dupliquées en archivant les anciennes versions
+    Utile pour nettoyer après la migration vers le nouveau système
+    """
+    try:
+        # Récupérer toutes les notes avec les champs custom
+        if frappe.db.has_column("Note", "custom_note_date") and frappe.db.has_column("Note", "custom_employee"):
+            all_notes = frappe.get_all("Note",
+                filters={
+                    "public": 1,
+                    "custom_note_status": ["!=", "Archived"]
+                },
+                fields=["name", "title", "custom_employee", "custom_note_date", "creation"],
+                order_by="creation desc"
+            )
+
+            # Grouper par employé + titre + date pour identifier les duplicatas
+            seen_notes = {}
+            duplicates_archived = 0
+
+            for note in all_notes:
+                if note.custom_employee and note.custom_note_date:
+                    key = f"{note.custom_employee}_{note.title}_{note.custom_note_date}"
+
+                    if key in seen_notes:
+                        # C'est un duplicata - archiver la plus ancienne version
+                        # (on garde la plus récente car on a trié par creation desc)
+                        try:
+                            frappe.db.set_value("Note", note.name, "custom_note_status", "Archived")
+                            frappe.db.set_value("Note", note.name, "title", f"[Duplicata archivé] {note.title}")
+                            duplicates_archived += 1
+                        except Exception as e:
+                            frappe.log_error(f"Erreur archivage duplicata {note.name}: {str(e)}", "Cleanup Duplicates")
+                    else:
+                        seen_notes[key] = note.name
+
+            if duplicates_archived > 0:
+                frappe.db.commit()
+
+            return {
+                "status": "success",
+                "duplicates_archived": duplicates_archived,
+                "message": f"{duplicates_archived} notes dupliquées ont été archivées"
+            }
+        else:
+            return {
+                "status": "error",
+                "message": "Champs custom non trouvés"
+            }
+
+    except Exception as e:
+        frappe.log_error(f"Erreur nettoyage duplicatas: {str(e)}", "Cleanup Duplicates Error")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
 
 @frappe.whitelist()
 def get_employee_notes(employee, date):
@@ -1656,7 +1738,8 @@ def get_employee_notes(employee, date):
                 filters = {
                     "custom_employee": employee,
                     "custom_note_date": date_format,
-                    "public": 1
+                    "public": 1,
+                    "custom_note_status": ["!=", "Archived"]  # Exclure les notes archivées
                 }
 
                 notes = frappe.get_all("Note",
@@ -1667,15 +1750,9 @@ def get_employee_notes(employee, date):
                 if notes:  # Si on trouve des notes avec ce format, on s'arrête
                     break
 
-            # Fallback: Si aucune note trouvée avec les filtres, chercher par employee seulement
-            if not notes:
-                notes = frappe.get_all("Note",
-                    filters={
-                        "custom_employee": employee,
-                        "public": 1
-                    },
-                    fields=["name", "title", "content", "custom_time_slot", "custom_note_status", "custom_note_date", "custom_auto_moved", "custom_moved_from_date", "owner", "creation"]
-                )
+            # Plus de fallback - on ne récupère que les notes de la date spécifiée
+            # Si aucune note trouvée, on retourne une liste vide
+            # Cela évite la duplication des notes
         else:
             # Recherche dans le contenu si les champs n'existent pas
             all_notes = frappe.get_all("Note",
