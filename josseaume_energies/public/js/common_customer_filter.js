@@ -107,8 +107,8 @@ josseaume.customer_filter = {
 
                     console.log('Communes trouvées:', communes.length, communes);
 
-                    // Configurer l'autocomplete
-                    if (frm.commune_input && frm.commune_input.length) {
+                    // Configurer l'autocomplete avec jQuery UI
+                    if (frm.commune_input && frm.commune_input.length && typeof frm.commune_input.autocomplete === 'function') {
                         frm.commune_input.autocomplete({
                             source: communes,
                             minLength: 1,
@@ -122,6 +122,26 @@ josseaume.customer_filter = {
                                 return false;
                             }
                         });
+                    } else {
+                        // Fallback : utiliser un datalist HTML5
+                        console.log('jQuery UI autocomplete non disponible, utilisation de datalist HTML5');
+                        const datalistId = 'communes-datalist-' + Math.random().toString(36).substr(2, 9);
+                        const datalist = $(`<datalist id="${datalistId}"></datalist>`);
+
+                        communes.forEach(commune => {
+                            datalist.append(`<option value="${commune}">${commune}</option>`);
+                        });
+
+                        $('body').append(datalist);
+                        frm.commune_input.attr('list', datalistId);
+
+                        // Événement de changement
+                        frm.commune_input.on('input change', function() {
+                            setTimeout(() => {
+                                josseaume.customer_filter.on_commune_change(frm, config);
+                            }, 300);
+                        });
+                    }
 
                         // Stocker les communes pour référence
                         frm.available_communes = communes;
@@ -176,14 +196,16 @@ josseaume.customer_filter = {
             const commune = frm.commune_field ? frm.commune_field.get_value() : null;
 
             if (commune && commune.trim()) {
+                console.log('Filtrage par commune:', commune.trim());
                 // Filtrage par commune
                 return {
                     query: 'josseaume_energies.api.search_customers_by_commune',
                     filters: {
-                        commune: commune.trim()
+                        custom_city: commune.trim() // Utiliser custom_city au lieu de commune
                     }
                 };
             } else {
+                console.log('Pas de filtre commune, affichage de tous les clients');
                 // Pas de filtre spécifique - retourner tous les clients
                 return {};
             }
@@ -225,7 +247,13 @@ josseaume.customer_filter = {
 
         // Rafraîchir le champ client pour appliquer le nouveau filtre
         if (frm.fields_dict[config.customer_field]) {
-            frm.fields_dict[config.customer_field].set_data([]);
+            // Pour les champs Link, déclencher un refresh de la query
+            try {
+                frm.fields_dict[config.customer_field].get_query = frm.get_query(config.customer_field);
+                console.log('Filtre mis à jour pour le champ:', config.customer_field);
+            } catch (e) {
+                console.log('Impossible de rafraîchir le filtre:', e);
+            }
         }
     },
 
