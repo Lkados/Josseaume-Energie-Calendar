@@ -143,12 +143,9 @@ josseaume.customer_filter = {
                         });
                     }
 
-                        // Stocker les communes pour référence
-                        frm.available_communes = communes;
-                        console.log('Autocomplete configuré avec', communes.length, 'communes');
-                    } else {
-                        console.error('commune_input non trouvé');
-                    }
+                    // Stocker les communes pour référence
+                    frm.available_communes = communes;
+                    console.log('Autocomplete configuré avec', communes.length, 'communes');
                 } else {
                     console.warn('Aucune commune trouvée ou erreur dans la requête');
                     // Fallback : essayer avec une requête SQL directe
