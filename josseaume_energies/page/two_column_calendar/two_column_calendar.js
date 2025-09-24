@@ -1833,8 +1833,10 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 	// FONCTION AMÉLIORÉE: renderEmployeeEventCard avec affichage des commentaires et nouveaux champs client
 	function renderEmployeeEventCard(event, container) {
+		console.log('renderEmployeeEventCard called with event:', event);
 		try {
 			if (!event || !container || !event.name) {
+				console.log('renderEmployeeEventCard: Missing data, returning early');
 				return;
 			}
 
@@ -1844,6 +1846,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 			// Nettoyer et valider les données
 			const cleanSubject = sanitizeText(event.subject) || (isNote ? "Note sans titre" : "Événement sans titre");
 			const formattedTitle = formatEventTitle(event, cleanSubject, isNote);
+		console.log('formattedTitle from formatEventTitle:', formattedTitle);
 
 			let eventClass, borderColor, icon, docType, eventStatus, noteStatus;
 
@@ -2540,6 +2543,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 	// FONCTION AMÉLIORÉE: renderWeekEvent pour cohérence des couleurs et nouveaux champs
 	function renderWeekEvent(event, container) {
+		console.log('renderWeekEvent called with event:', event);
 		// Utiliser la même logique de détection que pour les autres vues
 		const cleanSubject = sanitizeText(event.subject) || "Événement sans titre";
 		const formattedTitle = formatEventTitle(event, cleanSubject, false);
