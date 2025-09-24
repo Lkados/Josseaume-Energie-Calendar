@@ -2015,6 +2015,7 @@ def update_note_status(note_id, status):
 def search_customers_by_commune(doctype, txt, searchfield, start, page_len, filters):
     """
     Recherche personnalisée de clients par commune avec filtrage textuel
+    Fonctionne exactement comme dans la création de rendez-vous
     """
     commune = filters.get("custom_city") if filters else None
 
@@ -2033,7 +2034,7 @@ def search_customers_by_commune(doctype, txt, searchfield, start, page_len, filt
             "page_len": page_len
         })
     else:
-        # Recherche avec filtre commune (commence par)
+        # Recherche avec filtre commune (commence par) - EXACTEMENT comme dans le calendrier
         return frappe.db.sql("""
             SELECT name, customer_name, custom_city
             FROM `tabCustomer`
@@ -2043,7 +2044,7 @@ def search_customers_by_commune(doctype, txt, searchfield, start, page_len, filt
             LIMIT %(start)s, %(page_len)s
         """, {
             "commune": commune,
-            "txt": txt + "%",
+            "txt": txt + "%",  # Recherche par préfixe comme dans le calendrier
             "start": start,
             "page_len": page_len
         })

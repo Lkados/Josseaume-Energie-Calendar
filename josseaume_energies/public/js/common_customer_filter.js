@@ -189,24 +189,31 @@ josseaume.customer_filter = {
      * Configure le filtrage du champ client
      */
     setup_customer_filtering: function(frm, config) {
-        frm.set_query(config.customer_field, function() {
+        console.log('Configuration du filtrage pour le champ:', config.customer_field);
+
+        frm.set_query(config.customer_field, function(doc, cdt, cdn) {
             const commune = frm.commune_field ? frm.commune_field.get_value() : null;
+            console.log('set_query appelée - commune actuelle:', commune);
 
             if (commune && commune.trim()) {
-                console.log('Filtrage par commune:', commune.trim());
-                // Filtrage par commune
-                return {
+                console.log('Filtrage par commune activé:', commune.trim());
+                // Filtrage par commune avec recherche par préfixe comme dans le calendrier
+                const queryConfig = {
                     query: 'josseaume_energies.api.search_customers_by_commune',
                     filters: {
-                        custom_city: commune.trim() // Utiliser custom_city au lieu de commune
+                        'custom_city': commune.trim() // Utiliser exactement le même nom que dans le calendrier
                     }
                 };
+                console.log('Configuration de la query:', queryConfig);
+                return queryConfig;
             } else {
                 console.log('Pas de filtre commune, affichage de tous les clients');
                 // Pas de filtre spécifique - retourner tous les clients
                 return {};
             }
         });
+
+        console.log('set_query configurée pour:', config.customer_field);
     },
 
     /**
@@ -244,12 +251,23 @@ josseaume.customer_filter = {
 
         // Rafraîchir le champ client pour appliquer le nouveau filtre
         if (frm.fields_dict[config.customer_field]) {
-            // Pour les champs Link, déclencher un refresh de la query
-            try {
-                frm.fields_dict[config.customer_field].get_query = frm.get_query(config.customer_field);
-                console.log('Filtre mis à jour pour le champ:', config.customer_field);
-            } catch (e) {
-                console.log('Impossible de rafraîchir le filtre:', e);
+            const field = frm.fields_dict[config.customer_field];
+            console.log('Tentative de rafraîchissement du champ:', config.customer_field);
+
+            // Méthode 1: Re-initialiser le champ Link
+            if (field.df && field.df.fieldtype === 'Link') {
+                // Détruire l'ancienne autocomplete si elle existe
+                if (field.awesomplete) {
+                    field.awesomplete.destroy();
+                    field.awesomplete = null;
+                }
+
+                // Re-configurer l'awesomplete avec la nouvelle query
+                if (field.setup_awesomplete) {
+                    field.setup_awesomplete();
+                }
+
+                console.log('Champ Link rafraîchi pour:', config.customer_field);
             }
         }
     },
