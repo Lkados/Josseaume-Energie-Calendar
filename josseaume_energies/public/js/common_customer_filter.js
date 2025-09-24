@@ -250,26 +250,11 @@ josseaume.customer_filter = {
         }
 
         // Rafraîchir le champ client pour appliquer le nouveau filtre
-        if (frm.fields_dict[config.customer_field]) {
-            const field = frm.fields_dict[config.customer_field];
-            console.log('Tentative de rafraîchissement du champ:', config.customer_field);
+        console.log('Tentative de rafraîchissement du champ:', config.customer_field);
 
-            // Méthode 1: Re-initialiser le champ Link
-            if (field.df && field.df.fieldtype === 'Link') {
-                // Détruire l'ancienne autocomplete si elle existe
-                if (field.awesomplete) {
-                    field.awesomplete.destroy();
-                    field.awesomplete = null;
-                }
-
-                // Re-configurer l'awesomplete avec la nouvelle query
-                if (field.setup_awesomplete) {
-                    field.setup_awesomplete();
-                }
-
-                console.log('Champ Link rafraîchi pour:', config.customer_field);
-            }
-        }
+        // La query est maintenant mise à jour automatiquement lors du prochain clic sur le champ
+        // Pas besoin de forcer le refresh, ERPNext le fera automatiquement
+        console.log('Filtre de commune mis à jour, la query sera appliquée au prochain clic sur le champ client');
     },
 
     /**
