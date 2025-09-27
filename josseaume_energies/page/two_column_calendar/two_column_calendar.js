@@ -1788,17 +1788,27 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		return null; // Article ignoré si pas dans la liste
 	}
 
+	// Fonction pour nettoyer un code article (retirer Z et chiffres)
+	function cleanArticleCode(itemCode) {
+		if (!itemCode) return itemCode;
+
+		// Retirer le Z et tous les chiffres qui suivent
+		// EPGZ01 → EPG, ECFBTZ01 → ECFBT
+		return itemCode.replace(/Z\d+$/, '');
+	}
+
 	// Fonction pour construire le titre d'entretien depuis les articles
 	function buildMaintenanceTitle(salesOrderItems, customerTerritory) {
 		const uniqueCodes = new Set();
 
-		// Extraire tous les codes d'articles valides (codes complets, pas juste les préfixes)
+		// Extraire tous les codes d'articles valides (codes nettoyés)
 		if (salesOrderItems && Array.isArray(salesOrderItems)) {
 			for (let item of salesOrderItems) {
 				const prefix = extractValidPrefix(item.item_code);
 				if (prefix) {
-					// Utiliser le code complet de l'article au lieu du préfixe
-					uniqueCodes.add(item.item_code);
+					// Nettoyer le code en retirant Z et les chiffres
+					const cleanedCode = cleanArticleCode(item.item_code);
+					uniqueCodes.add(cleanedCode);
 				}
 			}
 		}
