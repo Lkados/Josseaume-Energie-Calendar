@@ -1752,6 +1752,7 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		'DCGaz': true,  // Devis Chaudière gaz
 		'ICGaz': true,  // Installation Chaudière gaz
 		'ECF': true,    // Entretien Chaudière fioul
+		'ECFBT': true,  // Entretien Chaudière fioul BT
 		'DCF': true,    // Devis Chaudière fioul
 		'ICF': true,    // Installation Chaudière fioul
 		'RC': true,     // Ramonage cheminée
@@ -1764,8 +1765,8 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	function extractValidPrefix(itemCode) {
 		if (!itemCode) return null;
 
-		// Tester d'abord les préfixes longs (ECGaz, DCGaz, ICGaz)
-		const longPrefixes = ['ECGaz', 'DCGaz', 'ICGaz'];
+		// Tester d'abord les préfixes longs (ECGaz, DCGaz, ICGaz, ECFBT)
+		const longPrefixes = ['ECGaz', 'DCGaz', 'ICGaz', 'ECFBT'];
 		for (let prefix of longPrefixes) {
 			if (itemCode.startsWith(prefix)) {
 				return prefix;
@@ -1789,20 +1790,21 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 
 	// Fonction pour construire le titre d'entretien depuis les articles
 	function buildMaintenanceTitle(salesOrderItems, customerTerritory) {
-		const uniquePrefixes = new Set();
+		const uniqueCodes = new Set();
 
-		// Extraire tous les préfixes valides
+		// Extraire tous les codes d'articles valides (codes complets, pas juste les préfixes)
 		if (salesOrderItems && Array.isArray(salesOrderItems)) {
 			for (let item of salesOrderItems) {
 				const prefix = extractValidPrefix(item.item_code);
 				if (prefix) {
-					uniquePrefixes.add(prefix);
+					// Utiliser le code complet de l'article au lieu du préfixe
+					uniqueCodes.add(item.item_code);
 				}
 			}
 		}
 
-		// Construire la liste des préfixes triés
-		const prefixList = Array.from(uniquePrefixes).sort().join(' ');
+		// Construire la liste des codes triés avec " + " comme séparateur
+		const codeList = Array.from(uniqueCodes).sort().join(' + ');
 
 		// Formater la zone
 		let zoneDisplay = null;
@@ -1816,16 +1818,16 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		}
 
 		// Retourner le résultat
-		if (prefixList && zoneDisplay) {
+		if (codeList && zoneDisplay) {
 			return {
-				type: prefixList,
+				type: codeList,
 				zone: zoneDisplay,
 				hasZone: true,
 				isMaintenanceOrder: true
 			};
-		} else if (prefixList) {
+		} else if (codeList) {
 			return {
-				type: prefixList,
+				type: codeList,
 				zone: null,
 				hasZone: false,
 				isMaintenanceOrder: true
