@@ -1885,6 +1885,10 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 				// Formater le type pour une meilleure lisibilité
 				const typeLower = rawType.toLowerCase();
 				if (typeLower.includes("entretien")) {
+					// NOUVEAU: Pour les entretiens, utiliser buildMaintenanceTitle si on a les articles
+					if (event.sales_order_items && event.sales_order_items.length > 0) {
+						return buildMaintenanceTitle(event.sales_order_items, event.sales_order_info.territory);
+					}
 					type = "Entretien";
 				} else if (typeLower.includes("installation")) {
 					type = "Installation";

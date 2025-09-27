@@ -341,9 +341,8 @@ def enrich_event_with_comments(event):
                         sales_order_items = []
                         customer_territory = None
 
-                        # Vérifier si c'est un entretien
-                        event_type = event.get("event_type", "")
-                        if event_type == "Entretien":
+                        # Vérifier si c'est un entretien depuis le type de commande
+                        if sales_order_data.custom_type_de_commande and "entretien" in sales_order_data.custom_type_de_commande.lower():
                             # Récupérer les articles de la commande
                             sales_order_items = get_sales_order_items(sales_order_data.name)
 
@@ -366,7 +365,7 @@ def enrich_event_with_comments(event):
                         }
 
                         # Ajouter les informations d'entretien si disponibles
-                        if event_type == "Entretien":
+                        if sales_order_data.custom_type_de_commande and "entretien" in sales_order_data.custom_type_de_commande.lower():
                             event["sales_order_items"] = sales_order_items
                             event["customer_territory"] = customer_territory
                         
@@ -512,9 +511,8 @@ def get_day_events(date, territory=None, employee=None, event_type=None):
                     sales_order_items = []
                     customer_territory = None
 
-                    # Vérifier si c'est un entretien
-                    event_type = event.get("event_type", "")
-                    if event_type == "Entretien":
+                    # Vérifier si c'est un entretien depuis le type de commande
+                    if sales_order_data.custom_type_de_commande and "entretien" in sales_order_data.custom_type_de_commande.lower():
                         # Récupérer les articles de la commande
                         sales_order_items = get_sales_order_items(sales_order_data.name)
 
@@ -536,7 +534,7 @@ def get_day_events(date, territory=None, employee=None, event_type=None):
                     }
 
                     # Ajouter les informations d'entretien si disponibles
-                    if event_type == "Entretien":
+                    if sales_order_data.custom_type_de_commande and "entretien" in sales_order_data.custom_type_de_commande.lower():
                         event["sales_order_items"] = sales_order_items
                         event["customer_territory"] = customer_territory
                     
@@ -684,9 +682,8 @@ def get_calendar_events(year, month, territory=None, employee=None, event_type=N
                     sales_order_items = []
                     customer_territory = None
 
-                    # Vérifier si c'est un entretien
-                    event_type = event.get("event_type", "")
-                    if event_type == "Entretien":
+                    # Vérifier si c'est un entretien depuis le type de commande
+                    if sales_order_data.custom_type_de_commande and "entretien" in sales_order_data.custom_type_de_commande.lower():
                         # Récupérer les articles de la commande
                         sales_order_items = get_sales_order_items(sales_order_data.name)
 
@@ -710,7 +707,7 @@ def get_calendar_events(year, month, territory=None, employee=None, event_type=N
                     }
 
                     # Ajouter les informations d'entretien si disponibles
-                    if event_type == "Entretien":
+                    if sales_order_data.custom_type_de_commande and "entretien" in sales_order_data.custom_type_de_commande.lower():
                         event["sales_order_items"] = sales_order_items
                         event["customer_territory"] = customer_territory
             except Exception as e:
@@ -837,9 +834,8 @@ def get_week_events(start_date, end_date, territory=None, employee=None, event_t
                     sales_order_items = []
                     customer_territory = None
 
-                    # Vérifier si c'est un entretien
-                    event_type = event.get("event_type", "")
-                    if event_type == "Entretien":
+                    # Vérifier si c'est un entretien depuis le type de commande
+                    if sales_order_data.custom_type_de_commande and "entretien" in sales_order_data.custom_type_de_commande.lower():
                         # Récupérer les articles de la commande
                         sales_order_items = get_sales_order_items(sales_order_data.name)
 
@@ -863,7 +859,7 @@ def get_week_events(start_date, end_date, territory=None, employee=None, event_t
                     }
 
                     # Ajouter les informations d'entretien si disponibles
-                    if event_type == "Entretien":
+                    if sales_order_data.custom_type_de_commande and "entretien" in sales_order_data.custom_type_de_commande.lower():
                         event["sales_order_items"] = sales_order_items
                         event["customer_territory"] = customer_territory
             except Exception as e:
