@@ -264,13 +264,32 @@ def get_sales_order_info_from_event(event_description):
     """Extrait la référence de commande client depuis la description de l'événement"""
     if not event_description:
         return None
-    
+
     # Chercher le pattern <strong>Référence:</strong> suivi de l'ID
     import re
     ref_match = re.search(r'<strong>Référence:</strong>\s*([^<\s]+)', event_description)
     if ref_match:
         return ref_match.group(1).strip()
     return None
+
+def get_sales_order_items(sales_order_name):
+    """Récupère les articles d'une commande client pour les entretiens"""
+    try:
+        if not sales_order_name:
+            return []
+
+        # Récupérer les articles de la commande
+        items = frappe.get_all(
+            "Sales Order Item",
+            filters={"parent": sales_order_name},
+            fields=["item_code", "item_name", "qty", "description"]
+        )
+
+        return items
+    except Exception as e:
+        frappe.log_error(f"Erreur récupération articles SO {sales_order_name}: {str(e)}",
+                       "Sales Order Items Error")
+        return []
 
 def enrich_event_with_comments(event):
     """Enrichit un événement avec les commentaires de la commande client"""
@@ -315,6 +334,20 @@ def enrich_event_with_comments(event):
                                 "custom_camion"
                             ], as_dict=True) or {}
                         
+                        # NOUVEAU: Récupérer les articles et le territoire du client pour les entretiens
+                        sales_order_items = []
+                        customer_territory = None
+
+                        # Vérifier si c'est un entretien
+                        event_type = event.get("event_type", "")
+                        if event_type == "Entretien":
+                            # Récupérer les articles de la commande
+                            sales_order_items = get_sales_order_items(sales_order_data.name)
+
+                            # Récupérer le territoire depuis le client
+                            if sales_order_data.customer:
+                                customer_territory = frappe.db.get_value("Customer", sales_order_data.customer, "territory")
+
                         # Mettre à jour ou créer sales_order_info
                         event["sales_order_info"] = {
                             "name": sales_order_data.name,
@@ -328,6 +361,11 @@ def enrich_event_with_comments(event):
                             "customer_appareil": customer_extra_data.get("custom_appareil") or "",
                             "customer_camion": customer_extra_data.get("custom_camion") or ""
                         }
+
+                        # Ajouter les informations d'entretien si disponibles
+                        if event_type == "Entretien":
+                            event["sales_order_items"] = sales_order_items
+                            event["customer_territory"] = customer_territory
                         
                         # Log pour debug
                         frappe.log_error(f"Event {event['name']} enrichi avec commentaires: '{sales_order_data.custom_commentaire}'", 
@@ -467,6 +505,20 @@ def get_day_events(date, territory=None, employee=None, event_type=None):
                         except Exception:
                             pass
                     
+                    # NOUVEAU: Récupérer les articles et le territoire du client pour les entretiens
+                    sales_order_items = []
+                    customer_territory = None
+
+                    # Vérifier si c'est un entretien
+                    event_type = event.get("event_type", "")
+                    if event_type == "Entretien":
+                        # Récupérer les articles de la commande
+                        sales_order_items = get_sales_order_items(sales_order_data.name)
+
+                        # Récupérer le territoire depuis le client
+                        if sales_order_data.customer:
+                            customer_territory = frappe.db.get_value("Customer", sales_order_data.customer, "territory")
+
                     event["sales_order_info"] = {
                         "name": sales_order_data.name,
                         "customer_name": customer_name,
@@ -479,6 +531,11 @@ def get_day_events(date, territory=None, employee=None, event_type=None):
                         "customer_appareil": customer_extra_data.get("custom_appareil") or "",
                         "customer_camion": customer_extra_data.get("custom_camion") or ""
                     }
+
+                    # Ajouter les informations d'entretien si disponibles
+                    if event_type == "Entretien":
+                        event["sales_order_items"] = sales_order_items
+                        event["customer_territory"] = customer_territory
                     
                     # Debug log pour les commentaires
                     if sales_order_data.custom_commentaire:
@@ -620,6 +677,20 @@ def get_calendar_events(year, month, territory=None, employee=None, event_type=N
                             "custom_city"
                         ], as_dict=True) or {}
                     
+                    # NOUVEAU: Récupérer les articles et le territoire du client pour les entretiens
+                    sales_order_items = []
+                    customer_territory = None
+
+                    # Vérifier si c'est un entretien
+                    event_type = event.get("event_type", "")
+                    if event_type == "Entretien":
+                        # Récupérer les articles de la commande
+                        sales_order_items = get_sales_order_items(sales_order_data.name)
+
+                        # Récupérer le territoire depuis le client
+                        if sales_order_data.customer:
+                            customer_territory = frappe.db.get_value("Customer", sales_order_data.customer, "territory")
+
                     event["sales_order_info"] = {
                         "name": sales_order_data.name,
                         "customer_name": customer_name,
@@ -634,6 +705,11 @@ def get_calendar_events(year, month, territory=None, employee=None, event_type=N
                         "customer_postal_code": customer_extra_data.get("custom_postal_code") or "",
                         "customer_city": customer_extra_data.get("custom_city") or ""
                     }
+
+                    # Ajouter les informations d'entretien si disponibles
+                    if event_type == "Entretien":
+                        event["sales_order_items"] = sales_order_items
+                        event["customer_territory"] = customer_territory
             except Exception as e:
                 # Si la commande n'existe plus ou erreur, continuer sans les infos
                 event["sales_order_info"] = None
@@ -754,6 +830,20 @@ def get_week_events(start_date, end_date, territory=None, employee=None, event_t
                             "custom_city"
                         ], as_dict=True) or {}
                     
+                    # NOUVEAU: Récupérer les articles et le territoire du client pour les entretiens
+                    sales_order_items = []
+                    customer_territory = None
+
+                    # Vérifier si c'est un entretien
+                    event_type = event.get("event_type", "")
+                    if event_type == "Entretien":
+                        # Récupérer les articles de la commande
+                        sales_order_items = get_sales_order_items(sales_order_data.name)
+
+                        # Récupérer le territoire depuis le client
+                        if sales_order_data.customer:
+                            customer_territory = frappe.db.get_value("Customer", sales_order_data.customer, "territory")
+
                     event["sales_order_info"] = {
                         "name": sales_order_data.name,
                         "customer_name": customer_name,
@@ -768,6 +858,11 @@ def get_week_events(start_date, end_date, territory=None, employee=None, event_t
                         "customer_postal_code": customer_extra_data.get("custom_postal_code") or "",
                         "customer_city": customer_extra_data.get("custom_city") or ""
                     }
+
+                    # Ajouter les informations d'entretien si disponibles
+                    if event_type == "Entretien":
+                        event["sales_order_items"] = sales_order_items
+                        event["customer_territory"] = customer_territory
             except Exception as e:
                 # Si la commande n'existe plus ou erreur, continuer sans les infos
                 event["sales_order_info"] = None

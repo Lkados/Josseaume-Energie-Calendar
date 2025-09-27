@@ -1740,10 +1740,125 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 		}
 	}
 
+	// Dictionnaire des préfixes valides pour les équipements
+	const validEquipmentPrefixes = {
+		'EPG': true,    // Poêle granulés
+		'DPG': true,    // Devis Poêle granulés
+		'IPG': true,    // Installation Poêle granulés
+		'ECG': true,    // Entretien Chaudière granulés
+		'DCG': true,    // Devis Chaudière granulés
+		'ICG': true,    // Installation Chaudière granulés
+		'ECGaz': true,  // Entretien Chaudière gaz
+		'DCGaz': true,  // Devis Chaudière gaz
+		'ICGaz': true,  // Installation Chaudière gaz
+		'ECF': true,    // Entretien Chaudière fioul
+		'DCF': true,    // Devis Chaudière fioul
+		'ICF': true,    // Installation Chaudière fioul
+		'RC': true,     // Ramonage cheminée
+		'ITI': true,    // Installation Tubage
+		'IDC': true,    // Installation Démontage cheminée
+		'IAA': true     // Installation Arrivée d'air
+	};
+
+	// Fonction pour extraire le préfixe valide d'un code article
+	function extractValidPrefix(itemCode) {
+		if (!itemCode) return null;
+
+		// Tester d'abord les préfixes longs (ECGaz, DCGaz, ICGaz)
+		const longPrefixes = ['ECGaz', 'DCGaz', 'ICGaz'];
+		for (let prefix of longPrefixes) {
+			if (itemCode.startsWith(prefix)) {
+				return prefix;
+			}
+		}
+
+		// Puis tester les préfixes courts (3 lettres)
+		const threeLetterPrefix = itemCode.substring(0, 3);
+		if (validEquipmentPrefixes[threeLetterPrefix]) {
+			return threeLetterPrefix;
+		}
+
+		// Tester aussi avec 2 lettres pour RC
+		const twoLetterPrefix = itemCode.substring(0, 2);
+		if (validEquipmentPrefixes[twoLetterPrefix]) {
+			return twoLetterPrefix;
+		}
+
+		return null; // Article ignoré si pas dans la liste
+	}
+
+	// Fonction pour construire le titre d'entretien depuis les articles
+	function buildMaintenanceTitle(salesOrderItems, customerTerritory) {
+		const uniquePrefixes = new Set();
+
+		// Extraire tous les préfixes valides
+		if (salesOrderItems && Array.isArray(salesOrderItems)) {
+			for (let item of salesOrderItems) {
+				const prefix = extractValidPrefix(item.item_code);
+				if (prefix) {
+					uniquePrefixes.add(prefix);
+				}
+			}
+		}
+
+		// Construire la liste des préfixes triés
+		const prefixList = Array.from(uniquePrefixes).sort().join(' ');
+
+		// Formater la zone
+		let zoneDisplay = null;
+		if (customerTerritory) {
+			// Si c'est déjà au format "Zone XX"
+			if (customerTerritory.toLowerCase().startsWith('zone')) {
+				zoneDisplay = customerTerritory.toUpperCase();
+			} else {
+				zoneDisplay = `ZONE ${customerTerritory}`;
+			}
+		}
+
+		// Retourner le résultat
+		if (prefixList && zoneDisplay) {
+			return {
+				type: prefixList,
+				zone: zoneDisplay,
+				hasZone: true,
+				isMaintenanceOrder: true
+			};
+		} else if (prefixList) {
+			return {
+				type: prefixList,
+				zone: null,
+				hasZone: false,
+				isMaintenanceOrder: true
+			};
+		} else if (zoneDisplay) {
+			return {
+				type: 'Entretien',
+				zone: zoneDisplay,
+				hasZone: true,
+				isMaintenanceOrder: true
+			};
+		} else {
+			return {
+				type: 'Entretien',
+				zone: null,
+				hasZone: false,
+				isMaintenanceOrder: true
+			};
+		}
+	}
+
 	// FONCTION pour formater le titre avec le type et la zone
 	function formatEventTitle(event, cleanSubject, isNote) {
 		if (isNote) {
 			return cleanSubject;
+		}
+
+		// NOUVEAU : Vérifier si c'est un entretien avec une commande liée
+		if (event.event_type === 'Entretien' && event.custom_sales_order) {
+			// Si on a les données des articles et du territoire
+			if (event.sales_order_items || event.customer_territory) {
+				return buildMaintenanceTitle(event.sales_order_items, event.customer_territory);
+			}
 		}
 
 		let type = "";
