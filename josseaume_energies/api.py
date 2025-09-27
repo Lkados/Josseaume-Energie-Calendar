@@ -56,18 +56,21 @@ def create_event_from_sales_order(docname):
         # Vérifier les articles en fonction du type de commande
         if doc.items:
             if type_commande == "Entretien":
-                # Pour les entretiens, chercher les codes spécifiques
+                # Pour les entretiens, collecter TOUS les codes d'entretien
                 entretien_codes = ["EPG", "ECG", "ECFBT", "ECFC", "ECGAZBT", "ECGAZC", "RAMO"]
-                
+                found_items = []
+
                 for item in doc.items:
                     item_code = item.item_code or ""
                     # Vérifier si le code d'article commence par l'un des codes d'entretien
                     for code in entretien_codes:
                         if item_code.startswith(code):
-                            main_item = item.item_code
+                            found_items.append(item.item_code)
                             break
-                    if main_item != "Service":
-                        break
+
+                # Si on a trouvé des articles d'entretien, les joindre
+                if found_items:
+                    main_item = " + ".join(found_items)
             
             elif type_commande == "Installation":
                 # Pour les installations, chercher des articles contenant POELE ou CHAUDIERE
