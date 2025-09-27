@@ -674,8 +674,8 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 						fieldname: 'appointment_type',
 						label: 'Type de rendez-vous',
 						reqd: 1,
-						options: '\nDevis poêle granulés\nDevis poêle bois\nDevis tubage\nDevis chaudière granulés\nDevis chaudière fioul\nDevis photovoltaique\nDevis électricité\nPrévisite Technique',
-						default: 'Devis poêle granulés'
+						options: '\nDevis Poêles\nDevis Chaudière\nDevis Tubage\nDevis Electricité\nDevis Photovoltaïque',
+						default: 'Devis Poêles'
 					},
 					{
 						fieldtype: 'Data',
@@ -751,14 +751,11 @@ frappe.pages["two_column_calendar"].on_page_load = function (wrapper) {
 	function createEventFromAppointment(values, date, timeSlot, employee) {
 		// Mapper les types de rendez-vous aux abréviations
 		const appointmentTypeAbbreviations = {
-			'Devis poêle granulés': 'DPG',
-			'Devis poêle bois': 'DPB',
-			'Devis tubage': 'DTUB',
-			'Devis chaudière granulés': 'DCG',
-			'Devis chaudière fioul': 'DCF',
-			'Devis photovoltaique': 'DPV',
-			'Devis électricité': 'DELEC',
-			'Prévisite Technique': 'PREV'
+			'Devis Poêles': 'CP',
+			'Devis Chaudière': 'CC',
+			'Devis Tubage': 'CT',
+			'Devis Electricité': 'CE',
+			'Devis Photovoltaïque': 'CPV'
 		};
 
 		// Obtenir l'abréviation du type de rendez-vous
