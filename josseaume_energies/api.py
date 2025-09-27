@@ -391,11 +391,11 @@ def get_day_events(date, territory=None, employee=None, event_type=None):
     start_date = frappe.utils.get_datetime(date)
     end_date = frappe.utils.add_days(start_date, 1)
     
-    # Construire les filtres - Retourner TOUS les événements peu importe leur statut
+    # Construire les filtres - Exclure les événements fermés
     filters = [
         ["starts_on", ">=", start_date],
-        ["starts_on", "<", end_date]
-        # Retourner tous les événements (ouverts, fermés, terminés) pour affichage avec étiquettes
+        ["starts_on", "<", end_date],
+        ["status", "!=", "Closed"]  # Exclure les événements fermés/annulés
     ]
     
     # Ajouter des filtres optionnels
@@ -570,18 +570,18 @@ def get_calendar_events(year, month, territory=None, employee=None, event_type=N
     start_date = f"{year}-{month:02d}-01"
     end_date = f"{year}-{month:02d}-{num_days}"
     
-    # Construire les filtres - Retourner TOUS les événements peu importe leur statut
+    # Construire les filtres - Exclure les événements fermés
     filters = [
         ["starts_on", ">=", start_date],
-        ["starts_on", "<=", end_date]
-        # Retourner tous les événements (ouverts, fermés, terminés) pour affichage avec étiquettes
+        ["starts_on", "<=", end_date],
+        ["status", "!=", "Closed"]  # Exclure les événements fermés/annulés
     ]
     
     # Ajouter le filtre de territoire si spécifié
     if territory:
         filters.append(["subject", "like", f"%{territory}%"])
     
-    # Récupérer TOUS les événements (incluant fermés)
+    # Récupérer les événements (excluant les fermés)
     events = frappe.get_all(
         "Event",
         filters=filters,
@@ -722,18 +722,18 @@ def get_calendar_events(year, month, territory=None, employee=None, event_type=N
 def get_week_events(start_date, end_date, territory=None, employee=None, event_type=None):
     """Récupère les événements pour une semaine donnée"""
     
-    # Construire les filtres - Retourner TOUS les événements peu importe leur statut
+    # Construire les filtres - Exclure les événements fermés
     filters = [
         ["starts_on", ">=", start_date],
-        ["starts_on", "<=", end_date]
-        # Retourner tous les événements (ouverts, fermés, terminés) pour affichage avec étiquettes
+        ["starts_on", "<=", end_date],
+        ["status", "!=", "Closed"]  # Exclure les événements fermés/annulés
     ]
     
     # Ajouter le filtre de territoire si spécifié
     if territory:
         filters.append(["subject", "like", f"%{territory}%"])
     
-    # Récupérer TOUS les événements (incluant fermés)
+    # Récupérer les événements (excluant les fermés)
     events = frappe.get_all(
         "Event",
         filters=filters,
