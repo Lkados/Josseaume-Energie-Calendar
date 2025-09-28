@@ -128,6 +128,10 @@ whitelist_methods = {
     # Recherche personnalisée
     "josseaume_energies.api.search_customers_by_commune": True,
     "josseaume_energies.api.get_communes_list": True,
+
+    # Attribution automatique de zones
+    "josseaume_energies.customer_zone_assignment.manual_assign_zone": True,
+    "josseaume_energies.customer_zone_assignment.search_zone": True,
 }
 
 # ========================================
@@ -200,10 +204,13 @@ doc_events = {
     },
     
     # =====================================
-    # CLIENTS (CUSTOMER) - DÉSACTIVÉ POUR ÉVITER BLOCAGE FACTURES
+    # CLIENTS (CUSTOMER)
     # =====================================
-    # Hook Customer désactivé car il bloquait la validation des factures
-    # Les soldes clients restent calculables manuellement via l'interface
+    "Customer": {
+        # Attribution automatique de zone lors de la création/modification
+        "after_insert": "josseaume_energies.customer_zone_assignment.auto_assign_zone_to_customer",
+        "on_update": "josseaume_energies.customer_zone_assignment.auto_assign_zone_to_customer"
+    }
 }
 
 # ========================================
