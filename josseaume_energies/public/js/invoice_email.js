@@ -2,46 +2,11 @@
 
 frappe.ui.form.on('Sales Invoice', {
     refresh: function(frm) {
-        // Override the email button functionality
-        setTimeout(() => {
-            frm.page.btn_primary.off('click');
-            frm.page.btn_primary.on('click', function() {
-                if (frm.page.btn_primary.text() === __('Email') || frm.page.btn_primary.text() === 'Email') {
-                    // Préparer le message par défaut
-                    const default_message = `Bonjour,
+        // Désactivé temporairement pour éviter les boucles infinies
+        // TODO: Réimplémenter avec une meilleure approche
 
-Veuillez trouver ci-joint le document : Facture N° ${frm.doc.name}.
-
-Nous restons à votre disposition pour tous renseignements complémentaires.
-
-Cordialement,
-
-JOSSEAUME ÉNERGIES
-210 IMPASSE DES TUILERIES - LE VIVIER DANGER
-60650 ONS EN BRAY
-03 44 80 53 75
-contact@josseaume-energies.com
-www.josseaume-energies.com
-
-🌱 N'imprimer que si nécessaire.`;
-
-                    // Ouvrir le dialogue d'email avec les valeurs par défaut
-                    new frappe.views.CommunicationComposer({
-                        doc: frm.doc,
-                        frm: frm,
-                        subject: `Facture N° ${frm.doc.name} - JOSSEAUME ÉNERGIES`,
-                        message: default_message,
-                        real_name: frappe.user_info().fullname,
-                        print_format: frm.meta.default_print_format || "Standard",
-                        select_print_format: true,
-                        send_email: true
-                    });
-                } else {
-                    // Si ce n'est pas le bouton Email, exécuter l'action par défaut
-                    frm.page.btn_primary.trigger('click');
-                }
-            });
-        }, 1000);
+        // La personnalisation des emails se fait maintenant uniquement
+        // via l'extension de la classe CommunicationComposer ci-dessous
     }
 });
 
