@@ -31,6 +31,11 @@ frappe.ui.form.on("Quotation", {
 				console.error("Erreur dans les fonctions de marge (non-critique):", error);
 			}
 		}, 200);
+
+		// Calculer les prix TTC
+		if (typeof josseaume_energies !== 'undefined' && josseaume_energies.ttc) {
+			josseaume_energies.ttc.update_all_items_ttc(frm, 'items');
+		}
 	},
 
 	party_name: function(frm) {
@@ -67,6 +72,11 @@ frappe.ui.form.on("Quotation Item", {
 		setTimeout(function () {
 			try {
 				calculate_item_margin_improved(frm, cdt, cdn);
+				// Recalculer le TTC
+				if (typeof josseaume_energies !== 'undefined' && josseaume_energies.ttc) {
+					josseaume_energies.ttc.update_item_ttc(frm, cdt, cdn);
+					frm.refresh_field('items');
+				}
 			} catch (error) {
 				console.error("Erreur calcul marge prix:", error);
 			}
@@ -77,6 +87,11 @@ frappe.ui.form.on("Quotation Item", {
 		setTimeout(function () {
 			try {
 				calculate_item_margin_improved(frm, cdt, cdn);
+				// Recalculer le TTC
+				if (typeof josseaume_energies !== 'undefined' && josseaume_energies.ttc) {
+					josseaume_energies.ttc.update_item_ttc(frm, cdt, cdn);
+					frm.refresh_field('items');
+				}
 			} catch (error) {
 				console.error("Erreur calcul marge quantité:", error);
 			}
@@ -88,6 +103,11 @@ frappe.ui.form.on("Quotation Item", {
 		setTimeout(function () {
 			try {
 				calculate_item_margin_improved(frm, cdt, cdn);
+				// Recalculer le TTC
+				if (typeof josseaume_energies !== 'undefined' && josseaume_energies.ttc) {
+					josseaume_energies.ttc.update_item_ttc(frm, cdt, cdn);
+					frm.refresh_field('items');
+				}
 			} catch (error) {
 				console.error("Erreur calcul marge remise%:", error);
 			}

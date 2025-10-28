@@ -13,6 +13,13 @@ frappe.ui.form.on("Sales Invoice", {
         }
     },
 
+    refresh: function(frm) {
+        // Calculer les prix TTC
+        if (typeof josseaume_energies !== 'undefined' && josseaume_energies.ttc) {
+            josseaume_energies.ttc.update_all_items_ttc(frm, 'items');
+        }
+    },
+
     customer: function(frm) {
         // Pré-remplir la commune quand un client est sélectionné
         if (typeof josseaume !== 'undefined' && josseaume.customer_filter) {

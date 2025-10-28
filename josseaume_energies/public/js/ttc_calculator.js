@@ -85,9 +85,9 @@ josseaume_energies.ttc.update_item_ttc = function(frm, cdt, cdn) {
     const rate_ttc = josseaume_energies.ttc.calculate_rate_ttc(item.rate || 0, tax_rate);
     const amount_ttc = josseaume_energies.ttc.calculate_amount_ttc(item.amount || 0, tax_rate);
 
-    // Mettre à jour les champs
-    frappe.model.set_value(cdt, cdn, 'custom_rate_ttc', rate_ttc);
-    frappe.model.set_value(cdt, cdn, 'custom_amount_ttc', amount_ttc);
+    // Mettre à jour les champs SANS déclencher d'événements
+    item.custom_rate_ttc = rate_ttc;
+    item.custom_amount_ttc = amount_ttc;
 };
 
 /**
@@ -120,29 +120,11 @@ josseaume_energies.ttc.update_all_items_ttc = function(frm, items_field = 'items
  */
 josseaume_energies.ttc.setup_ttc_calculation = function(frm, child_doctype, items_field = 'items') {
 
-    // Recalculer quand un item change
-    frm.fields_dict[items_field].grid.wrapper.on('change', function() {
-        josseaume_energies.ttc.update_all_items_ttc(frm, items_field);
-    });
-
-    // Événements sur les champs de l'item
-    const fields_to_watch = ['rate', 'qty', 'amount', 'discount_percentage', 'discount_amount', 'item_tax_template'];
-
-    fields_to_watch.forEach(fieldname => {
-        frm.fields_dict[items_field].grid.update_docfield_property(
-            fieldname,
-            'onchange',
-            function() {
-                josseaume_energies.ttc.update_all_items_ttc(frm, items_field);
-            }
-        );
-    });
-
-    // Recalculer quand les taxes changent
-    if (frm.fields_dict.taxes) {
-        frm.fields_dict.taxes.grid.wrapper.on('change', function() {
-            josseaume_energies.ttc.update_all_items_ttc(frm, items_field);
-        });
+    // Flag pour éviter les boucles infinies
+    if (!frm.__ttc_calculation_setup) {
+        frm.__ttc_calculation_setup = true;
+    } else {
+        return; // Déjà configuré
     }
 
     // Recalculer au chargement du document

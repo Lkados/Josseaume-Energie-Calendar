@@ -30,6 +30,11 @@ frappe.ui.form.on("Sales Order", {
 			check_and_display_sync_status(frm);
 		}
 
+		// Calculer les prix TTC
+		if (typeof josseaume_energies !== 'undefined' && josseaume_energies.ttc) {
+			josseaume_energies.ttc.update_all_items_ttc(frm, 'items');
+		}
+
 		// NOUVEAU: Fonction pour afficher le rapport de synchronisation des articles
 		function show_items_sync_report(frm) {
 			frappe.call({
