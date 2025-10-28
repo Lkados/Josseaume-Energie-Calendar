@@ -205,7 +205,7 @@ def create_event_from_sales_order(docname):
             color = "#E53935"  # Rouge
 
         # Créer l'événement
-        event_data = {
+        event = frappe.get_doc({
             "doctype": "Event",
             "subject": subject,
             "event_type": "Public",
@@ -214,60 +214,10 @@ def create_event_from_sales_order(docname):
             "all_day": all_day,
             "description": description,
             "color": color
-        }
-
-        # Ajouter le champ Réglement si le champ personnalisé existe
-        # Vérifier d'abord s'il y a un champ payment_terms_template sur la Sales Order
-        if hasattr(doc, 'payment_terms_template') and doc.payment_terms_template:
-            event_data["custom_reglement"] = doc.payment_terms_template
-        elif hasattr(doc, 'custom_reglement') and doc.custom_reglement:
-            event_data["custom_reglement"] = doc.custom_reglement
-        else:
-            # Valeur par défaut si le champ existe et est obligatoire
-            # Essayer de récupérer une valeur par défaut depuis le meta
-            try:
-                event_meta = frappe.get_meta("Event")
-                reglement_field = event_meta.get_field("custom_reglement")
-                if reglement_field:
-                    if reglement_field.options:
-                        # Si c'est un Select, prendre la première option
-                        options_list = [opt.strip() for opt in reglement_field.options.split('\n') if opt.strip()]
-                        if options_list:
-                            event_data["custom_reglement"] = options_list[0]
-                    elif reglement_field.default:
-                        event_data["custom_reglement"] = reglement_field.default
-            except Exception:
-                pass
-
-        event = frappe.get_doc(event_data)
+        })
 
         # Insérer l'événement
-        try:
-            event.insert(ignore_permissions=True)
-        except frappe.exceptions.MandatoryError as e:
-            # Si un champ obligatoire est manquant, enregistrer l'erreur et retourner un message clair
-            error_msg = str(e)
-            frappe.log_error(
-                f"Champ obligatoire manquant lors de la création de l'événement: {error_msg}\n"
-                f"Sales Order: {doc.name}\n"
-                f"Event data: {event_data}",
-                "Event Creation - Missing Mandatory Field"
-            )
-            return {
-                "status": "error",
-                "message": f"Impossible de créer l'événement : champ obligatoire manquant. {error_msg}"
-            }
-        except Exception as e:
-            # Autre erreur
-            frappe.log_error(
-                f"Erreur lors de la création de l'événement: {str(e)}\n"
-                f"Sales Order: {doc.name}",
-                "Event Creation Error"
-            )
-            return {
-                "status": "error",
-                "message": f"Erreur lors de la création de l'événement : {str(e)}"
-            }
+        event.insert(ignore_permissions=True)
         
         # Ajouter des participants à l'événement
         participants_added = 0
