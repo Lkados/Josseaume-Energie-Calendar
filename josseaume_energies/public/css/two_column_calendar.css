@@ -1745,6 +1745,8 @@ div[data-event-id*="panne" i] {
     position: relative;
 }
 
+/* Badge "Terminé" désactivé - géré maintenant via JavaScript pour éviter la duplication */
+/*
 .event-item[data-status="Completed"]::after,
 .event-item.status-completed::after {
     content: "✓ Terminé";
@@ -1759,6 +1761,7 @@ div[data-event-id*="panne" i] {
     font-weight: 500;
     z-index: 10;
 }
+*/
 
 /* Notes fermées */
 .event-item.note-closed,
