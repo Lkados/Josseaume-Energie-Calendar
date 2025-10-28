@@ -21,17 +21,22 @@ josseaume_energies.ttc.get_tax_rate = function(frm, item) {
         // Pour l'instant, on utilise la méthode simplifiée ci-dessous
     }
 
-    // 2. Utiliser les taxes du document parent
-    if (frm.doc.taxes && frm.doc.taxes.length > 0) {
+    // 2. Calculer le taux effectif depuis les totaux du document
+    if (frm.doc.total_taxes_and_charges && frm.doc.net_total && frm.doc.net_total > 0) {
+        // Calculer le taux effectif : (Total Taxes / Total HT) * 100
+        tax_rate = (frm.doc.total_taxes_and_charges / frm.doc.net_total) * 100;
+    }
+    // 3. Sinon, utiliser les taux définis dans la table des taxes
+    else if (frm.doc.taxes && frm.doc.taxes.length > 0) {
         frm.doc.taxes.forEach(tax => {
             // Additionner tous les taux de taxe
-            if (tax.rate) {
-                tax_rate += parseFloat(tax.rate) || 0;
+            if (tax.rate && !isNaN(tax.rate)) {
+                tax_rate += parseFloat(tax.rate);
             }
         });
     }
 
-    // 3. Si pas de taxes définies, utiliser le taux standard (20% en France)
+    // 4. Si toujours pas de taxe, utiliser le taux standard (20% en France)
     if (tax_rate === 0 && frm.doc.taxes_and_charges) {
         tax_rate = 20; // Taux par défaut TVA France
     }
