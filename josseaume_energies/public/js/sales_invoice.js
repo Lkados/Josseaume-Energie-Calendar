@@ -6,6 +6,11 @@ frappe.ui.form.on("Sales Invoice", {
         if (typeof josseaume !== 'undefined' && josseaume.customer_filter) {
             josseaume.customer_filter.setup_for_doctype('Sales Invoice', frm);
         }
+
+        // Configurer le calcul automatique des prix TTC
+        if (typeof josseaume_energies !== 'undefined' && josseaume_energies.ttc) {
+            josseaume_energies.ttc.setup_ttc_calculation(frm, 'Sales Invoice Item', 'items');
+        }
     },
 
     customer: function(frm) {

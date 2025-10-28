@@ -6,6 +6,11 @@ frappe.ui.form.on("Quotation", {
 		if (typeof josseaume !== 'undefined' && josseaume.customer_filter) {
 			josseaume.customer_filter.setup_for_doctype('Quotation', frm);
 		}
+
+		// Configurer le calcul automatique des prix TTC
+		if (typeof josseaume_energies !== 'undefined' && josseaume_energies.ttc) {
+			josseaume_energies.ttc.setup_ttc_calculation(frm, 'Quotation Item', 'items');
+		}
 	},
 
 	refresh: function (frm) {

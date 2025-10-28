@@ -28,6 +28,7 @@ app_include_css = [
 
 # Fichiers JavaScript inclus dans toute l'application
 app_include_js = [
+    "/assets/josseaume_energies/js/ttc_calculator.js",            # Module de calcul des prix TTC (DOIT être chargé en premier)
     "/assets/josseaume_energies/js/quotation_margin_simple.js",   # Script global pour les marges
     "/assets/josseaume_energies/js/common_customer_filter.js"     # Module de filtrage par commune
 ]
