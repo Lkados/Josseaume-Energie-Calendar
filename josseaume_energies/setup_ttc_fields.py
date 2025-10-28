@@ -28,20 +28,20 @@ ttc_fields = {
             "label": "Prix Unit. TTC",
             "fieldtype": "Currency",
             "insert_after": "rate",
-            "read_only": 1,
+            "read_only": 0,
             "in_list_view": 1,
             "columns": 2,
-            "description": "Prix unitaire TTC (taxes incluses)"
+            "description": "Prix unitaire TTC (taxes incluses) - Éditable"
         },
         {
             "fieldname": "custom_amount_ttc",
             "label": "Montant TTC",
             "fieldtype": "Currency",
             "insert_after": "amount",
-            "read_only": 1,
+            "read_only": 0,
             "in_list_view": 1,
             "columns": 2,
-            "description": "Montant total TTC (taxes incluses)"
+            "description": "Montant total TTC (taxes incluses) - Éditable"
         }
     ],
 
@@ -52,20 +52,20 @@ ttc_fields = {
             "label": "Prix Unit. TTC",
             "fieldtype": "Currency",
             "insert_after": "rate",
-            "read_only": 1,
+            "read_only": 0,
             "in_list_view": 1,
             "columns": 2,
-            "description": "Prix unitaire TTC (taxes incluses)"
+            "description": "Prix unitaire TTC (taxes incluses) - Éditable"
         },
         {
             "fieldname": "custom_amount_ttc",
             "label": "Montant TTC",
             "fieldtype": "Currency",
             "insert_after": "amount",
-            "read_only": 1,
+            "read_only": 0,
             "in_list_view": 1,
             "columns": 2,
-            "description": "Montant total TTC (taxes incluses)"
+            "description": "Montant total TTC (taxes incluses) - Éditable"
         }
     ],
 
@@ -76,20 +76,20 @@ ttc_fields = {
             "label": "Prix Unit. TTC",
             "fieldtype": "Currency",
             "insert_after": "rate",
-            "read_only": 1,
+            "read_only": 0,
             "in_list_view": 1,
             "columns": 2,
-            "description": "Prix unitaire TTC (taxes incluses)"
+            "description": "Prix unitaire TTC (taxes incluses) - Éditable"
         },
         {
             "fieldname": "custom_amount_ttc",
             "label": "Montant TTC",
             "fieldtype": "Currency",
             "insert_after": "amount",
-            "read_only": 1,
+            "read_only": 0,
             "in_list_view": 1,
             "columns": 2,
-            "description": "Montant total TTC (taxes incluses)"
+            "description": "Montant total TTC (taxes incluses) - Éditable"
         }
     ]
 }

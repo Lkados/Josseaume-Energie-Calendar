@@ -7,13 +7,18 @@ frappe.ui.form.on("Sales Order", {
 			josseaume.customer_filter.setup_for_doctype('Sales Order', frm);
 		}
 
-		// Configurer le calcul automatique des prix TTC
-		if (typeof josseaume_energies !== 'undefined' && josseaume_energies.ttc) {
-			josseaume_energies.ttc.setup_ttc_calculation(frm, 'Sales Order Item', 'items');
+		// Configurer les événements TTC bidirectionnels
+		if (typeof setup_ttc_item_events !== 'undefined') {
+			setup_ttc_item_events('Sales Order Item');
 		}
 	},
 
 	refresh: function (frm) {
+		// Initialiser les prix TTC au chargement
+		if (typeof josseaume_energies !== 'undefined' && josseaume_energies.ttc) {
+			josseaume_energies.ttc.initialize_ttc_fields(frm);
+		}
+
 		if (frm.doc.docstatus === 1) {
 			// Bouton pour créer un événement calendrier (existant)
 			frm.add_custom_button(
@@ -28,11 +33,6 @@ frappe.ui.form.on("Sales Order", {
 		// Vérifier le statut de synchronisation si un événement existe
 		if (frm.doc.custom_calendar_event) {
 			check_and_display_sync_status(frm);
-		}
-
-		// Calculer les prix TTC
-		if (typeof josseaume_energies !== 'undefined' && josseaume_energies.ttc) {
-			josseaume_energies.ttc.update_all_items_ttc(frm, 'items');
 		}
 
 		// NOUVEAU: Fonction pour afficher le rapport de synchronisation des articles
